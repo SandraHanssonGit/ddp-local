@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Variant <%= variant.variant_code %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white">
+  <nav class="border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-8 py-4">
+      <div class="flex items-center">
+        <a href="/" class="flex items-center">
+          <img src="https://images.teamtailor-cdn.com/images/s3/teamtailor-production/logotype-v3/image_uploads/7118e754-48bc-483f-b8fa-42a84f2e08f2/original.png" alt="Nudie Jeans" class="h-8">
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-4xl mx-auto px-8 py-16">
+    <a href="/styles/<%= variant.style_id %>" class="text-gray-600 hover:text-gray-900 mb-8 inline-block">← Back to Style</a>
+
+    <div class="flex justify-between items-start mb-12">
+      <div>
+        <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide mb-2">Variant <%= variant.variant_code %></p>
+        <h1 class="text-4xl font-bold text-gray-900"><%= variant.style_name %></h1>
+        <p class="text-gray-600 mt-2"><%= variant.style_number %></p>
+        <% if (variant.variant_name) { %>
+          <p class="text-lg text-gray-700 mt-3 font-semibold"><%= variant.variant_name %></p>
+        <% } %>
+      </div>
+      <div class="flex gap-2">
+        <a href="/variants/<%= variant.variant_id %>/edit" class="bg-gray-900 text-white px-4 py-2 text-sm font-semibold hover:bg-gray-800">
+          Edit
+        </a>
+        <button onclick="deleteConfirm()" class="border border-gray-300 text-gray-900 px-4 py-2 text-sm font-semibold hover:border-gray-900">
+          Delete Variant
+        </button>
+      </div>
+    </div>
+
+    <!-- Product Image -->
+    <% if (variant.image_url) { %>
+      <div class="mb-12">
+        <img src="<%= variant.image_url %>" alt="<%= variant.variant_name || variant.variant_code %>" class="w-full max-w-2xl object-cover rounded">
+      </div>
+    <% } %>
+
+    <!-- Batches Section -->
+    <div class="mb-12">
+      <div class="flex justify-between items-center mb-8">
+        <h2 class="text-2xl font-bold text-gray-900">Batches</h2>
+        <button onclick="document.getElementById('addBatchModal').classList.remove('hidden')" class="bg-gray-900 text-white px-6 py-2 text-sm font-semibold hover:bg-gray-800">
+          + Add Batch
+        </button>
+      </div>
+
+      <% if (batches.length === 0) { %>
+        <div class="text-center py-12">
+          <p class="text-gray-600 mb-6">No batches added yet for this variant.</p>
+        </div>
+      <% } else { %>
+        <div class="space-y-4">
+          <% batches.forEach(batch => { %>
+            <div class="border border-gray-200 p-6 hover:border-gray-400 transition">
+              <div class="flex justify-between items-start">
+                <div class="flex-1">
+                  <h3 class="text-lg font-bold text-gray-900 mb-2">
+                    <a href="/batches/<%= batch.batch_id %>" class="hover:underline">
+                      Batch <%= batch.batch_number %>
+                    </a>
+                  </h3>
+                  <div class="grid grid-cols-4 gap-6 text-sm">
+                    <div>
+                      <p class="text-gray-600 mb-1">Production Date</p>
+                      <p class="font-semibold"><%= batch.production_date ? new Date(batch.production_date).toLocaleDateString('sv-SE') : '-' %></p>
+                    </div>
+                    <div>
+                      <p class="text-gray-600 mb-1">Quantity</p>
+                      <p class="font-semibold"><%= batch.quantity || '-' %></p>
+                    </div>
+                    <div>
+                      <p class="text-gray-600 mb-1">Status</p>
+                      <p class="font-semibold">
+                        <span class="<%= batch.status === 'active' ? 'text-green-700' : 'text-gray-700' %>">
+                          <%= batch.status %>
+                        </span>
+                      </p>
+                    </div>
+                    <div>
+                      <p class="text-gray-600 mb-1">Passport</p>
+                      <% if (batch.passport_url) { %>
+                        <a href="<%= batch.passport_url %>" target="_blank" class="text-gray-900 hover:underline">
+                          View ↗
+                        </a>
+                      <% } else { %>
+                        <p class="text-gray-400">-</p>
+                      <% } %>
+                    </div>
+                  </div>
+                </div>
+                <a href="/batches/<%= batch.batch_id %>/edit" class="text-gray-600 hover:text-gray-900 ml-4">
+                  ✏️
+                </a>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      <% } %>
+    </div>
+  </main>
+
+  <!-- Add Batch Modal -->
+  <div id="addBatchModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-8 w-full max-w-2xl max-h-screen overflow-y-auto">
+      <h2 class="text-2xl font-bold mb-6">Add Batch</h2>
+      <form method="POST" action="/batches">
+        <input type="hidden" name="style_id" value="<%= variant.style_id %>">
+        <input type="hidden" name="variant_id" value="<%= variant.variant_id %>">
+
+        <div class="space-y-6">
+          <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2">Batch Number *</label>
+            <input type="text" name="batch_number" required class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900" placeholder="e.g., LOT-2024-001">
+          </div>
+
+          <div class="grid grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-semibold text-gray-900 mb-2">Production Date</label>
+              <input type="date" name="production_date" class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-900 mb-2">Quantity</label>
+              <input type="number" name="quantity" class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2">Recycling Information</label>
+            <textarea name="recycling_info" class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900" rows="3"></textarea>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2">Passport URL</label>
+            <input type="url" name="passport_url" class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900" placeholder="Auto-generated">
+          </div>
+        </div>
+
+        <div class="flex gap-4 mt-8">
+          <button type="submit" class="flex-1 bg-gray-900 text-white py-2 font-semibold hover:bg-gray-800">
+            Add Batch
+          </button>
+          <button type="button" onclick="document.getElementById('addBatchModal').classList.add('hidden')" class="flex-1 border border-gray-300 text-gray-900 py-2 font-semibold hover:border-gray-900">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function deleteConfirm() {
+      if (confirm('Delete this variant and all associated batches? This cannot be undone.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/variants/<%= variant.variant_id %>/delete';
+        document.body.appendChild(form);
+        form.submit();
+      }
+    }
+  </script>
+</body>
+</html>

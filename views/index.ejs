@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DPP - Product Passport Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white">
+  <nav class="border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-8 py-4">
+      <div class="flex justify-between items-center">
+        <a href="/" class="flex items-center">
+          <img src="https://images.teamtailor-cdn.com/images/s3/teamtailor-production/logotype-v3/image_uploads/7118e754-48bc-483f-b8fa-42a84f2e08f2/original.png" alt="Nudie Jeans" class="h-8">
+        </a>
+        <a href="/styles/new" class="bg-gray-900 text-white px-6 py-2 text-sm font-semibold hover:bg-gray-800">
+          + Add Style
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-8 py-16">
+    <div class="mb-12">
+      <h1 class="text-5xl font-bold text-gray-900 mb-2">Product Styles</h1>
+      <p class="text-gray-600 text-lg">Manage product passports and batch information</p>
+    </div>
+
+    <% if (styles.length === 0) { %>
+      <div class="text-center py-16">
+        <p class="text-gray-600 text-lg mb-6">No styles yet.</p>
+        <a href="/styles/new" class="inline-block bg-gray-900 text-white px-8 py-3 font-semibold hover:bg-gray-800">
+          Create First Style
+        </a>
+      </div>
+    <% } else { %>
+      <div class="grid gap-8">
+        <% styles.forEach(style => { %>
+          <a href="/styles/<%= style.style_id %>" class="border border-gray-200 p-8 hover:border-gray-400 transition group">
+            <div class="flex justify-between items-start">
+              <div class="flex-1">
+                <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide mb-1">Style <%= style.style_number %></p>
+                <h2 class="text-2xl font-bold text-gray-900 mb-2 group-hover:underline"><%= style.style_name %></h2>
+                <p class="text-gray-600 mb-4"><%= style.product_type %></p>
+                <p class="text-sm text-gray-500"><%= style.material_composition || 'Material not specified' %></p>
+              </div>
+              <div class="text-right">
+                <p class="text-sm text-gray-600">
+                  <%= new Date(style.created_at).toLocaleDateString('sv-SE') %>
+                </p>
+              </div>
+            </div>
+          </a>
+        <% }); %>
+      </div>
+    <% } %>
+  </main>
+</body>
+</html>

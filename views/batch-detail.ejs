@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Batch <%= batch.batch_number %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white">
+  <nav class="border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-8 py-4">
+      <div class="flex items-center">
+        <a href="/" class="flex items-center">
+          <img src="https://images.teamtailor-cdn.com/images/s3/teamtailor-production/logotype-v3/image_uploads/7118e754-48bc-483f-b8fa-42a84f2e08f2/original.png" alt="Nudie Jeans" class="h-8">
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-4xl mx-auto px-8 py-16">
+    <% if (batch.variant_id) { %>
+      <a href="/variants/<%= batch.variant_id %>" class="text-gray-600 hover:text-gray-900 mb-8 inline-block">← Back to Variant</a>
+    <% } else { %>
+      <a href="/styles/<%= batch.style_id %>" class="text-gray-600 hover:text-gray-900 mb-8 inline-block">← Back to Style</a>
+    <% } %>
+
+    <div class="mb-12">
+      <% if (batch.variant_id) { %>
+        <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide mb-2">Variant <%= batch.variant_code %><% if (batch.variant_name) { %> – <%= batch.variant_name %><% } %></p>
+      <% } %>
+      <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide mb-2">Batch <%= batch.batch_number %></p>
+      <h1 class="text-4xl font-bold text-gray-900"><%= batch.style_name %></h1>
+      <p class="text-gray-600 mt-2"><%= batch.style_number %></p>
+    </div>
+
+    <!-- Product Image -->
+    <% if (batch.variant_image_url || batch.style_image_url) { %>
+      <div class="mb-12">
+        <img src="<%= batch.variant_image_url || batch.style_image_url %>" alt="<%= batch.style_name %>" class="w-full max-w-2xl object-cover rounded">
+      </div>
+    <% } %>
+
+    <div class="flex justify-between items-start mb-12">
+      <div></div>
+      <div class="flex gap-2">
+        <button onclick="document.getElementById('qrModal').classList.remove('hidden')" class="bg-gray-900 text-white px-4 py-2 text-sm font-semibold hover:bg-gray-800">
+          🏷️ Generate QR Labels
+        </button>
+        <a href="/batches/<%= batch.batch_id %>/edit" class="bg-gray-900 text-white px-4 py-2 text-sm font-semibold hover:bg-gray-800">
+          Edit
+        </a>
+        <button onclick="deleteConfirm()" class="border border-gray-300 text-gray-900 px-4 py-2 text-sm font-semibold hover:border-gray-900">
+          Delete
+        </button>
+      </div>
+    </div>
+
+    <!-- Passport Link -->
+    <% if (batch.passport_url) { %>
+      <div class="border border-gray-200 p-6 mb-12">
+        <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide mb-2">Digital Passport</p>
+        <a href="<%= batch.passport_url %>" target="_blank" class="text-gray-900 hover:underline break-all">
+          <%= batch.passport_url %> ↗
+        </a>
+      </div>
+    <% } %>
+
+    <!-- Batch Info -->
+    <div class="grid grid-cols-3 gap-8 mb-12 pb-12 border-b border-gray-200">
+      <div>
+        <p class="text-xs text-gray-600 font-semibold uppercase tracking-wide mb-2">Production Date</p>
+        <p class="text-gray-900"><%= batch.production_date ? new Date(batch.production_date).toLocaleDateString('sv-SE') : '-' %></p>
+      </div>
+      <div>
+        <p class="text-xs text-gray-600 font-semibold uppercase tracking-wide mb-2">Quantity</p>
+        <p class="text-gray-900"><%= batch.quantity || '-' %></p>
+      </div>
+      <div>
+        <p class="text-xs text-gray-600 font-semibold uppercase tracking-wide mb-2">Status</p>
+        <p class="text-gray-900 font-semibold">
+          <span class="<%= batch.status === 'active' ? 'text-green-700' : 'text-gray-700' %>">
+            <%= batch.status %>
+          </span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Batch Material & Supplier -->
+    <div class="mb-12">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Material & Supplier</h2>
+      <div class="space-y-6">
+        <div>
+          <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide mb-2">Material Composition</p>
+          <p class="text-gray-900"><%= batch.material_composition || 'Not specified' %></p>
+        </div>
+        <div>
+          <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide mb-2">Supplier</p>
+          <p class="text-gray-900"><%= batch.supplier || '-' %></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Style Info -->
+    <div class="mb-12">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Additional Information</h2>
+      <div class="space-y-6">
+        <div>
+        <div class="grid grid-cols-2 gap-8">
+          <div>
+            <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide mb-2">Origin</p>
+            <p class="text-gray-900"><%= batch.country_of_origin || '-' %></p>
+          </div>
+          <% if (batch.certification_name) { %>
+            <div>
+              <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide mb-2">Certification</p>
+              <a href="<%= batch.certification_url %>" target="_blank" class="text-gray-900 hover:underline">
+                <%= batch.certification_name %> ↗
+              </a>
+            </div>
+          <% } %>
+        </div>
+        <% if (batch.care_instructions) { %>
+          <div>
+            <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide mb-2">Care Instructions</p>
+            <p class="text-gray-900"><%= batch.care_instructions %></p>
+          </div>
+        <% } %>
+        <% if (batch.recycling_info) { %>
+          <div>
+            <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide mb-2">Recycling Information</p>
+            <p class="text-gray-900"><%= batch.recycling_info %></p>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+    <p class="text-sm text-gray-500">
+      Created <%= new Date(batch.created_at).toLocaleDateString('sv-SE') %>
+    </p>
+  </main>
+
+  <!-- QR Labels Modal -->
+  <div id="qrModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-8 w-full max-w-md">
+      <h2 class="text-2xl font-bold mb-6">Generate QR Code Labels</h2>
+      <p class="text-gray-600 mb-6">5cm × 3cm per label, 4 per row on A4</p>
+      <form method="GET" action="/batches/<%= batch.batch_id %>/qr-labels">
+        <div class="mb-6">
+          <label class="block text-sm font-semibold text-gray-900 mb-2">Number of Labels</label>
+          <input type="number" name="quantity" min="1" max="100" value="20" required class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900">
+        </div>
+        <div class="flex gap-4">
+          <button type="submit" class="flex-1 bg-gray-900 text-white py-2 font-semibold hover:bg-gray-800">
+            Generate PDF
+          </button>
+          <button type="button" onclick="document.getElementById('qrModal').classList.add('hidden')" class="flex-1 border border-gray-300 text-gray-900 py-2 font-semibold hover:border-gray-900">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function deleteConfirm() {
+      if (confirm('Delete this batch? This cannot be undone.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/batches/<%= batch.batch_id %>/delete';
+        document.body.appendChild(form);
+        form.submit();
+      }
+    }
+  </script>
+</body>
+</html>

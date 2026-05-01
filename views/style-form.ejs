@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Style</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white">
+  <nav class="border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-8 py-4">
+      <div class="flex items-center">
+        <a href="/" class="flex items-center">
+          <img src="https://images.teamtailor-cdn.com/images/s3/teamtailor-production/logotype-v3/image_uploads/7118e754-48bc-483f-b8fa-42a84f2e08f2/original.png" alt="Nudie Jeans" class="h-8">
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-2xl mx-auto px-8 py-16">
+    <a href="/" class="text-gray-600 hover:text-gray-900 mb-8 inline-block">← Back</a>
+
+    <div class="mb-12">
+      <h1 class="text-4xl font-bold text-gray-900"><%= style ? 'Edit Style' : 'Create New Style' %></h1>
+    </div>
+
+    <form method="POST" action="<%= style ? `/styles/${style.style_id}` : '/styles' %>" class="space-y-8">
+      <!-- Style Identification -->
+      <div class="border-b border-gray-200 pb-8">
+        <h2 class="text-lg font-bold text-gray-900 mb-6">Style Information</h2>
+        <div class="grid grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2">Style Number *</label>
+            <input type="text" name="style_number" required class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900" placeholder="e.g., 114539" value="<%= style ? style.style_number : '' %>">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2">Style Name *</label>
+            <input type="text" name="style_name" required class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900" placeholder="e.g., Rad Rufus Indigo Blues" value="<%= style ? style.style_name : '' %>">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-sm font-semibold text-gray-900 mb-2">Product Type *</label>
+            <input type="text" name="product_type" required class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900" placeholder="e.g., Men's Jeans" value="<%= style ? style.product_type : '' %>">
+          </div>
+          <div class="col-span-2">
+            <label class="flex items-center gap-3">
+              <input type="checkbox" name="has_variants" value="1" <% if (style && style.has_variants) { %>checked<% } %> class="w-5 h-5 border border-gray-300">
+              <span class="text-sm font-semibold text-gray-900">This style has variants (e.g., colors, fits)</span>
+            </label>
+            <p class="text-xs text-gray-500 mt-2">If checked, you'll add variants (3-letter codes) before adding batches</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Material & Production -->
+      <div class="border-b border-gray-200 pb-8">
+        <h2 class="text-lg font-bold text-gray-900 mb-6">Material & Production</h2>
+        <div class="space-y-6">
+          <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2">Material Composition</label>
+            <textarea name="material_composition" class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900" rows="3" placeholder="e.g., 100% Organic Cotton, 14.9 oz rigid denim"><%= style ? style.material_composition : '' %></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-semibold text-gray-900 mb-2">Supplier</label>
+              <input type="text" name="supplier" class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900" placeholder="e.g., Premium Suppliers Inc" value="<%= style ? style.supplier : '' %>">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-900 mb-2">Country of Origin</label>
+              <input type="text" name="country_of_origin" class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900" placeholder="e.g., Tunisia" value="<%= style ? style.country_of_origin : '' %>">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Care & Certifications -->
+      <div class="border-b border-gray-200 pb-8">
+        <h2 class="text-lg font-bold text-gray-900 mb-6">Care & Certifications</h2>
+        <div class="space-y-6">
+          <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2">Care Instructions</label>
+            <textarea name="care_instructions" class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900" rows="3" placeholder="e.g., Wash cold, line dry"><%= style ? style.care_instructions : '' %></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-semibold text-gray-900 mb-2">Certification</label>
+              <input type="text" name="certification_name" class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900" placeholder="e.g., GOTS" value="<%= style ? style.certification_name : '' %>">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-900 mb-2">Certification URL</label>
+              <input type="url" name="certification_url" class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900" placeholder="https://..." value="<%= style ? style.certification_url : '' %>">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product Image -->
+      <div class="border-b border-gray-200 pb-8">
+        <h2 class="text-lg font-bold text-gray-900 mb-6">Product Image</h2>
+        <div class="space-y-6">
+          <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2">Product Image URL</label>
+            <input type="url" name="image_url" class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900" placeholder="https://nudie.centracdn.net/..." value="<%= style ? style.image_url : '' %>">
+            <p class="text-xs text-gray-500 mt-2">Paste the product image URL from Nudie website (e.g., nudie.centracdn.net)</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex gap-4">
+        <button type="submit" class="flex-1 bg-gray-900 text-white py-3 font-semibold hover:bg-gray-800">
+          <%= style ? 'Update Style' : 'Create Style' %>
+        </button>
+        <a href="<%= style ? `/styles/${style.style_id}` : '/' %>" class="flex-1 border border-gray-300 text-gray-900 py-3 font-semibold text-center hover:border-gray-900">
+          Cancel
+        </a>
+      </div>
+    </form>
+  </main>
+</body>
+</html>
