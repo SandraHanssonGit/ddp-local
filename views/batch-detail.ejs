@@ -41,7 +41,15 @@
     <% } %>
 
     <div class="flex justify-between items-start mb-12">
-      <div></div>
+      <div>
+        <% if (batch.lifecycle_status === 'draft') { %>
+          <span class="inline-block text-sm bg-gray-200 text-gray-800 px-3 py-1 rounded font-semibold mb-4">Draft</span>
+        <% } else if (batch.lifecycle_status === 'published') { %>
+          <span class="inline-block text-sm bg-green-200 text-green-800 px-3 py-1 rounded font-semibold mb-4">Published</span>
+        <% } else if (batch.lifecycle_status === 'archived') { %>
+          <span class="inline-block text-sm bg-gray-300 text-gray-800 px-3 py-1 rounded font-semibold mb-4">Archived</span>
+        <% } %>
+      </div>
       <div class="flex gap-2">
         <button onclick="document.getElementById('qrModal').classList.remove('hidden')" class="bg-gray-900 text-white px-4 py-2 text-sm font-semibold hover:bg-gray-800">
           🏷️ Generate QR Labels
@@ -49,21 +57,44 @@
         <a href="/batches/<%= batch.batch_id %>/edit" class="bg-gray-900 text-white px-4 py-2 text-sm font-semibold hover:bg-gray-800">
           Edit
         </a>
+        <div class="relative group">
+          <button class="border border-gray-300 text-gray-900 px-4 py-2 text-sm font-semibold hover:border-gray-900">
+            Status ▼
+          </button>
+          <div class="hidden group-hover:block absolute right-0 bg-white border border-gray-200 rounded shadow-lg z-10">
+            <form method="POST" action="/batches/<%= batch.batch_id %>/status" style="display: inline;">
+              <button type="submit" name="lifecycle_status" value="draft" class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-sm">
+                Mark as Draft
+              </button>
+            </form>
+            <form method="POST" action="/batches/<%= batch.batch_id %>/status" style="display: inline;">
+              <button type="submit" name="lifecycle_status" value="published" class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-sm border-t border-gray-200">
+                Mark as Published
+              </button>
+            </form>
+            <form method="POST" action="/batches/<%= batch.batch_id %>/status" style="display: inline;">
+              <button type="submit" name="lifecycle_status" value="archived" class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-sm border-t border-gray-200">
+                Mark as Archived
+              </button>
+            </form>
+          </div>
+        </div>
         <button onclick="deleteConfirm()" class="border border-gray-300 text-gray-900 px-4 py-2 text-sm font-semibold hover:border-gray-900">
-          Delete
+          Archive
         </button>
       </div>
     </div>
 
     <!-- Passport Link -->
-    <% if (batch.passport_url) { %>
-      <div class="border border-gray-200 p-6 mb-12">
-        <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide mb-2">Digital Passport</p>
-        <a href="<%= batch.passport_url %>" target="_blank" class="text-gray-900 hover:underline break-all">
-          <%= batch.passport_url %> ↗
-        </a>
-      </div>
-    <% } %>
+    <div class="border border-gray-200 p-6 mb-12">
+      <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide mb-2">Digital Passport</p>
+      <a href="<%= batch.passport_url %>" target="_blank" class="text-gray-900 hover:underline break-all">
+        <%= batch.passport_url %> ↗
+      </a>
+      <p class="text-xs text-gray-500 mt-3">
+        Format: /p/[style]-<% if (batch.variant_code) { %>[variant]-<% } %>[batch]
+      </p>
+    </div>
 
     <!-- Batch Info -->
     <div class="grid grid-cols-3 gap-8 mb-12 pb-12 border-b border-gray-200">
@@ -137,6 +168,36 @@
     <p class="text-sm text-gray-500">
       Created <%= new Date(batch.created_at).toLocaleDateString('sv-SE') %>
     </p>
+
+    <!-- Change Log -->
+    <% if (changes && changes.length > 0) { %>
+      <div class="mt-16 pt-16 border-t border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900 mb-8">Change History</h2>
+        <div class="space-y-4">
+          <% changes.forEach(change => { %>
+            <div class="border-l-4 border-gray-300 pl-4 py-3">
+              <p class="text-sm font-semibold text-gray-900">
+                <% if (change.change_type === 'update') { %>
+                  Updated
+                <% } else if (change.change_type === 'status_change') { %>
+                  Status Changed
+                <% } else if (change.change_type === 'archive') { %>
+                  Archived
+                <% } else { %>
+                  <%= change.change_type %>
+                <% } %>
+              </p>
+              <p class="text-sm text-gray-600 mt-1">
+                <%= change.change_description %>
+              </p>
+              <p class="text-xs text-gray-500 mt-2">
+                <%= new Date(change.created_at).toLocaleDateString('sv-SE', {year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'}) %>
+              </p>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+    <% } %>
   </main>
 
   <!-- QR Labels Modal -->

@@ -6,6 +6,7 @@ const db = new sqlite3.Database(dbPath);
 
 db.serialize(() => {
   // Drop old tables if they exist
+  db.run('DROP TABLE IF EXISTS change_log', (err) => {});
   db.run('DROP TABLE IF EXISTS batches', (err) => {});
   db.run('DROP TABLE IF EXISTS variants', (err) => {});
   db.run('DROP TABLE IF EXISTS styles', (err) => {});
@@ -56,10 +57,24 @@ db.serialize(() => {
     recycling_info TEXT,
     passport_url TEXT,
     status TEXT DEFAULT 'active',
+    lifecycle_status TEXT DEFAULT 'draft',
+    archived INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (style_id) REFERENCES styles(style_id),
     FOREIGN KEY (variant_id) REFERENCES variants(variant_id)
+  )`);
+
+  db.run(`CREATE TABLE change_log (
+    log_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    batch_id INTEGER NOT NULL,
+    change_type TEXT NOT NULL,
+    change_description TEXT,
+    changed_field TEXT,
+    old_value TEXT,
+    new_value TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (batch_id) REFERENCES batches(batch_id)
   )`);
 
   // Clear existing data
@@ -85,21 +100,21 @@ db.serialize(() => {
 
   // Insert test batches
   // Batches for style 1 (no variants)
-  db.run(`INSERT INTO batches (style_id, variant_id, batch_number, production_date, quantity, material_composition, supplier, recycling_info, passport_url, status)
-    VALUES (1, NULL, '1015893', '2024-01-15', 500, '100% Organic Cotton, 14.9 oz rigid denim', 'Premium Suppliers Inc', 'Organic cotton is fully recyclable and biodegradable', '/p/1015893', 'active')`);
+  db.run(`INSERT INTO batches (style_id, variant_id, batch_number, production_date, quantity, material_composition, supplier, recycling_info, passport_url, status, lifecycle_status, archived)
+    VALUES (1, NULL, '1015893', '2024-01-15', 500, '100% Organic Cotton, 14.9 oz rigid denim', 'Premium Suppliers Inc', 'Organic cotton is fully recyclable and biodegradable', '/p/1015893', 'active', 'published', 0)`);
 
-  db.run(`INSERT INTO batches (style_id, variant_id, batch_number, production_date, quantity, material_composition, supplier, recycling_info, passport_url, status)
-    VALUES (1, NULL, '1015894', '2024-02-01', 300, '100% Organic Cotton, 14.9 oz rigid denim', 'Premium Suppliers Inc', 'Organic cotton is fully recyclable and biodegradable', '/p/1015894', 'active')`);
+  db.run(`INSERT INTO batches (style_id, variant_id, batch_number, production_date, quantity, material_composition, supplier, recycling_info, passport_url, status, lifecycle_status, archived)
+    VALUES (1, NULL, '1015894', '2024-02-01', 300, '100% Organic Cotton, 14.9 oz rigid denim', 'Premium Suppliers Inc', 'Organic cotton is fully recyclable and biodegradable', '/p/1015894', 'active', 'draft', 0)`);
 
   // Batches for style 2 variants
-  db.run(`INSERT INTO batches (style_id, variant_id, batch_number, production_date, quantity, material_composition, supplier, recycling_info, passport_url, status)
-    VALUES (2, 1, '2024-ROY-001', '2024-02-01', 800, '100% Organic Cotton, heavy slub', 'Green Textiles Ltd', 'Recyclable cotton. Remove trims for proper recycling', '/p/2024-ROY-001', 'active')`);
+  db.run(`INSERT INTO batches (style_id, variant_id, batch_number, production_date, quantity, material_composition, supplier, recycling_info, passport_url, status, lifecycle_status, archived)
+    VALUES (2, 1, '2024-ROY-001', '2024-02-01', 800, '100% Organic Cotton, heavy slub', 'Green Textiles Ltd', 'Recyclable cotton. Remove trims for proper recycling', '/p/2024-ROY-001', 'active', 'published', 0)`);
 
-  db.run(`INSERT INTO batches (style_id, variant_id, batch_number, production_date, quantity, material_composition, supplier, recycling_info, passport_url, status)
-    VALUES (2, 2, '2024-ROY-002', '2024-02-15', 600, '100% Organic Cotton, heavy slub', 'Green Textiles Ltd', 'Recyclable cotton. Remove trims for proper recycling', '/p/2024-ROY-002', 'active')`);
+  db.run(`INSERT INTO batches (style_id, variant_id, batch_number, production_date, quantity, material_composition, supplier, recycling_info, passport_url, status, lifecycle_status, archived)
+    VALUES (2, 2, '2024-ROY-002', '2024-02-15', 600, '100% Organic Cotton, heavy slub', 'Green Textiles Ltd', 'Recyclable cotton. Remove trims for proper recycling', '/p/2024-ROY-002', 'active', 'published', 0)`);
 
-  db.run(`INSERT INTO batches (style_id, variant_id, batch_number, production_date, quantity, recycling_info, passport_url, status)
-    VALUES (3, NULL, '2024-LINEN-001', '2024-01-20', 400, 'Linen is naturally biodegradable and compostable', '/p/2024-LINEN-001', 'active')`, () => {
+  db.run(`INSERT INTO batches (style_id, variant_id, batch_number, production_date, quantity, material_composition, supplier, recycling_info, passport_url, status, lifecycle_status, archived)
+    VALUES (3, NULL, '2024-LINEN-001', '2024-01-20', 400, '100% Linen', 'Linen Collective', 'Linen is naturally biodegradable and compostable', '/p/2024-LINEN-001', 'active', 'archived', 1)`, () => {
       console.log('✓ Database seeded with Style → Batch structure');
       db.close();
     });

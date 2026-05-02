@@ -60,10 +60,26 @@ function initializeTables() {
         recycling_info TEXT,
         passport_url TEXT,
         status TEXT DEFAULT 'active',
+        lifecycle_status TEXT DEFAULT 'draft',
+        archived INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (style_id) REFERENCES styles(style_id),
         FOREIGN KEY (variant_id) REFERENCES variants(variant_id)
+      )
+    `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS change_log (
+        log_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        batch_id INTEGER NOT NULL,
+        change_type TEXT NOT NULL,
+        change_description TEXT,
+        changed_field TEXT,
+        old_value TEXT,
+        new_value TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (batch_id) REFERENCES batches(batch_id)
       )
     `);
   });

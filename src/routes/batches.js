@@ -16,7 +16,12 @@ router.get('/:batch_id', (req, res) => {
     (err, batch) => {
       if (err) return res.status(500).send('Database error');
       if (!batch) return res.status(404).send('Batch not found');
-      res.render('batch-detail', { batch });
+
+      // Get change log
+      db.all('SELECT * FROM change_log WHERE batch_id = ? ORDER BY created_at DESC', [batch_id], (err, changes) => {
+        if (err) return res.status(500).send('Database error');
+        res.render('batch-detail', { batch, changes: changes || [] });
+      });
     }
   );
 });
@@ -35,49 +40,157 @@ router.get('/:batch_id/edit', (req, res) => {
     (err, batch) => {
       if (err) return res.status(500).send('Database error');
       if (!batch) return res.status(404).send('Batch not found');
-      res.render('batch-edit', { batch });
+      res.render('batch-edit', { batch, error: null });
     }
   );
 });
 
 // POST create batch
 router.post('/', (req, res) => {
-  const { style_id, variant_id, batch_number, production_date, quantity, material_composition, supplier, recycling_info, passport_url } = req.body;
+  const { style_id, variant_id, batch_number, production_date, quantity, material_composition, supplier, recycling_info } = req.body;
 
-  db.run(
-    `INSERT INTO batches (style_id, variant_id, batch_number, production_date, quantity, material_composition, supplier, recycling_info, passport_url)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [style_id, variant_id || null, batch_number, production_date, quantity, material_composition || null, supplier || null, recycling_info, passport_url],
-    (err) => {
-      if (err) return res.status(500).send('Error creating batch');
-      const redirect_url = variant_id ? `/variants/${variant_id}` : `/styles/${style_id}`;
-      res.redirect(redirect_url);
+  // Get style and variant info to build passport URL
+  db.get('SELECT style_number FROM styles WHERE style_id = ?', [style_id], (err, style) => {
+    if (err) return res.status(500).send('Database error');
+    if (!style) return res.status(500).send('Style not found');
+
+    let passport_url = `/p/${style.style_number}-${batch_number}`;
+
+    if (variant_id) {
+      db.get('SELECT variant_code FROM variants WHERE variant_id = ?', [variant_id], (err, variant) => {
+        if (err) return res.status(500).send('Database error');
+        if (variant) {
+          passport_url = `/p/${style.style_number}-${variant.variant_code}-${batch_number}`;
+        }
+
+        db.run(
+          `INSERT INTO batches (style_id, variant_id, batch_number, production_date, quantity, material_composition, supplier, recycling_info, passport_url)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [style_id, variant_id, batch_number, production_date, quantity, material_composition || null, supplier || null, recycling_info, passport_url],
+          (err) => {
+            if (err) return res.status(500).send('Error creating batch');
+            res.redirect(`/variants/${variant_id}`);
+          }
+        );
+      });
+    } else {
+      db.run(
+        `INSERT INTO batches (style_id, variant_id, batch_number, production_date, quantity, material_composition, supplier, recycling_info, passport_url)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [style_id, null, batch_number, production_date, quantity, material_composition || null, supplier || null, recycling_info, passport_url],
+        (err) => {
+          if (err) return res.status(500).send('Error creating batch');
+          res.redirect(`/styles/${style_id}`);
+        }
+      );
     }
-  );
+  });
 });
 
 // POST update batch
 router.post('/:batch_id', (req, res) => {
   const batch_id = req.params.batch_id;
-  const { production_date, quantity, material_composition, supplier, recycling_info, passport_url, status } = req.body;
+  const { batch_number, production_date, quantity, material_composition, supplier, recycling_info, status } = req.body;
 
-  db.run(
-    `UPDATE batches SET production_date = ?, quantity = ?, material_composition = ?, supplier = ?, recycling_info = ?, passport_url = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE batch_id = ?`,
-    [production_date, quantity, material_composition || null, supplier || null, recycling_info, passport_url, status, batch_id],
-    (err) => {
-      if (err) return res.status(500).send('Error updating batch');
-      res.redirect(`/batches/${batch_id}`);
+  if (!batch_number) {
+    return res.status(400).send('Batch number is required');
+  }
+
+  // Get batch with style and variant info to regenerate passport URL
+  db.get(
+    `SELECT b.*, s.style_number, s.style_name, v.variant_code, v.variant_name FROM batches b
+     JOIN styles s ON b.style_id = s.style_id
+     LEFT JOIN variants v ON b.variant_id = v.variant_id
+     WHERE b.batch_id = ?`,
+    [batch_id],
+    (err, batch) => {
+      if (err) return res.status(500).send('Database error');
+      if (!batch) return res.status(404).send('Batch not found');
+
+      // Check if batch number is unique (excluding current batch)
+      db.get(
+        'SELECT batch_id FROM batches WHERE batch_number = ? AND batch_id != ?',
+        [batch_number, batch_id],
+        (err, existing) => {
+          if (err) return res.status(500).send('Database error');
+          if (existing) {
+            return res.render('batch-edit', { batch, error: 'Batch number already exists' });
+          }
+
+          // Generate passport URL
+          let passport_url = `/p/${batch.style_number}-${batch_number}`;
+          if (batch.variant_code) {
+            passport_url = `/p/${batch.style_number}-${batch.variant_code}-${batch_number}`;
+          }
+
+          db.run(
+            `UPDATE batches SET batch_number = ?, production_date = ?, quantity = ?, material_composition = ?, supplier = ?, recycling_info = ?, passport_url = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE batch_id = ?`,
+            [batch_number, production_date, quantity, material_composition || null, supplier || null, recycling_info, passport_url, status, batch_id],
+            (err) => {
+              if (err) return res.status(500).send('Error updating batch');
+
+              // Log change
+              db.run(
+                'INSERT INTO change_log (batch_id, change_type, change_description) VALUES (?, ?, ?)',
+                [batch_id, 'update', 'Batch updated'],
+                () => res.redirect(`/batches/${batch_id}`)
+              );
+            }
+          );
+        }
+      );
     }
   );
 });
 
-// POST delete batch
+// POST archive batch (soft delete)
 router.post('/:batch_id/delete', (req, res) => {
   const batch_id = req.params.batch_id;
 
-  db.run('DELETE FROM batches WHERE batch_id = ?', [batch_id], (err) => {
-    if (err) return res.status(500).send('Error deleting batch');
-    res.redirect('/');
+  db.get('SELECT batch_number FROM batches WHERE batch_id = ?', [batch_id], (err, batch) => {
+    if (err) return res.status(500).send('Database error');
+    if (!batch) return res.status(404).send('Batch not found');
+
+    db.run('UPDATE batches SET archived = 1, lifecycle_status = ? WHERE batch_id = ?', ['archived', batch_id], (err) => {
+      if (err) return res.status(500).send('Error archiving batch');
+
+      // Log change
+      db.run(
+        'INSERT INTO change_log (batch_id, change_type, change_description) VALUES (?, ?, ?)',
+        [batch_id, 'archive', `Batch ${batch.batch_number} archived`],
+        () => res.redirect('/')
+      );
+    });
+  });
+});
+
+// POST update batch lifecycle status
+router.post('/:batch_id/status', (req, res) => {
+  const batch_id = req.params.batch_id;
+  const { lifecycle_status } = req.body;
+
+  if (!['draft', 'published', 'archived'].includes(lifecycle_status)) {
+    return res.status(400).send('Invalid status');
+  }
+
+  db.get('SELECT batch_number FROM batches WHERE batch_id = ?', [batch_id], (err, batch) => {
+    if (err) return res.status(500).send('Database error');
+    if (!batch) return res.status(404).send('Batch not found');
+
+    db.run(
+      'UPDATE batches SET lifecycle_status = ?, updated_at = CURRENT_TIMESTAMP WHERE batch_id = ?',
+      [lifecycle_status, batch_id],
+      (err) => {
+        if (err) return res.status(500).send('Error updating status');
+
+        // Log change
+        db.run(
+          'INSERT INTO change_log (batch_id, change_type, change_description) VALUES (?, ?, ?)',
+          [batch_id, 'status_change', `Status changed to ${lifecycle_status}`],
+          () => res.redirect(`/batches/${batch_id}`)
+        );
+      }
+    );
   });
 });
 
