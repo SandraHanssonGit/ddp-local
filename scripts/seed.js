@@ -28,6 +28,7 @@ db.serialize(() => {
     certification_name TEXT,
     certification_url TEXT,
     image_url TEXT,
+    gtin TEXT,
     has_variants INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -82,14 +83,14 @@ db.serialize(() => {
   db.run('DELETE FROM styles');
 
   // Insert test styles
-  db.run(`INSERT INTO styles (style_number, style_name, product_type, material_composition, supplier, country_of_origin, care_instructions, certification_name, certification_url, image_url, has_variants)
-    VALUES ('114539', 'Rad Rufus Indigo Blues', 'Men''s regular fit straight leg jeans', '100% Organic Cotton, 14.9 oz rigid denim', 'Premium Suppliers Inc', 'Tunisia', 'Wash cold, line dry', 'GOTS', 'https://www.gots.org', 'https://nudie.centracdn.net/client/dynamic/images/8147_aacababdb7-rad-rufus-indigo-blues-114539-01-flatshot-2400.jpg', 0)`);
+  db.run(`INSERT INTO styles (style_number, style_name, product_type, material_composition, supplier, country_of_origin, care_instructions, certification_name, certification_url, image_url, gtin, has_variants)
+    VALUES ('114539', 'Rad Rufus Indigo Blues', 'Men''s regular fit straight leg jeans', '100% Organic Cotton, 14.9 oz rigid denim', 'Premium Suppliers Inc', 'Tunisia', 'Wash cold, line dry', 'GOTS', 'https://www.gots.org', 'https://nudie.centracdn.net/client/dynamic/images/8147_aacababdb7-rad-rufus-indigo-blues-114539-01-flatshot-2400.jpg', '7323270111453', 0)`);
 
-  db.run(`INSERT INTO styles (style_number, style_name, product_type, material_composition, supplier, country_of_origin, care_instructions, certification_name, certification_url, image_url, has_variants)
-    VALUES ('131888', 'Roy Heavy Slub T-Shirt', 'Men''s T-Shirt', '100% Organic Cotton, heavy slub', 'Green Textiles Ltd', 'India', 'Gentle wash, tumble dry low', 'OEKO-TEX', 'https://www.oeko-tex.com', 'https://nudie.centracdn.net/client/dynamic/images/8497_8669602725-131888b30_roy_heavy_slub_t_shirt_antracite-flatshot-2400.jpg', 1)`);
+  db.run(`INSERT INTO styles (style_number, style_name, product_type, material_composition, supplier, country_of_origin, care_instructions, certification_name, certification_url, image_url, gtin, has_variants)
+    VALUES ('131888', 'Roy Heavy Slub T-Shirt', 'Men''s T-Shirt', '100% Organic Cotton, heavy slub', 'Green Textiles Ltd', 'India', 'Gentle wash, tumble dry low', 'OEKO-TEX', 'https://www.oeko-tex.com', 'https://nudie.centracdn.net/client/dynamic/images/8497_8669602725-131888b30_roy_heavy_slub_t_shirt_antracite-flatshot-2400.jpg', '7323270131888', 1)`);
 
-  db.run(`INSERT INTO styles (style_number, style_name, product_type, material_composition, supplier, country_of_origin, care_instructions, image_url, has_variants)
-    VALUES ('120456', 'Summer Linen Shirt', 'Short sleeve shirt', '100% Linen', 'Linen Collective', 'Lithuania', 'Hand wash recommended', 'https://nudie.centracdn.net/client/dynamic/images/9234_2d3e1f4c5a-summer-linen-shirt-120456-01-flatshot-2400.jpg', 0)`);
+  db.run(`INSERT INTO styles (style_number, style_name, product_type, material_composition, supplier, country_of_origin, care_instructions, image_url, gtin, has_variants)
+    VALUES ('120456', 'Summer Linen Shirt', 'Short sleeve shirt', '100% Linen', 'Linen Collective', 'Lithuania', 'Hand wash recommended', 'https://nudie.centracdn.net/client/dynamic/images/9234_2d3e1f4c5a-summer-linen-shirt-120456-01-flatshot-2400.jpg', '7323270120456', 0)`);
 
   // Insert test variants (for style 2 which has_variants=1)
   db.run(`INSERT INTO variants (style_id, variant_code, variant_name, image_url)

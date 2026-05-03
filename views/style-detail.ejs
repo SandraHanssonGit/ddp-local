@@ -58,6 +58,10 @@
         <p class="text-xs text-gray-600 font-semibold uppercase tracking-wide mb-2">Supplier</p>
         <p class="text-gray-900"><%= style.supplier || '-' %></p>
       </div>
+      <div>
+        <p class="text-xs text-gray-600 font-semibold uppercase tracking-wide mb-2">GTIN</p>
+        <p class="text-gray-900 font-mono"><%= style.gtin || '-' %></p>
+      </div>
       <% if (style.certification_name) { %>
         <div>
           <p class="text-xs text-gray-600 font-semibold uppercase tracking-wide mb-2">Certification</p>

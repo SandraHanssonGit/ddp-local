@@ -58,11 +58,11 @@ router.post('/:style_id/delete', (req, res) => {
 // POST update style
 router.post('/:style_id', (req, res) => {
   const style_id = req.params.style_id;
-  const { style_number, style_name, product_type, material_composition, supplier, country_of_origin, care_instructions, certification_name, certification_url, image_url, has_variants } = req.body;
+  const { style_number, style_name, product_type, material_composition, supplier, country_of_origin, care_instructions, certification_name, certification_url, image_url, gtin, has_variants } = req.body;
 
   db.run(
-    'UPDATE styles SET style_number = ?, style_name = ?, product_type = ?, material_composition = ?, supplier = ?, country_of_origin = ?, care_instructions = ?, certification_name = ?, certification_url = ?, image_url = ?, has_variants = ?, updated_at = CURRENT_TIMESTAMP WHERE style_id = ?',
-    [style_number, style_name, product_type, material_composition, supplier, country_of_origin, care_instructions, certification_name, certification_url, image_url, has_variants ? 1 : 0, style_id],
+    'UPDATE styles SET style_number = ?, style_name = ?, product_type = ?, material_composition = ?, supplier = ?, country_of_origin = ?, care_instructions = ?, certification_name = ?, certification_url = ?, image_url = ?, gtin = ?, has_variants = ?, updated_at = CURRENT_TIMESTAMP WHERE style_id = ?',
+    [style_number, style_name, product_type, material_composition, supplier, country_of_origin, care_instructions, certification_name, certification_url, image_url, gtin || null, has_variants ? 1 : 0, style_id],
     (err) => {
       if (err) return res.status(500).send('Error updating style: ' + err.message);
       res.redirect(`/styles/${style_id}`);
@@ -72,11 +72,11 @@ router.post('/:style_id', (req, res) => {
 
 // POST create style
 router.post('/', (req, res) => {
-  const { style_number, style_name, product_type, material_composition, supplier, country_of_origin, care_instructions, certification_name, certification_url, image_url, has_variants } = req.body;
+  const { style_number, style_name, product_type, material_composition, supplier, country_of_origin, care_instructions, certification_name, certification_url, image_url, gtin, has_variants } = req.body;
 
   db.run(
-    'INSERT INTO styles (style_number, style_name, product_type, material_composition, supplier, country_of_origin, care_instructions, certification_name, certification_url, image_url, has_variants) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [style_number, style_name, product_type, material_composition, supplier, country_of_origin, care_instructions, certification_name, certification_url, image_url, has_variants ? 1 : 0],
+    'INSERT INTO styles (style_number, style_name, product_type, material_composition, supplier, country_of_origin, care_instructions, certification_name, certification_url, image_url, gtin, has_variants) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [style_number, style_name, product_type, material_composition, supplier, country_of_origin, care_instructions, certification_name, certification_url, image_url, gtin || null, has_variants ? 1 : 0],
     function(err) {
       if (err) return res.status(500).send('Error creating style: ' + err.message);
       res.redirect(`/styles/${this.lastID}`);

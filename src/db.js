@@ -27,6 +27,7 @@ function initializeTables() {
         certification_name TEXT,
         certification_url TEXT,
         image_url TEXT,
+        gtin TEXT,
         has_variants INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP

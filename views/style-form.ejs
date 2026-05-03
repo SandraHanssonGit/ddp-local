@@ -34,6 +34,11 @@
             <input type="text" name="style_number" required class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900" placeholder="e.g., 114539" value="<%= style ? style.style_number : '' %>">
           </div>
           <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2">GTIN</label>
+            <input type="text" name="gtin" class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900" placeholder="e.g., 7323270114539" value="<%= style ? style.gtin : '' %>">
+            <p class="text-xs text-gray-500 mt-1">13-digit barcode number</p>
+          </div>
+          <div class="col-span-2">
             <label class="block text-sm font-semibold text-gray-900 mb-2">Style Name *</label>
             <input type="text" name="style_name" required class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900" placeholder="e.g., Rad Rufus Indigo Blues" value="<%= style ? style.style_name : '' %>">
           </div>
