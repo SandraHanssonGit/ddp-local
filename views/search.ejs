@@ -226,12 +226,15 @@
       document.getElementById('dataViewContainer').classList.remove('hidden');
 
       if (type === 'style') {
-        loadStyleData(styleNumber);
+        await loadStyleData(styleNumber);
       } else if (type === 'batch') {
-        loadBatchData(batchId);
+        await loadBatchData(batchId);
       } else if (type === 'serial') {
-        loadSerialData(serialNumber);
+        await loadSerialData(serialNumber);
       }
+
+      // Scroll to the data view
+      document.getElementById('dataViewContainer').scrollIntoView({ behavior: 'smooth' });
     }
 
     async function loadStyleData(styleNumber) {

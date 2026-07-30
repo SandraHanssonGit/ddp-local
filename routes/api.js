@@ -1,19 +1,173 @@
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 const { db, queries } = require('../db/init');
 
-// Import batch + serials from partner
-router.post('/batch/import', (req, res) => {
+const JWT_SECRET = process.env.JWT_SECRET;
+
+// Input validation middleware
+const validateSerialNumber = (req, res, next) => {
+  const { serial_number } = req.params;
+  if (!serial_number || typeof serial_number !== 'string' || serial_number.length > 100) {
+    return res.status(400).json({ error: 'Invalid serial number' });
+  }
+  next();
+};
+
+const validateStyleNumber = (req, res, next) => {
+  const { style_number } = req.params;
+  if (!style_number || typeof style_number !== 'string' || style_number.length > 50) {
+    return res.status(400).json({ error: 'Invalid style number' });
+  }
+  next();
+};
+
+const validateBatchId = (req, res, next) => {
+  const { batch_id } = req.params;
+  if (!batch_id || typeof batch_id !== 'string' || batch_id.length > 100) {
+    return res.status(400).json({ error: 'Invalid batch ID' });
+  }
+  next();
+};
+
+const validateImageUpload = (req, res, next) => {
+  if (req.body.image_data) {
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (req.body.image_data.length > maxSize * 1.33) { // base64 overhead
+      return res.status(413).json({ error: 'Image too large (max 5MB)' });
+    }
+  }
+  next();
+};
+
+// Middleware to verify JWT
+const verifyToken = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'No token provided' });
+
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch (err) {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
+// Middleware to check role
+const checkRole = (allowedRoles) => (req, res, next) => {
+  if (!allowedRoles.includes(req.user.role)) {
+    return res.status(403).json({ error: 'Insufficient permissions' });
+  }
+  next();
+};
+
+// Login endpoint
+router.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password required' });
+  }
+
+  db.get(`SELECT * FROM users WHERE username = ?`, [username], async (err, user) => {
+    if (err) return res.status(400).json({ error: err.message });
+    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+
+    // Verify password with bcrypt
+    let isValid = false;
+    try {
+      isValid = await bcrypt.compare(password, user.password);
+    } catch (e) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    if (!isValid) return res.status(401).json({ error: 'Invalid credentials' });
+
+    // API clients cannot use UI
+    if (user.role === 'api_client') {
+      return res.status(403).json({ error: 'API clients cannot access UI. Use API directly.' });
+    }
+
+    // Generate JWT
+    const token = jwt.sign(
+      { id: user.id, username: user.username, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      success: true,
+      token,
+      user: { id: user.id, username: user.username, role: user.role }
+    });
+  });
+});
+
+// Add serials to existing batch
+router.post('/serials/add', verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
+  const { batch_id, serials } = req.body;
+
+  if (!serials || serials.length === 0) {
+    return res.status(400).json({ error: 'No serials provided' });
+  }
+
+  let inserted = 0;
+  serials.forEach(serial_number => {
+    db.run(
+      `INSERT INTO serials (batch_id, serial_number) VALUES (?, ?)`,
+      [batch_id, serial_number],
+      function(err) {
+        if (!err) {
+          db.run(
+            `INSERT INTO serial_data (serial_id, key, value, added_by) VALUES (?, ?, ?, ?)`,
+            [this.lastID, 'condition', 'new', 'system'],
+            () => {
+              inserted++;
+              if (inserted === serials.length) {
+                res.json({ success: true, batch_id, serials_added: serials.length });
+              }
+            }
+          );
+        } else {
+          inserted++;
+          if (inserted === serials.length) {
+            res.json({ success: true, batch_id, serials_added: inserted });
+          }
+        }
+      }
+    );
+  });
+});
+
+// Import batch + serials from partner (creates new or adds serials to existing)
+router.post('/batch/import', verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { batch_id, style_number, total_units, partner_name, serials } = req.body;
 
-  // Insert batch
-  db.run(
-    `INSERT INTO batches (batch_id, style_number, total_units, partner_name) VALUES (?, ?, ?, ?)`,
-    [batch_id, style_number, total_units, partner_name],
-    function(err) {
-      if (err) {
-        return res.status(400).json({ error: err.message });
-      }
+  // Check if batch exists
+  db.get(`SELECT * FROM batches WHERE batch_id = ?`, [batch_id], (err, existingBatch) => {
+    if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+
+    // If batch doesn't exist, create it
+    if (!existingBatch) {
+      return db.run(
+        `INSERT INTO batches (batch_id, style_number, total_units, partner_name) VALUES (?, ?, ?, ?)`,
+        [batch_id, style_number, total_units, partner_name],
+        function(err) {
+          if (err) {
+            return res.status(400).json({ error: err.message });
+          }
+          insertSerials();
+        }
+      );
+    }
+
+    // Batch exists, just add serials
+    insertSerials();
+
+    function insertSerials() {
 
       // Insert serials
       let inserted = 0;
@@ -45,11 +199,11 @@ router.post('/batch/import', (req, res) => {
         );
       });
     }
-  );
+  });
 });
 
 // Add data to serial
-router.post('/serials/:serial_number/data', (req, res) => {
+router.post('/serials/:serial_number/data', validateSerialNumber, verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { serial_number } = req.params;
   const { key, value, added_by } = req.body;
 
@@ -69,7 +223,7 @@ router.post('/serials/:serial_number/data', (req, res) => {
 });
 
 // Add event (repair, recycling, etc)
-router.post('/serials/:serial_number/event', (req, res) => {
+router.post('/serials/:serial_number/event', validateSerialNumber, verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { serial_number } = req.params;
   const { event_type, event_data } = req.body;
 
@@ -89,7 +243,7 @@ router.post('/serials/:serial_number/event', (req, res) => {
 });
 
 // Save product information (style-level)
-router.post('/styles/:style_number/product-info', (req, res) => {
+router.post('/styles/:style_number/product-info', validateStyleNumber, verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { style_number } = req.params;
   const { product_name, description, care_instructions, delivery_returns, size_material_composition } = req.body;
 
@@ -110,7 +264,7 @@ router.post('/styles/:style_number/product-info', (req, res) => {
 });
 
 // Save transparency data
-router.post('/styles/:style_number/transparency', (req, res) => {
+router.post('/styles/:style_number/transparency', validateStyleNumber, verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { style_number } = req.params;
   const { suppliers_chain, certifications, environmental_data, social_data } = req.body;
 
@@ -130,7 +284,7 @@ router.post('/styles/:style_number/transparency', (req, res) => {
 });
 
 // Save Nudie values
-router.post('/styles/:style_number/nudie-values', (req, res) => {
+router.post('/styles/:style_number/nudie-values', validateStyleNumber, verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { style_number } = req.params;
   const { repair_info, trade_in_info, partner_links } = req.body;
 
@@ -149,7 +303,7 @@ router.post('/styles/:style_number/nudie-values', (req, res) => {
 });
 
 // Save storytelling
-router.post('/styles/:style_number/storytelling', (req, res) => {
+router.post('/styles/:style_number/storytelling', validateStyleNumber, verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { style_number } = req.params;
   const { summary, content, links } = req.body;
 
@@ -301,7 +455,7 @@ router.get('/styles/:style_number/full-data', (req, res) => {
 });
 
 // Save batch metadata
-router.post('/batch/metadata', (req, res) => {
+router.post('/batch/metadata', verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { batch_id, production_date, manufacturing_details } = req.body;
 
   db.run(`
@@ -396,16 +550,20 @@ router.get('/serials/:serial_number/full-data', (req, res) => {
 // Get style images
 router.get('/styles/:style_number/images', (req, res) => {
   const { style_number } = req.params;
-  db.all(`SELECT id, image_name FROM style_images WHERE style_number = ? ORDER BY created_at DESC`, [style_number], (err, rows) => {
+  db.all(`SELECT id, image_name, image_data FROM style_images WHERE style_number = ? ORDER BY created_at DESC`, [style_number], (err, rows) => {
     if (err) return res.status(400).json({ error: err.message });
     res.json(rows || []);
   });
 });
 
 // Upload style image
-router.post('/styles/:style_number/image', (req, res) => {
+router.post('/styles/:style_number/image', validateStyleNumber, validateImageUpload, verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { style_number } = req.params;
   const { image_data, image_name } = req.body;
+
+  if (!image_data) {
+    return res.status(400).json({ error: 'image_data required' });
+  }
 
   db.run(`INSERT INTO style_images (style_number, image_data, image_name) VALUES (?, ?, ?)`,
     [style_number, image_data, image_name], function(err) {
@@ -415,7 +573,7 @@ router.post('/styles/:style_number/image', (req, res) => {
 });
 
 // Delete style image
-router.delete('/styles/image/:id', (req, res) => {
+router.delete('/styles/image/:id', verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { id } = req.params;
   db.run(`DELETE FROM style_images WHERE id = ?`, [id], function(err) {
     if (err) return res.status(400).json({ error: err.message });
@@ -426,16 +584,20 @@ router.delete('/styles/image/:id', (req, res) => {
 // Get batch images
 router.get('/batches/:batch_id/images', (req, res) => {
   const { batch_id } = req.params;
-  db.all(`SELECT id, image_name FROM batch_images WHERE batch_id = ? ORDER BY created_at DESC`, [batch_id], (err, rows) => {
+  db.all(`SELECT id, image_name, image_data FROM batch_images WHERE batch_id = ? ORDER BY created_at DESC`, [batch_id], (err, rows) => {
     if (err) return res.status(400).json({ error: err.message });
     res.json(rows || []);
   });
 });
 
 // Upload batch image
-router.post('/batches/:batch_id/image', (req, res) => {
+router.post('/batches/:batch_id/image', validateBatchId, validateImageUpload, verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { batch_id } = req.params;
   const { image_data, image_name } = req.body;
+
+  if (!image_data) {
+    return res.status(400).json({ error: 'image_data required' });
+  }
 
   db.run(`INSERT INTO batch_images (batch_id, image_data, image_name) VALUES (?, ?, ?)`,
     [batch_id, image_data, image_name], function(err) {
@@ -445,7 +607,7 @@ router.post('/batches/:batch_id/image', (req, res) => {
 });
 
 // Delete batch image
-router.delete('/batches/image/:id', (req, res) => {
+router.delete('/batches/image/:id', verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { id } = req.params;
   db.run(`DELETE FROM batch_images WHERE id = ?`, [id], function(err) {
     if (err) return res.status(400).json({ error: err.message });
@@ -454,7 +616,7 @@ router.delete('/batches/image/:id', (req, res) => {
 });
 
 // Import supplier data (SGTIN, RFID) - paste format
-router.post('/serials/import-supplier-data', (req, res) => {
+router.post('/serials/import-supplier-data', verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { batch_id, data } = req.body;
 
   if (!data || typeof data !== 'string') {
@@ -500,6 +662,528 @@ router.post('/serials/import-supplier-data', (req, res) => {
   if (lines.length === 0) {
     res.status(400).json({ error: 'No valid data to import' });
   }
+});
+
+// Delete endpoints (soft delete) - Requires admin or editor
+router.post('/styles/:style_number/delete', verifyToken, checkRole(['admin', 'editor', 'super_admin']), (req, res) => {
+  const { style_number } = req.params;
+  db.run(`UPDATE styles SET deleted_at = CURRENT_TIMESTAMP WHERE style_number = ?`, [style_number], function(err) {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ success: true, message: 'Style deleted' });
+  });
+});
+
+router.post('/batches/:batch_id/delete', verifyToken, checkRole(['admin', 'editor', 'super_admin']), (req, res) => {
+  const { batch_id } = req.params;
+  db.run(`UPDATE batches SET deleted_at = CURRENT_TIMESTAMP WHERE batch_id = ?`, [batch_id], function(err) {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ success: true, message: 'Batch deleted' });
+  });
+});
+
+router.post('/serials/:serial_number/delete', verifyToken, checkRole(['admin', 'editor', 'super_admin']), (req, res) => {
+  const { serial_number } = req.params;
+  db.run(`UPDATE serials SET deleted_at = CURRENT_TIMESTAMP WHERE serial_number = ?`, [serial_number], function(err) {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ success: true, message: 'Serial deleted' });
+  });
+});
+
+// Permanent delete (Super Admin only)
+router.post('/styles/:style_number/permanent-delete', verifyToken, checkRole(['super_admin']), (req, res) => {
+  const { style_number } = req.params;
+  db.run(`DELETE FROM styles WHERE style_number = ?`, [style_number], function(err) {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ success: true, message: 'Style permanently deleted' });
+  });
+});
+
+router.post('/batches/:batch_id/permanent-delete', verifyToken, checkRole(['super_admin']), (req, res) => {
+  const { batch_id } = req.params;
+  db.run(`DELETE FROM batches WHERE batch_id = ?`, [batch_id], function(err) {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ success: true, message: 'Batch permanently deleted' });
+  });
+});
+
+router.post('/serials/:serial_number/permanent-delete', verifyToken, checkRole(['super_admin']), (req, res) => {
+  const { serial_number } = req.params;
+  db.run(`DELETE FROM serials WHERE serial_number = ?`, [serial_number], function(err) {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ success: true, message: 'Serial permanently deleted' });
+  });
+});
+
+// Copy batch (duplicate batch with metadata and images, serials must be added separately)
+router.post('/batch/copy', verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
+  const { source_batch_id, new_batch_id } = req.body;
+
+  db.get(`SELECT * FROM batches WHERE batch_id = ?`, [source_batch_id], (err, sourceBatch) => {
+    if (err || !sourceBatch) {
+      return res.status(404).json({ error: 'Source batch not found' });
+    }
+
+    // Create new batch
+    db.run(`INSERT INTO batches (batch_id, style_number, total_units, partner_name) VALUES (?, ?, ?, ?)`,
+      [new_batch_id, sourceBatch.style_number, sourceBatch.total_units, sourceBatch.partner_name],
+      function(err) {
+        if (err) return res.status(400).json({ error: err.message });
+
+        // Copy batch_data (production_date, manufacturing_details)
+        db.all(`SELECT key, value FROM batch_data WHERE batch_id = ?`, [source_batch_id], (err, batchData) => {
+          (batchData || []).forEach(row => {
+            db.run(`INSERT INTO batch_data (batch_id, key, value) VALUES (?, ?, ?)`,
+              [new_batch_id, row.key, row.value]);
+          });
+        });
+
+        // Copy batch images
+        db.all(`SELECT image_data, image_name FROM batch_images WHERE batch_id = ?`, [source_batch_id], (err, images) => {
+          (images || []).forEach(img => {
+            db.run(`INSERT INTO batch_images (batch_id, image_data, image_name) VALUES (?, ?, ?)`,
+              [new_batch_id, img.image_data, img.image_name]);
+          });
+        });
+
+        res.json({ success: true, new_batch_id, message: 'Batch copied. Add serials separately.' });
+      });
+  });
+});
+
+// Dashboard endpoints
+router.get('/styles', (req, res) => {
+  db.all(`SELECT * FROM styles WHERE deleted_at IS NULL`, [], (err, rows) => {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json(rows || []);
+  });
+});
+
+router.get('/batches', (req, res) => {
+  db.all(`SELECT * FROM batches WHERE deleted_at IS NULL`, [], (err, rows) => {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json(rows || []);
+  });
+});
+
+router.get('/serials', (req, res) => {
+  db.all(`
+    SELECT s.*, sd.key, sd.value
+    FROM serials s
+    LEFT JOIN serial_data sd ON s.id = sd.serial_id AND sd.key IN ('condition', 'size')
+    WHERE s.deleted_at IS NULL
+  `, [], (err, rows) => {
+    if (err) return res.status(400).json({ error: err.message });
+
+    // Transform to flatten serial_data
+    const serials = {};
+    (rows || []).forEach(row => {
+      if (!serials[row.serial_number]) {
+        serials[row.serial_number] = { ...row, batch_id: row.batch_id };
+      }
+      if (row.key) serials[row.serial_number][row.key] = row.value;
+    });
+
+    res.json(Object.values(serials));
+  });
+});
+
+router.get('/events', (req, res) => {
+  db.all(`
+    SELECT e.*, s.serial_number
+    FROM events e
+    LEFT JOIN serials s ON e.serial_id = s.id
+    ORDER BY e.created_at DESC
+    LIMIT 100
+  `, [], (err, rows) => {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json(rows || []);
+  });
+});
+
+// Admin endpoints
+router.get('/admin/users', verifyToken, checkRole(['admin', 'super_admin']), (req, res) => {
+  db.all(`SELECT id, username, role, created_at FROM users ORDER BY created_at DESC`, [], (err, rows) => {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json(rows || []);
+  });
+});
+
+router.post('/admin/users/:username/role', verifyToken, checkRole(['admin', 'super_admin']), (req, res) => {
+  const { username } = req.params;
+  const { role } = req.body;
+
+  if (!['viewer', 'editor', 'admin', 'super_admin'].includes(role)) {
+    return res.status(400).json({ error: 'Invalid role' });
+  }
+
+  db.run(`UPDATE users SET role = ? WHERE username = ?`, [role, username], function(err) {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ success: true, message: `User role updated to ${role}` });
+  });
+});
+
+router.post('/admin/logo', verifyToken, checkRole(['admin', 'super_admin']), (req, res) => {
+  const { logo_data, filename } = req.body;
+  // For now, just return success - actual logo storage can be implemented later
+  // Could save to file system or database
+  res.json({ success: true, message: 'Logo uploaded', filename });
+});
+
+router.post('/admin/users', verifyToken, checkRole(['admin', 'super_admin']), async (req, res) => {
+  const { username, password, role } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password required' });
+  }
+
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    db.run(`INSERT INTO users (username, password, role) VALUES (?, ?, ?)`,
+      [username, hashedPassword, role || 'viewer'], function(err) {
+        if (err) {
+          if (err.message.includes('UNIQUE')) {
+            return res.status(400).json({ error: 'Username already exists' });
+          }
+          return res.status(400).json({ error: err.message });
+        }
+        res.json({ success: true, id: this.lastID });
+      });
+  } catch (err) {
+    res.status(500).json({ error: 'Password hashing failed' });
+  }
+});
+
+router.post('/admin/users/:username/password', verifyToken, checkRole(['admin', 'super_admin']), async (req, res) => {
+  const { username } = req.params;
+  const { password } = req.body;
+
+  if (!password) {
+    return res.status(400).json({ error: 'Password required' });
+  }
+
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    db.run(`UPDATE users SET password = ? WHERE username = ?`, [hashedPassword, username], function(err) {
+      if (err) return res.status(400).json({ error: err.message });
+      res.json({ success: true, message: 'Password updated' });
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Password hashing failed' });
+  }
+});
+
+// UPDATE endpoints for api_client
+router.put('/styles/:style_number/data', validateStyleNumber, verifyToken, checkRole(['api_client', 'editor', 'admin', 'super_admin']), (req, res) => {
+  const { style_number } = req.params;
+  const { product_name, description, care_instructions, delivery_returns, size_material_composition } = req.body;
+
+  const updates = [];
+  const values = [];
+
+  if (product_name !== undefined) {
+    updates.push('product_name = ?');
+    values.push(product_name);
+  }
+  if (description !== undefined) {
+    updates.push('description = ?');
+    values.push(description);
+  }
+  if (care_instructions !== undefined) {
+    updates.push('care_instructions = ?');
+    values.push(care_instructions);
+  }
+  if (delivery_returns !== undefined) {
+    updates.push('delivery_returns = ?');
+    values.push(delivery_returns);
+  }
+  if (size_material_composition !== undefined) {
+    updates.push('size_material_composition = ?');
+    values.push(size_material_composition);
+  }
+
+  if (updates.length === 0) {
+    return res.status(400).json({ error: 'No fields to update' });
+  }
+
+  updates.push('updated_at = CURRENT_TIMESTAMP');
+  values.push(style_number);
+
+  const query = `UPDATE styles SET ${updates.join(', ')} WHERE style_number = ?`;
+  db.run(query, values, function(err) {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ success: true, updated: this.changes });
+  });
+});
+
+router.put('/batches/:batch_id/data', validateBatchId, verifyToken, checkRole(['api_client', 'editor', 'admin', 'super_admin']), (req, res) => {
+  const { batch_id } = req.params;
+  const { total_units, partner_name } = req.body;
+
+  const updates = [];
+  const values = [];
+
+  if (total_units !== undefined) {
+    updates.push('total_units = ?');
+    values.push(total_units);
+  }
+  if (partner_name !== undefined) {
+    updates.push('partner_name = ?');
+    values.push(partner_name);
+  }
+
+  if (updates.length === 0) {
+    return res.status(400).json({ error: 'No fields to update' });
+  }
+
+  values.push(batch_id);
+  const query = `UPDATE batches SET ${updates.join(', ')} WHERE batch_id = ?`;
+  db.run(query, values, function(err) {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ success: true, updated: this.changes });
+  });
+});
+
+router.put('/serials/:serial_number/data', validateSerialNumber, verifyToken, checkRole(['api_client', 'editor', 'admin', 'super_admin']), (req, res) => {
+  const { serial_number } = req.params;
+  const { sgtin_numeric, sgtin_uri, rfid, condition, size } = req.body;
+
+  const updates = [];
+  const values = [];
+
+  if (sgtin_numeric !== undefined) {
+    updates.push('sgtin_numeric = ?');
+    values.push(sgtin_numeric);
+  }
+  if (sgtin_uri !== undefined) {
+    updates.push('sgtin_uri = ?');
+    values.push(sgtin_uri);
+  }
+  if (rfid !== undefined) {
+    updates.push('rfid = ?');
+    values.push(rfid);
+  }
+
+  if (updates.length === 0 && condition === undefined && size === undefined) {
+    return res.status(400).json({ error: 'No fields to update' });
+  }
+
+  values.push(serial_number);
+  const serialQuery = `UPDATE serials SET ${updates.length > 0 ? updates.join(', ') + ',' : ''} updated_at = CURRENT_TIMESTAMP WHERE serial_number = ?`;
+
+  db.run(updates.length > 0 ? `UPDATE serials SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE serial_number = ?` : `UPDATE serials SET updated_at = CURRENT_TIMESTAMP WHERE serial_number = ?`, values, function(err) {
+    if (err) return res.status(400).json({ error: err.message });
+
+    // Get serial_id to update serial_data
+    db.get(`SELECT id FROM serials WHERE serial_number = ?`, [serial_number], (err, serial) => {
+      if (err || !serial) return res.status(400).json({ error: 'Serial not found' });
+
+      let dataUpdates = 0;
+      let totalDataUpdates = 0;
+
+      if (condition !== undefined) totalDataUpdates++;
+      if (size !== undefined) totalDataUpdates++;
+
+      if (totalDataUpdates === 0) {
+        return res.json({ success: true, updated: true });
+      }
+
+      if (condition !== undefined) {
+        db.run(
+          `INSERT INTO serial_data (serial_id, key, value, added_by) VALUES (?, ?, ?, ?)`,
+          [serial.id, 'condition', condition, 'api_update'],
+          () => {
+            dataUpdates++;
+            if (dataUpdates === totalDataUpdates) {
+              res.json({ success: true, updated: true });
+            }
+          }
+        );
+      }
+
+      if (size !== undefined) {
+        db.run(
+          `INSERT INTO serial_data (serial_id, key, value, added_by) VALUES (?, ?, ?, ?)`,
+          [serial.id, 'size', size, 'api_update'],
+          () => {
+            dataUpdates++;
+            if (dataUpdates === totalDataUpdates) {
+              res.json({ success: true, updated: true });
+            }
+          }
+        );
+      }
+    });
+  });
+});
+
+// Bulk import endpoint - external data ingestion
+router.post('/import/bulk', verifyToken, checkRole(['api_client', 'editor', 'admin', 'super_admin']), (req, res) => {
+  const { data } = req.body;
+
+  if (!data || !Array.isArray(data)) {
+    return res.status(400).json({ error: 'Data must be an array' });
+  }
+
+  const results = {
+    total: data.length,
+    styles: { created: 0, skipped: 0, errors: [] },
+    batches: { created: 0, skipped: 0, errors: [] },
+    serials: { created: 0, skipped: 0, errors: [] },
+    timestamp: new Date().toISOString()
+  };
+
+  let processed = 0;
+
+  data.forEach((item, index) => {
+    try {
+      if (item.type === 'style') {
+        const { style_number, product_name, description, care_instructions, delivery_returns, size_material_composition } = item;
+
+        if (!style_number) {
+          results.styles.errors.push({ index, error: 'style_number required' });
+          results.styles.skipped++;
+          processed++;
+          checkComplete();
+          return;
+        }
+
+        db.run(
+          `INSERT OR IGNORE INTO styles (style_number, product_name, description, care_instructions, delivery_returns, size_material_composition)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [style_number, product_name || null, description || null, care_instructions || null, delivery_returns || null, size_material_composition || null],
+          function(err) {
+            if (err) {
+              results.styles.errors.push({ index, style_number, error: err.message });
+              results.styles.skipped++;
+            } else if (this.changes === 1) {
+              results.styles.created++;
+            } else {
+              results.styles.skipped++;
+            }
+            processed++;
+            checkComplete();
+          }
+        );
+      } else if (item.type === 'batch') {
+        const { batch_id, style_number, total_units, partner_name } = item;
+
+        if (!batch_id || !style_number) {
+          results.batches.errors.push({ index, error: 'batch_id and style_number required' });
+          results.batches.skipped++;
+          processed++;
+          checkComplete();
+          return;
+        }
+
+        db.run(
+          `INSERT OR IGNORE INTO batches (batch_id, style_number, total_units, partner_name)
+           VALUES (?, ?, ?, ?)`,
+          [batch_id, style_number, total_units || 0, partner_name || null],
+          function(err) {
+            if (err) {
+              results.batches.errors.push({ index, batch_id, error: err.message });
+              results.batches.skipped++;
+            } else if (this.changes === 1) {
+              results.batches.created++;
+            } else {
+              results.batches.skipped++;
+            }
+            processed++;
+            checkComplete();
+          }
+        );
+      } else if (item.type === 'serial') {
+        const { serial_number, batch_id, sgtin_numeric, sgtin_uri, rfid, condition, size } = item;
+
+        if (!serial_number || !batch_id) {
+          results.serials.errors.push({ index, error: 'serial_number and batch_id required' });
+          results.serials.skipped++;
+          processed++;
+          checkComplete();
+          return;
+        }
+
+        db.run(
+          `INSERT OR IGNORE INTO serials (serial_number, batch_id, sgtin_numeric, sgtin_uri, rfid)
+           VALUES (?, ?, ?, ?, ?)`,
+          [serial_number, batch_id, sgtin_numeric || null, sgtin_uri || null, rfid || null],
+          function(err) {
+            if (err) {
+              results.serials.errors.push({ index, serial_number, error: err.message });
+              results.serials.skipped++;
+              processed++;
+              checkComplete();
+            } else if (this.changes === 1) {
+              const serialId = this.lastID;
+              // Add default condition
+              db.run(
+                `INSERT INTO serial_data (serial_id, key, value, added_by) VALUES (?, ?, ?, ?)`,
+                [serialId, 'condition', condition || 'new', 'bulk_import'],
+                () => {
+                  // Add size if provided
+                  if (size) {
+                    db.run(
+                      `INSERT INTO serial_data (serial_id, key, value, added_by) VALUES (?, ?, ?, ?)`,
+                      [serialId, 'size', size, 'bulk_import'],
+                      () => {
+                        results.serials.created++;
+                        processed++;
+                        checkComplete();
+                      }
+                    );
+                  } else {
+                    results.serials.created++;
+                    processed++;
+                    checkComplete();
+                  }
+                }
+              );
+            } else {
+              results.serials.skipped++;
+              processed++;
+              checkComplete();
+            }
+          }
+        );
+      } else {
+        results[item.type]?.errors?.push({ index, error: 'Unknown type: ' + item.type });
+        processed++;
+        checkComplete();
+      }
+    } catch (err) {
+      results[item.type]?.errors?.push({ index, error: err.message });
+      processed++;
+      checkComplete();
+    }
+  });
+
+  function checkComplete() {
+    if (processed === data.length) {
+      res.json(results);
+    }
+  }
+});
+
+// Track public passport views
+router.post('/track-public-view', (req, res) => {
+  const { page_type, page_id } = req.body;
+
+  if (page_type !== 'public_passport' || !page_id) {
+    return res.status(400).json({ error: 'Invalid request' });
+  }
+
+  // Increment the serial's view_count
+  db.run(
+    `UPDATE serials SET view_count = view_count + 1 WHERE serial_number = ?`,
+    [page_id],
+    (err) => {
+      if (err) {
+        console.error('Error updating view count:', err);
+        return res.status(500).json({ error: err.message });
+      }
+      res.json({ success: true });
+    }
+  );
 });
 
 module.exports = router;

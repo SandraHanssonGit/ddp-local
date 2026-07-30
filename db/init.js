@@ -1,5 +1,6 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const bcrypt = require('bcrypt');
 
 const dbPath = path.join(__dirname, '..', 'database.db');
 const db = new sqlite3.Database(dbPath, (err) => {
@@ -9,6 +10,17 @@ const db = new sqlite3.Database(dbPath, (err) => {
 
 // Create tables
 db.serialize(() => {
+  // Users table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      role TEXT DEFAULT 'viewer',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // Styles table (style-level metadata)
   db.run(`
     CREATE TABLE IF NOT EXISTS styles (
@@ -156,11 +168,84 @@ db.serialize(() => {
       FOREIGN KEY(serial_id) REFERENCES serials(id)
     )
   `);
+
+  // Page views (statistics)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS page_views (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      page_type TEXT NOT NULL,
+      page_id TEXT NOT NULL,
+      username TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Settings (for logo and other system settings)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      key TEXT UNIQUE NOT NULL,
+      value LONGTEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+});
+
+// Add deleted_at column for soft deletes (if not exists)
+db.serialize(() => {
+  db.run(`ALTER TABLE styles ADD COLUMN deleted_at DATETIME`, () => {});
+  db.run(`ALTER TABLE batches ADD COLUMN deleted_at DATETIME`, () => {});
+  db.run(`ALTER TABLE serials ADD COLUMN deleted_at DATETIME`, () => {});
+  db.run(`ALTER TABLE serials ADD COLUMN view_count INTEGER DEFAULT 0`, () => {});
+});
+
+// Add database indexes for performance
+db.serialize(() => {
+  // Primary lookup indexes
+  db.run(`CREATE INDEX IF NOT EXISTS idx_styles_style_number ON styles(style_number)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_batches_batch_id ON batches(batch_id)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_batches_style_number ON batches(style_number)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_serials_serial_number ON serials(serial_number)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_serials_batch_id ON serials(batch_id)`);
+
+  // Foreign key and data lookup indexes
+  db.run(`CREATE INDEX IF NOT EXISTS idx_serial_data_serial_id ON serial_data(serial_id)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_batch_data_batch_id ON batch_data(batch_id)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_events_serial_id ON events(serial_id)`);
+
+  // SGTIN/RFID lookup indexes
+  db.run(`CREATE INDEX IF NOT EXISTS idx_serials_sgtin_numeric ON serials(sgtin_numeric)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_serials_sgtin_uri ON serials(sgtin_uri)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_serials_rfid ON serials(rfid)`);
+
+  // Image lookup indexes
+  db.run(`CREATE INDEX IF NOT EXISTS idx_style_images_style_number ON style_images(style_number)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_batch_images_batch_id ON batch_images(batch_id)`);
+
+  // Page views indexes
+  db.run(`CREATE INDEX IF NOT EXISTS idx_page_views_page_type ON page_views(page_type)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_page_views_page_id ON page_views(page_id)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_page_views_created_at ON page_views(created_at)`);
 });
 
 // Seed test data
-const seedTestData = () => {
+const seedTestData = async () => {
+  // Hash test passwords
+  const hashedPassword1 = await bcrypt.hash('password123', 10);
+  const hashedPassword2 = await bcrypt.hash('test', 10);
+
   db.serialize(() => {
+    // Insert test users (passwords are securely hashed with bcrypt)
+    db.run(`INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)`,
+      ['sandra', hashedPassword1, 'super_admin']);
+    db.run(`INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)`,
+      ['viewer', hashedPassword2, 'viewer']);
+    db.run(`INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)`,
+      ['editor', hashedPassword2, 'editor']);
+    db.run(`INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)`,
+      ['admin', hashedPassword2, 'admin']);
+
     // Insert test style
     db.run(`
       INSERT OR IGNORE INTO styles (style_number, product_name, description, care_instructions, delivery_returns, size_material_composition)
@@ -270,7 +355,7 @@ const seedTestData = () => {
 };
 
 // Run seed on startup
-seedTestData();
+seedTestData().catch(err => console.error('Seed error:', err));
 
 // Helper functions
 const queries = {

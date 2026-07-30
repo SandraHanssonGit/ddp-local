@@ -5,35 +5,142 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DPP Hub</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body.viewer .edit-button { display: none !important; }
+    body.viewer .delete-button { display: none !important; }
+    body.admin .permanent-delete-button { display: none !important; }
+  </style>
 </head>
 <body class="bg-gray-100">
   <div class="max-w-7xl mx-auto py-12 px-4">
-    <h1 class="text-4xl font-bold text-gray-900 mb-8">🌐 DPP Hub</h1>
+    <div class="flex justify-between items-center mb-8">
+      <div class="flex items-center gap-6">
+        <div id="headerLogoContainer" class="flex items-center justify-center" style="max-height: 60px; min-width: 150px;">
+          <!-- Logo loaded from localStorage or fallback -->
+        </div>
+        <h1 class="text-4xl font-bold text-gray-900">DPP Hub</h1>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="text-sm text-gray-600" id="userDisplay"></span>
+        <button id="logoutBtn" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+          Logout
+        </button>
+      </div>
+    </div>
 
     <!-- TOAST NOTIFICATION -->
-    <div id="toastNotification" class="hidden fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50">
+    <div id="toastNotification" class="hidden fixed top-4 right-4 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50">
       <span>✓</span>
       <span id="toastMessage">Saved!</span>
     </div>
 
     <!-- TAB NAVIGATION -->
     <div class="flex gap-4 mb-8 border-b border-gray-300">
-      <button onclick="switchTab('edit')" id="tabEdit" class="active px-6 py-4 font-semibold text-gray-900 border-b-2 border-blue-600">
-        🔍 Lookup & Edit
+      <button id="tabDashboard" class="active px-6 py-4 font-semibold text-gray-900 border-b-2 border-gray-900">
+        Dashboard
       </button>
-      <button onclick="switchTab('new')" id="tabNew" class="px-6 py-4 font-semibold text-gray-700">
-        ➕ New Data
+      <button id="tabEdit" class="px-6 py-4 font-semibold text-gray-700">
+        Design
+      </button>
+      <button id="tabAdmin" class="px-6 py-4 font-semibold text-gray-700">
+        Admin
       </button>
     </div>
 
+    <!-- DASHBOARD TAB -->
+    <div id="dashboardTab" class="space-y-6">
+      <!-- KPI Cards -->
+      <div class="grid grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow-md p-6 text-center">
+          <div class="text-3xl font-bold text-gray-900" id="statsStyles">0</div>
+          <div class="text-sm text-gray-600 mt-2">Styles</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6 text-center">
+          <div class="text-3xl font-bold text-gray-900" id="statsBatches">0</div>
+          <div class="text-sm text-gray-600 mt-2">Batches</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6 text-center">
+          <div class="text-3xl font-bold text-gray-900" id="statsSerials">0</div>
+          <div class="text-sm text-gray-600 mt-2">Serials</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6 text-center">
+          <div class="text-3xl font-bold text-gray-900" id="statsEvents">0</div>
+          <div class="text-sm text-gray-600 mt-2">Events</div>
+        </div>
+      </div>
+
+      <!-- Condition Distribution -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-2xl font-semibold text-gray-900 mb-6">Serial Condition Distribution</h2>
+        <div class="grid grid-cols-4 gap-4">
+          <div class="text-center p-4 bg-gray-50 rounded">
+            <div class="text-2xl font-bold text-gray-900" id="conditionNew">0</div>
+            <div class="text-sm text-gray-600">New</div>
+          </div>
+          <div class="text-center p-4 bg-gray-50 rounded">
+            <div class="text-2xl font-bold text-gray-900" id="conditionRepaired">0</div>
+            <div class="text-sm text-gray-600">Repaired</div>
+          </div>
+          <div class="text-center p-4 bg-gray-50 rounded">
+            <div class="text-2xl font-bold text-gray-900" id="conditionReused">0</div>
+            <div class="text-sm text-gray-600">Reused</div>
+          </div>
+          <div class="text-center p-4 bg-gray-50 rounded">
+            <div class="text-2xl font-bold text-gray-900" id="conditionRecycled">0</div>
+            <div class="text-sm text-gray-600">Recycled</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Styles -->
+      <div class="grid grid-cols-2 gap-6">
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Top 5 Styles</h2>
+          <div id="topStyles" class="space-y-2"></div>
+        </div>
+
+        <!-- Data Quality -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Data Quality Issues</h2>
+          <div id="dataQualityIssues" class="space-y-2 text-sm"></div>
+        </div>
+
+        <!-- Most Viewed Serials -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Most Viewed Product Passports</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm border-collapse">
+              <thead>
+                <tr class="bg-gray-100 border-b border-gray-300">
+                  <th class="px-4 py-2 text-left font-semibold text-gray-900">Serial Number</th>
+                  <th class="px-4 py-2 text-left font-semibold text-gray-900">Style</th>
+                  <th class="px-4 py-2 text-right font-semibold text-gray-900">Views</th>
+                </tr>
+              </thead>
+              <tbody id="mostViewedTable">
+                <tr><td colspan="3" class="px-4 py-3 text-center text-gray-500">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Recent Events</h2>
+          <div id="recentEvents" class="space-y-2 max-h-64 overflow-y-auto"></div>
+        </div>
+      </div>
+
+    </div>
+
     <!-- EDIT TAB -->
-    <div id="editTab">
+    <div id="editTab" class="hidden">
     <!-- SEARCH SECTION -->
     <div class="bg-white rounded-lg shadow-md p-8 mb-8">
       <h2 class="text-2xl font-bold text-gray-900 mb-6">Search</h2>
       <form id="searchForm" class="flex gap-4">
         <input type="text" id="searchQuery" placeholder="Style, Serial, Batch, SGTIN..." class="flex-1 border border-gray-300 rounded px-4 py-3" required>
-        <button type="submit" class="bg-blue-600 text-white px-8 py-3 rounded font-semibold hover:bg-blue-700">
+        <button type="submit" class="bg-gray-900 text-white px-8 py-3 rounded font-semibold hover:bg-gray-800">
           Search
         </button>
       </form>
@@ -51,14 +158,14 @@
 
       <!-- STYLE VIEW -->
       <div id="styleSection" class="hidden bg-white rounded-lg shadow-md p-8">
-        <h2 class="text-3xl font-bold text-gray-900 mb-6">📦 STYLE: <span id="styleTitle"></span></h2>
+        <h2 class="text-3xl font-semibold text-gray-900 mb-8">Style: <span id="styleTitle"></span></h2>
 
         <!-- Images Section -->
         <div class="bg-gray-50 p-6 rounded mb-6">
-          <h3 class="text-lg font-bold text-gray-900 mb-4">📸 Style Images</h3>
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Style Images</h3>
           <div id="styleImages" class="flex gap-4 mb-4 flex-wrap"></div>
-          <input type="file" id="styleImageUpload" accept="image/*" class="border border-gray-300 rounded px-3 py-2 w-full">
-          <button onclick="uploadStyleImage()" class="mt-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+          <input type="file" id="styleImageUpload" accept="image/*" class="border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900 w-full">
+          <button onclick="uploadStyleImage()" class="mt-2 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
             Upload Image
           </button>
         </div>
@@ -67,34 +174,36 @@
         <div class="space-y-6">
           <div class="border-t pt-6">
             <div class="flex justify-between items-center mb-4">
-              <h3 class="text-xl font-bold text-gray-900">Product Information</h3>
-              <button onclick="toggleEdit('product-info')" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                ✏️ Edit
+              <h3 class="text-xl font-semibold text-gray-900">Product Information</h3>
+              <button onclick="toggleEdit('product-info')" class="edit-button bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+                Edit
               </button>
             </div>
-            <div id="productInfoView" class="bg-gray-50 p-4 rounded space-y-2"></div>
+            <div id="productInfoView" class="bg-gray-50 rounded-lg p-6 space-y-3"></div>
             <div id="productInfoEdit" class="hidden space-y-4 mt-4">
-              <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1">Product Name</label>
-                <input type="text" id="productName" class="w-full border border-gray-300 rounded px-3 py-2">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Product Name</label>
+                  <input type="text" id="productName" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+                </div>
               </div>
               <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1">Description</label>
-                <textarea id="productDescription" rows="3" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Description</label>
+                <textarea id="productDescription" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
               </div>
               <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1">Care Instructions</label>
-                <textarea id="productCare" rows="2" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Care Instructions</label>
+                <textarea id="productCare" rows="2" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
               </div>
               <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1">Delivery & Returns</label>
-                <textarea id="productDelivery" rows="2" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Delivery & Returns</label>
+                <textarea id="productDelivery" rows="2" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
               </div>
               <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1">Size, Material & Composition</label>
-                <textarea id="productMaterial" rows="2" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Size, Material & Composition</label>
+                <textarea id="productMaterial" rows="2" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
               </div>
-              <button onclick="saveProductInfo()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+              <button onclick="saveProductInfo()" class="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 font-semibold">
                 ✓ Save
               </button>
             </div>
@@ -102,30 +211,30 @@
 
           <div class="border-t pt-6">
             <div class="flex justify-between items-center mb-4">
-              <h3 class="text-xl font-bold text-gray-900">Transparency Data</h3>
-              <button onclick="toggleEdit('transparency')" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                ✏️ Edit
+              <h3 class="text-xl font-semibold text-gray-900">Transparency Data</h3>
+              <button onclick="toggleEdit('transparency')" class="edit-button bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+                Edit
               </button>
             </div>
-            <div id="transparencyView" class="bg-gray-50 p-4 rounded text-sm overflow-auto max-h-48"></div>
+            <div id="transparencyView" class="bg-gray-50 rounded-lg p-6 text-sm overflow-auto max-h-48"></div>
             <div id="transparencyEdit" class="hidden space-y-4 mt-4">
               <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1">Suppliers Chain (JSON)</label>
-                <textarea id="transparencySuppliers" rows="3" class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-xs"></textarea>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Suppliers Chain (JSON)</label>
+                <textarea id="transparencySuppliers" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-xs focus:outline-none focus:border-gray-900"></textarea>
               </div>
               <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1">Certifications (JSON)</label>
-                <textarea id="transparencyCerts" rows="3" class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-xs"></textarea>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Certifications (JSON)</label>
+                <textarea id="transparencyCerts" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-xs focus:outline-none focus:border-gray-900"></textarea>
               </div>
               <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1">Environmental Data (JSON)</label>
-                <textarea id="transparencyEnv" rows="3" class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-xs"></textarea>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Environmental Data (JSON)</label>
+                <textarea id="transparencyEnv" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-xs focus:outline-none focus:border-gray-900"></textarea>
               </div>
               <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1">Social Data (JSON)</label>
-                <textarea id="transparencySocial" rows="3" class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-xs"></textarea>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Social Data (JSON)</label>
+                <textarea id="transparencySocial" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-xs focus:outline-none focus:border-gray-900"></textarea>
               </div>
-              <button onclick="saveTransparency()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+              <button onclick="saveTransparency()" class="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 font-semibold">
                 ✓ Save
               </button>
             </div>
@@ -133,18 +242,18 @@
 
           <div class="border-t pt-6">
             <div class="flex justify-between items-center mb-4">
-              <h3 class="text-xl font-bold text-gray-900">Nudie Values</h3>
-              <button onclick="toggleEdit('nudie-values')" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                ✏️ Edit
+              <h3 class="text-xl font-semibold text-gray-900">Nudie Values</h3>
+              <button onclick="toggleEdit('nudie-values')" class="edit-button bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+                Edit
               </button>
             </div>
-            <div id="nudieValuesView" class="bg-gray-50 p-4 rounded space-y-2"></div>
+            <div id="nudieValuesView" class="bg-gray-50 rounded-lg p-6 space-y-3"></div>
             <div id="nudieValuesEdit" class="hidden space-y-4 mt-4">
               <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1">Repair Info</label>
-                <textarea id="nudieRepair" rows="3" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Repair Info</label>
+                <textarea id="nudieRepair" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
               </div>
-              <button onclick="saveNudieValues()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+              <button onclick="saveNudieValues()" class="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 font-semibold">
                 ✓ Save
               </button>
             </div>
@@ -152,63 +261,89 @@
 
           <div class="border-t pt-6">
             <div class="flex justify-between items-center mb-4">
-              <h3 class="text-xl font-bold text-gray-900">Storytelling</h3>
-              <button onclick="toggleEdit('storytelling')" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                ✏️ Edit
+              <h3 class="text-xl font-semibold text-gray-900">Storytelling</h3>
+              <button onclick="toggleEdit('storytelling')" class="edit-button bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+                Edit
               </button>
             </div>
-            <div id="storytellingView" class="bg-gray-50 p-4 rounded space-y-2"></div>
+            <div id="storytellingView" class="bg-gray-50 rounded-lg p-6 space-y-3"></div>
             <div id="storytellingEdit" class="hidden space-y-4 mt-4">
               <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1">Summary</label>
-                <textarea id="storytellinSummary" rows="2" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Summary</label>
+                <textarea id="storytellinSummary" rows="2" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
               </div>
               <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1">Content</label>
-                <textarea id="storytellingContent" rows="4" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Content</label>
+                <textarea id="storytellingContent" rows="4" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
               </div>
               <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1">Links (JSON)</label>
-                <textarea id="storytellingLinks" rows="3" class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-xs"></textarea>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Links (JSON)</label>
+                <textarea id="storytellingLinks" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-xs focus:outline-none focus:border-gray-900"></textarea>
               </div>
-              <button onclick="saveStorytelling()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+              <button onclick="saveStorytelling()" class="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 font-semibold">
                 ✓ Save
               </button>
             </div>
+          </div>
+
+          <!-- Batches for this Style -->
+          <div class="border-t pt-6">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl font-semibold text-gray-900">Batches</h3>
+              <button onclick="showNewBatchModal()" class="edit-button bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+                New Batch
+              </button>
+            </div>
+            <table class="w-full border-collapse text-sm">
+              <thead>
+                <tr class="border-b border-gray-300">
+                  <th class="text-left py-2 px-3 font-bold text-gray-900">Batch ID</th>
+                  <th class="text-left py-2 px-3 font-bold text-gray-900">Serials</th>
+                  <th class="text-left py-2 px-3 font-bold text-gray-900">Partner</th>
+                  <th class="text-right py-2 px-3 font-bold text-gray-900">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="batchesList"></tbody>
+            </table>
           </div>
         </div>
       </div>
 
       <!-- BATCH VIEW -->
       <div id="batchSection" class="hidden bg-white rounded-lg shadow-md p-8">
-        <h2 class="text-3xl font-bold text-gray-900 mb-6">📦 BATCH: <span id="batchTitle"></span></h2>
+        <h2 class="text-3xl font-semibold text-gray-900 mb-8">Batch: <span id="batchTitle"></span></h2>
 
         <!-- Batch Images -->
         <div class="bg-gray-50 p-6 rounded mb-6">
-          <h3 class="text-lg font-bold text-gray-900 mb-4">📸 Batch Images</h3>
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Batch Images</h3>
           <div id="batchImages" class="flex gap-4 mb-4 flex-wrap"></div>
-          <input type="file" id="batchImageUpload" accept="image/*" class="border border-gray-300 rounded px-3 py-2 w-full">
-          <button onclick="uploadBatchImage()" class="mt-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+          <input type="file" id="batchImageUpload" accept="image/*" class="border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900 w-full">
+          <button onclick="uploadBatchImage()" class="mt-2 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
             Upload Image
           </button>
         </div>
 
-        <div id="batchInfo" class="bg-gray-50 p-4 rounded space-y-2"></div>
+        <div id="batchInfo" class="bg-gray-50 rounded-lg p-6 space-y-2"></div>
 
         <!-- Serials Table -->
         <div class="border-t pt-6 mt-6">
           <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold text-gray-900">🏷️ Serials (<span id="serialsCount">0</span>)</h3>
-            <input type="text" id="serialsSearchInput" placeholder="Search serials..." class="border border-gray-300 rounded px-4 py-2 w-64" oninput="filterSerials()">
+            <h3 class="text-xl font-semibold text-gray-900">Serials (<span id="serialsCount">0</span>)</h3>
+            <div class="flex gap-2">
+              <button onclick="showAddSerialsModal()" class="edit-button bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+                Add Serials
+              </button>
+              <input type="text" id="serialsSearchInput" placeholder="Search serials..." class="border border-gray-300 rounded px-4 py-2 w-64" oninput="filterSerials()">
+            </div>
           </div>
 
           <div class="overflow-x-auto">
             <table class="w-full border-collapse text-sm">
               <thead>
                 <tr class="bg-gray-100 border-b border-gray-300">
-                  <th class="px-4 py-2 text-left font-bold cursor-pointer hover:bg-gray-200" onclick="sortSerials('serial_number')">Serial Number ↕️</th>
-                  <th class="px-4 py-2 text-left font-bold cursor-pointer hover:bg-gray-200" onclick="sortSerials('condition')">Condition ↕️</th>
-                  <th class="px-4 py-2 text-left font-bold cursor-pointer hover:bg-gray-200" onclick="sortSerials('size')">Size ↕️</th>
+                  <th class="px-4 py-2 text-left font-bold cursor-pointer hover:bg-gray-200" onclick="sortSerials('serial_number')">Serial Number <span class="text-gray-900">▼</span></th>
+                  <th class="px-4 py-2 text-left font-bold cursor-pointer hover:bg-gray-200" onclick="sortSerials('condition')">Condition <span class="text-gray-900">▼</span></th>
+                  <th class="px-4 py-2 text-left font-bold cursor-pointer hover:bg-gray-200" onclick="sortSerials('size')">Size <span class="text-gray-900">▼</span></th>
                   <th class="px-4 py-2 text-left font-bold">Owner</th>
                 </tr>
               </thead>
@@ -225,29 +360,29 @@
       <!-- SERIAL VIEW -->
       <div id="serialSection" class="hidden bg-white rounded-lg shadow-md p-8">
         <div class="flex justify-between items-center mb-6">
-          <h2 class="text-3xl font-bold text-gray-900">🏷️ SERIAL: <span id="serialTitle"></span></h2>
+          <h2 class="text-3xl font-semibold text-gray-900">Serial: <span id="serialTitle"></span></h2>
           <div class="flex gap-2">
-            <button onclick="previewPublicPassport()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
-              👁️ Preview Passport
+            <button onclick="previewPublicPassport()" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+              Preview Passport
             </button>
-            <button onclick="copyPublicLink()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-              🔗 Copy Public Link
+            <button onclick="copyPublicLink()" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+              Copy Public Link
             </button>
           </div>
         </div>
 
-        <div class="grid grid-cols-3 gap-6 mb-6">
-          <div class="bg-gray-50 p-4 rounded">
-            <h3 class="font-bold text-gray-900 mb-2">Serial Info</h3>
-            <div id="serialInfo" class="text-sm space-y-1"></div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div class="bg-gray-50 rounded-lg p-6">
+            <h3 class="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-4">Serial Info</h3>
+            <div id="serialInfo" class="text-sm space-y-2 text-gray-700"></div>
           </div>
-          <div class="bg-gray-50 p-4 rounded">
-            <h3 class="font-bold text-gray-900 mb-2">Batch Info</h3>
-            <div id="serialBatchInfo" class="text-sm space-y-1"></div>
+          <div class="bg-gray-50 rounded-lg p-6">
+            <h3 class="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-4">Batch Info</h3>
+            <div id="serialBatchInfo" class="text-sm space-y-2 text-gray-700"></div>
           </div>
-          <div class="bg-gray-50 p-4 rounded">
-            <h3 class="font-bold text-gray-900 mb-2">Style Info</h3>
-            <div id="serialStyleInfo" class="text-sm space-y-1"></div>
+          <div class="bg-gray-50 rounded-lg p-6">
+            <h3 class="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-4">Style Info</h3>
+            <div id="serialStyleInfo" class="text-sm space-y-2 text-gray-700"></div>
           </div>
         </div>
 
@@ -255,24 +390,24 @@
         <div class="border-t pt-6">
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-bold text-gray-900">Serial Metadata</h3>
-            <button onclick="toggleEdit('serial-metadata')" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            <button onclick="toggleEdit('serial-metadata')" class="edit-button bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
               ✏️ Edit
             </button>
           </div>
-          <div id="serialMetadataView" class="bg-gray-50 p-4 rounded grid grid-cols-2 gap-4"></div>
-          <div id="serialMetadataEdit" class="hidden space-y-4 mt-4 bg-gray-50 p-4 rounded">
+          <div id="serialMetadataView" class="bg-gray-50 rounded-lg p-6 grid grid-cols-2 gap-6"></div>
+          <div id="serialMetadataEdit" class="hidden space-y-4 mt-4 bg-gray-50 rounded-lg p-6">
             <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">SGTIN (Numeric) - Read only</label>
-              <input type="text" id="serialSGTINNumeric" placeholder="301414170001200ABC" class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-sm bg-gray-100" readonly>
+              <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">SGTIN (Numeric) - Read only</label>
+              <input type="text" id="serialSGTINNumeric" placeholder="301414170001200ABC" class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-sm bg-gray-100" readonly>
             </div>
             <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">Public URL (QR Code Link)</label>
-              <input type="text" id="serialSGTINUri" placeholder="https://id.gs1.org/01/.../21/..." class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-sm">
+              <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Public URL (QR Code Link)</label>
+              <input type="text" id="serialSGTINUri" placeholder="https://id.gs1.org/01/.../21/..." class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-sm focus:outline-none focus:border-gray-900">
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1">Size</label>
-                <select id="serialSize" class="w-full border border-gray-300 rounded px-3 py-2">
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Size</label>
+                <select id="serialSize" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
                   <option value="">-- Not specified --</option>
                   <option value="XS">XS</option>
                   <option value="S">S</option>
@@ -284,7 +419,7 @@
               </div>
               <div>
                 <label class="block text-sm font-bold text-gray-700 mb-1">Condition (Lifecycle)</label>
-                <select id="serialCondition" class="w-full border border-gray-300 rounded px-3 py-2">
+                <select id="serialCondition" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
                   <option value="">-- Not specified --</option>
                   <option value="new">🆕 New</option>
                   <option value="repaired">🔧 Repaired</option>
@@ -293,10 +428,10 @@
                 </select>
               </div>
             </div>
-            <input type="text" id="serialLocation" placeholder="Location" class="w-full border border-gray-300 rounded px-3 py-2">
-            <input type="text" id="serialOwner" placeholder="Owner/Customer ID" class="w-full border border-gray-300 rounded px-3 py-2">
-            <textarea id="serialNotes" placeholder="Notes" rows="3" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
-            <button onclick="saveSerialMetadata()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+            <input type="text" id="serialLocation" placeholder="Location" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+            <input type="text" id="serialOwner" placeholder="Owner/Customer ID" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+            <textarea id="serialNotes" placeholder="Notes" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
+            <button onclick="saveSerialMetadata()" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
               ✓ Save
             </button>
           </div>
@@ -307,10 +442,10 @@
           <h3 class="text-xl font-bold text-gray-900 mb-4">📅 Events & History</h3>
           <div id="eventsTimeline" class="space-y-3 mb-6"></div>
 
-          <div class="bg-gray-50 p-4 rounded">
+          <div class="bg-gray-50 rounded-lg p-6">
             <h4 class="font-bold text-gray-900 mb-4">➕ Add New Event</h4>
             <div class="space-y-4">
-              <select id="eventType" class="w-full border border-gray-300 rounded px-3 py-2">
+              <select id="eventType" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
                 <option value="">-- Select Event Type --</option>
                 <option value="service">Service</option>
                 <option value="repair">Repair</option>
@@ -318,8 +453,9 @@
                 <option value="recycling">Recycling</option>
                 <option value="scanned">Scanned</option>
               </select>
-              <textarea id="eventData" placeholder='Event details (JSON)' rows="4" class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-xs"></textarea>
-              <button onclick="addEvent()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+              <textarea id="eventData" placeholder='Event details (JSON) - optional' rows="4" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900 font-mono text-xs"></textarea>
+              <p class="text-xs text-gray-500 mt-1">Leave empty or enter valid JSON like {"location": "Stockholm"}</p>
+              <button id="addEventBtn" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
                 ✓ Add Event
               </button>
             </div>
@@ -330,304 +466,331 @@
     </div>
     </div>
 
-    <!-- NEW TAB -->
-    <div id="newTab" class="hidden space-y-6">
 
-      <!-- QUICK BATCH CREATOR WIZARD -->
+    <!-- ADMIN TAB -->
+    <div id="adminTab" class="hidden space-y-6">
+
+      <!-- User Management -->
       <div class="bg-white rounded-lg shadow-md p-8">
-        <h2 class="text-2xl font-bold text-gray-900 mb-6">🚀 Quick Batch Creator</h2>
+        <h2 class="text-2xl font-semibold text-gray-900 mb-6">User Management</h2>
 
-        <!-- Progress Steps -->
-        <div class="flex gap-4 mb-8 overflow-x-auto">
-          <div class="step-indicator" data-step="1">
-            <div class="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">1</div>
-            <div class="text-sm font-bold text-gray-700 mt-1">Style</div>
-          </div>
-          <div class="step-indicator" data-step="2">
-            <div class="bg-gray-300 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">2</div>
-            <div class="text-sm font-bold text-gray-700 mt-1">Details</div>
-          </div>
-          <div class="step-indicator" data-step="3">
-            <div class="bg-gray-300 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">3</div>
-            <div class="text-sm font-bold text-gray-700 mt-1">Batch</div>
-          </div>
-          <div class="step-indicator" data-step="4">
-            <div class="bg-gray-300 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">4</div>
-            <div class="text-sm font-bold text-gray-700 mt-1">Serials</div>
-          </div>
-          <div class="step-indicator" data-step="5">
-            <div class="bg-gray-300 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">5</div>
-            <div class="text-sm font-bold text-gray-700 mt-1">SGTIN</div>
-          </div>
-          <div class="step-indicator" data-step="6">
-            <div class="bg-gray-300 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">6</div>
-            <div class="text-sm font-bold text-gray-700 mt-1">Review</div>
-          </div>
-        </div>
-
-        <!-- Step 1: Style -->
-        <div id="wizardStep1" class="wizard-step space-y-4">
-          <h3 class="text-xl font-bold text-gray-900 mb-4">Step 1: Select or Create Style</h3>
-          <div class="space-y-4">
+        <!-- Add New User -->
+        <div class="mb-8 p-6 bg-gray-50 rounded-lg">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Add New User</h3>
+          <div class="space-y-3">
             <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">Style Number</label>
-              <input type="text" id="wizardStyleNumber" placeholder="114519" class="w-full border border-gray-300 rounded px-3 py-2">
+              <label class="block text-sm font-bold text-gray-700 mb-1">Username</label>
+              <input type="text" id="newUsername" placeholder="username" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
             </div>
             <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">Product Name</label>
-              <input type="text" id="wizardProductName" placeholder="Lofty Lo" class="w-full border border-gray-300 rounded px-3 py-2">
+              <label class="block text-sm font-bold text-gray-700 mb-1">Password</label>
+              <input type="password" id="newPassword" placeholder="password" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
             </div>
             <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">Material & Composition</label>
-              <textarea id="wizardMaterial" rows="2" placeholder="95% Cotton, 5% Elastane" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Role</label>
+              <select id="newRole" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+                <option value="viewer">Viewer</option>
+                <option value="editor">Editor</option>
+                <option value="admin">Admin</option>
+                <option value="super_admin">Super Admin</option>
+                <option value="api_client">API Client (API only)</option>
+              </select>
             </div>
-            <button onclick="wizardNextStep(1)" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-              Next →
+            <button onclick="createNewUser()" class="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800">
+              Create User
             </button>
+            <p id="createUserMessage" class="text-sm text-gray-600"></p>
           </div>
         </div>
 
-        <!-- Step 2: Style Details -->
-        <div id="wizardStep2" class="wizard-step hidden space-y-4">
-          <h3 class="text-xl font-bold text-gray-900 mb-4">Step 2: Style Details (Optional)</h3>
-          <p class="text-sm text-gray-600 mb-4">Add transparency, nudie values, and storytelling info. You can skip this and add later.</p>
-          <div class="bg-blue-50 p-4 rounded mb-4">
-            <p class="text-sm"><strong>Style:</strong> <span id="wizardShowStyleDetails"></span></p>
-          </div>
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">Transparency Data (JSON)</label>
-              <textarea id="wizardTransparency" rows="3" placeholder='{"suppliers": "..."}' class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-xs"></textarea>
-            </div>
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">Nudie Values - Repair Info</label>
-              <textarea id="wizardRepair" rows="2" placeholder="Free repairs for 2 years..." class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
-            </div>
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">Storytelling Summary</label>
-              <textarea id="wizardStory" rows="2" placeholder="The story of this collection..." class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
-            </div>
-            <div class="flex gap-4">
-              <button onclick="wizardPrevStep(2)" class="bg-gray-400 text-white px-6 py-2 rounded hover:bg-gray-500">
-                ← Back
-              </button>
-              <button onclick="wizardNextStep(2)" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-                Next →
-              </button>
-            </div>
-          </div>
+        <!-- Users List -->
+        <div class="space-y-4">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Users</h3>
+          <div id="usersList" class="space-y-2 max-h-96 overflow-y-auto"></div>
         </div>
-
-        <!-- Step 3: Batch -->
-        <div id="wizardStep3" class="wizard-step hidden space-y-4">
-          <h3 class="text-xl font-bold text-gray-900 mb-4">Step 3: Batch Details</h3>
-          <div class="bg-blue-50 p-4 rounded mb-4">
-            <p class="text-sm"><strong>Style:</strong> <span id="wizardShowStyle"></span></p>
-          </div>
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">Batch ID</label>
-              <input type="text" id="wizardBatchId" placeholder="114519-BATCH001" class="w-full border border-gray-300 rounded px-3 py-2">
-            </div>
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">Total Units</label>
-              <input type="number" id="wizardBatchUnits" placeholder="100" class="w-full border border-gray-300 rounded px-3 py-2">
-            </div>
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">Production Date</label>
-              <input type="date" id="wizardProductionDate" class="w-full border border-gray-300 rounded px-3 py-2">
-            </div>
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">Manufacturing Details</label>
-              <textarea id="wizardManufacturing" rows="3" placeholder="Factory: XYZ&#10;QC Status: Passed" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
-            </div>
-            <div class="flex gap-4">
-              <button onclick="wizardPrevStep(2)" class="bg-gray-400 text-white px-6 py-2 rounded hover:bg-gray-500">
-                ← Back
-              </button>
-              <button onclick="wizardNextStep(2)" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-                Next →
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Step 4: Serials -->
-        <div id="wizardStep4" class="wizard-step hidden space-y-4">
-          <h3 class="text-xl font-bold text-gray-900 mb-4">Step 4: Serial Numbers</h3>
-          <div class="bg-blue-50 p-4 rounded mb-4">
-            <p class="text-sm"><strong>Batch:</strong> <span id="wizardShowBatch"></span></p>
-          </div>
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">Serial Numbers (paste comma-separated)</label>
-              <textarea id="wizardSerials" rows="6" placeholder="114519-001-AA,114519-001-AB,114519-001-AC" class="w-full border border-gray-300 rounded px-3 py-2" required></textarea>
-            </div>
-            <div id="serialsPreview" class="bg-gray-50 p-4 rounded text-sm"></div>
-            <div class="flex gap-4">
-              <button onclick="wizardPrevStep(4)" class="bg-gray-400 text-white px-6 py-2 rounded hover:bg-gray-500">
-                ← Back
-              </button>
-              <button onclick="wizardNextStep(4)" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-                Next →
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Step 5: SGTIN -->
-        <div id="wizardStep5" class="wizard-step hidden space-y-4">
-          <h3 class="text-xl font-bold text-gray-900 mb-4">Step 5: Supplier Data (SGTIN + RFID)</h3>
-          <div class="bg-blue-50 p-4 rounded mb-4">
-            <p class="text-sm"><strong>Serials:</strong> <span id="wizardShowSerials"></span></p>
-          </div>
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">Paste Data (Format: serial_number,sgtin_numeric,sgtin_uri,rfid)</label>
-              <textarea id="wizardSGTINData" rows="6" placeholder="114519-001-AA,301414170001200ABC,https://id.gs1.org/01/.../21/001AA,12AB34CD56EF" class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-sm"></textarea>
-              <p class="text-xs text-gray-500 mt-1">Each line: serial_number, sgtin_numeric, sgtin_uri, rfid (RFID optional)</p>
-            </div>
-            <div class="flex gap-4">
-              <button onclick="wizardPrevStep(4)" class="bg-gray-400 text-white px-6 py-2 rounded hover:bg-gray-500">
-                ← Back
-              </button>
-              <button onclick="wizardNextStep(4)" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-                Next →
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Step 6: Review -->
-        <div id="wizardStep6" class="wizard-step hidden space-y-4">
-          <h3 class="text-xl font-bold text-gray-900 mb-4">Step 6: Review & Create</h3>
-          <div class="space-y-4 bg-gray-50 p-6 rounded">
-            <div class="border-b pb-4">
-              <h4 class="font-bold text-gray-900 mb-2">Style</h4>
-              <div id="wizardReviewStyle" class="text-sm space-y-1"></div>
-            </div>
-            <div class="border-b pb-4">
-              <h4 class="font-bold text-gray-900 mb-2">Batch</h4>
-              <div id="wizardReviewBatch" class="text-sm space-y-1"></div>
-            </div>
-            <div class="border-b pb-4">
-              <h4 class="font-bold text-gray-900 mb-2">Serials</h4>
-              <div id="wizardReviewSerials" class="text-sm space-y-1"></div>
-            </div>
-            <div>
-              <h4 class="font-bold text-gray-900 mb-2">SGTIN Data</h4>
-              <div id="wizardReviewSGTIN" class="text-sm space-y-1"></div>
-            </div>
-          </div>
-          <div class="flex gap-4">
-            <button onclick="wizardPrevStep(5)" class="bg-gray-400 text-white px-6 py-2 rounded hover:bg-gray-500">
-              ← Back
-            </button>
-            <button onclick="wizardCreate()" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 font-bold">
-              ✓ Create Complete Batch
-            </button>
-          </div>
-          <div id="wizardResult" class="mt-4 hidden p-4 rounded"></div>
-        </div>
-      </div>
-
-      <!-- NEW STYLE (kept for advanced users) -->
-      <div class="bg-white rounded-lg shadow-md p-8">
-        <h2 class="text-2xl font-bold text-gray-900 mb-6">🆕 Create New Style</h2>
-        <form id="newStyleForm" class="space-y-4 max-w-2xl">
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Style Number</label>
-            <input type="text" id="newStyleNumber" placeholder="114519" class="w-full border border-gray-300 rounded px-3 py-2" required>
-          </div>
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Product Name</label>
-            <input type="text" id="newProductName" placeholder="Lofty Lo" class="w-full border border-gray-300 rounded px-3 py-2" required>
-          </div>
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Description</label>
-            <textarea id="newDescription" rows="3" placeholder="Product description..." class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">Care Instructions</label>
-              <textarea id="newCare" rows="2" placeholder="Wash at 40°C..." class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
-            </div>
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">Delivery & Returns</label>
-              <textarea id="newDelivery" rows="2" placeholder="Free shipping..." class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
-            </div>
-          </div>
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Material & Composition</label>
-            <textarea id="newMaterial" rows="2" placeholder="95% Cotton, 5% Elastane" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
-          </div>
-          <button type="submit" class="bg-green-600 text-white px-6 py-3 rounded font-semibold hover:bg-green-700">
-            ✓ Create Style
-          </button>
-          <div id="newStyleResult" class="mt-4 hidden p-4 rounded"></div>
-        </form>
-      </div>
-
-      <!-- NEW BATCH -->
-      <div class="bg-white rounded-lg shadow-md p-8">
-        <h2 class="text-2xl font-bold text-gray-900 mb-6">🆕 Create New Batch + Serials</h2>
-        <form id="newBatchForm" class="space-y-4 max-w-2xl">
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Batch ID</label>
-            <input type="text" id="newBatchId" placeholder="114519-BATCH001" class="w-full border border-gray-300 rounded px-3 py-2" required>
-          </div>
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Style Number</label>
-            <input type="text" id="newBatchStyle" placeholder="114519" class="w-full border border-gray-300 rounded px-3 py-2" required>
-          </div>
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Total Units</label>
-            <input type="number" id="newBatchUnits" placeholder="100" class="w-full border border-gray-300 rounded px-3 py-2">
-          </div>
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Production Date</label>
-            <input type="date" id="newBatchProductionDate" class="w-full border border-gray-300 rounded px-3 py-2">
-          </div>
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Manufacturing Details (Factory, QC-status, etc)</label>
-            <textarea id="newBatchManufacturing" rows="3" placeholder="Factory: XYZ Factory&#10;QC Status: Passed&#10;Certifications: GOTS, OCS" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
-          </div>
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Serial Numbers (comma-separated)</label>
-            <textarea id="newSerials" rows="5" placeholder="114519-001-AA,114519-001-AB,114519-001-AC" class="w-full border border-gray-300 rounded px-3 py-2" required></textarea>
-          </div>
-          <button type="submit" class="bg-green-600 text-white px-6 py-3 rounded font-semibold hover:bg-green-700">
-            ✓ Create Batch
-          </button>
-          <div id="newBatchResult" class="mt-4 hidden p-4 rounded"></div>
-        </form>
-      </div>
-
-      <!-- IMPORT SUPPLIER DATA -->
-      <div class="bg-white rounded-lg shadow-md p-8">
-        <h2 class="text-2xl font-bold text-gray-900 mb-6">📨 Import Supplier Data (SGTIN + RFID)</h2>
-        <form id="importSupplierForm" class="space-y-4 max-w-2xl">
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Batch ID</label>
-            <input type="text" id="importBatchId" placeholder="114519-BATCH001" class="w-full border border-gray-300 rounded px-3 py-2" required>
-          </div>
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Paste Data (Format: serial_number,sgtin_numeric,sgtin_uri,rfid)</label>
-            <textarea id="importData" placeholder="114519-001-AA,301414170001200ABC,https://id.gs1.org/01/.../21/001AA,12AB34CD56EF" rows="8" class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-sm" required></textarea>
-            <p class="text-xs text-gray-500 mt-1">Each line: serial_number, sgtin_numeric, sgtin_uri, rfid (RFID can be empty)</p>
-          </div>
-          <button type="submit" class="bg-green-600 text-white px-6 py-3 rounded font-semibold hover:bg-green-700">
-            ✓ Import Supplier Data
-          </button>
-          <div id="importSupplierResult" class="mt-4 hidden p-4 rounded"></div>
-        </form>
       </div>
 
     </div>
 
   </div>
 
+  <!-- COPY BATCH MODAL -->
+  <div id="copyBatchModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+      <h2 class="text-2xl font-semibold text-gray-900 mb-4">Copy Batch</h2>
+      <p class="text-sm text-gray-600 mb-4" id="copyBatchFrom"></p>
+      <div class="space-y-4">
+        <p class="text-sm text-gray-600">Copies all batch metadata and images. Add serials separately after creation.</p>
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">New Batch ID</label>
+          <input type="text" id="copyBatchNewId" placeholder="e.g., 114519-BATCH002" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+        </div>
+        <div class="flex gap-2">
+          <button onclick="closeCopyBatchModal()" class="flex-1 bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
+            Cancel
+          </button>
+          <button onclick="performCopyBatch()" class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+            Copy
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD SERIALS MODAL -->
+  <div id="addSerialsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+    <div class="bg-white rounded-lg shadow-lg p-8 max-w-2xl w-full my-8">
+      <h2 class="text-2xl font-semibold text-gray-900 mb-4">Add Serials to Batch</h2>
+      <p class="text-sm text-gray-600 mb-4" id="addSerialsForBatch"></p>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">Serial Numbers (comma-separated)</label>
+          <textarea id="addSerialsInput" rows="5" placeholder="114519-001-AA, 114519-001-AB, 114519-001-AC..." class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900 text-sm font-mono"></textarea>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="closeAddSerialsModal()" class="flex-1 bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
+            Cancel
+          </button>
+          <button onclick="performAddSerials()" class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+            ✓ Add
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEW BATCH MODAL -->
+  <div id="newBatchModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+    <div class="bg-white rounded-lg shadow-lg p-8 max-w-2xl w-full my-8">
+      <h2 class="text-2xl font-semibold text-gray-900 mb-4">New Batch</h2>
+      <p class="text-sm text-gray-600 mb-4" id="newBatchStyle"></p>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">Batch ID</label>
+          <input type="text" id="newBatchId" placeholder="e.g., 114519-BATCH002" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">Total Units</label>
+            <input type="number" id="newBatchUnits" placeholder="100" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">Production Date</label>
+            <input type="date" id="newBatchProdDate" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">Manufacturing Details</label>
+          <textarea id="newBatchManufacturing" rows="2" placeholder="Factory, QC status, certifications..." class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">Serial Numbers (comma-separated)</label>
+          <textarea id="newBatchSerials" rows="3" placeholder="114519-001-AA, 114519-001-AB, 114519-001-AC..." class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900 text-sm"></textarea>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="closeNewBatchModal()" class="flex-1 bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
+            Cancel
+          </button>
+          <button onclick="performNewBatch()" class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+            ✓ Create
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
+    // Check if user is logged in
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!user.id) {
+      window.location.href = '/login';
+    }
+
+    // Load logo from server + Setup event listeners when DOM is ready
+    window.addEventListener('DOMContentLoaded', () => {
+      const logoContainer = document.getElementById('headerLogoContainer');
+      const img = new Image();
+      img.onload = () => {
+        logoContainer.innerHTML = `<img src="/nudie-logo.png" style="max-height: 60px; max-width: 200px;" alt="Nudie Jeans">`;
+      };
+      img.onerror = () => {
+        logoContainer.innerHTML = `<span style="font-family: cursive; font-size: 18px; font-weight: 300; letter-spacing: 1px;">Nudie Jeans</span>`;
+      };
+      img.src = '/nudie-logo.png';
+
+      // Setup search form after DOM is ready
+      const searchForm = document.getElementById('searchForm');
+      if (searchForm) {
+        searchForm.addEventListener('submit', handleSearch);
+      }
+
+      // Setup delegated click handler for onclick attributes
+      // This handles inline onclick="functionName()" calls
+      document.addEventListener('click', (e) => {
+        const target = e.target.closest('[onclick]');
+        if (!target) return;
+
+        const onclick = target.getAttribute('onclick');
+        if (!onclick) return;
+
+        try {
+          // Simple function call parser: handles "functionName()" and "functionName('arg')"
+          const match = onclick.match(/(\w+)\((.*)\)/);
+          if (match) {
+            const funcName = match[1];
+            const argsStr = match[2];
+
+            if (typeof window[funcName] === 'function') {
+              if (argsStr.trim()) {
+                // Parse arguments (handles quoted strings)
+                const args = argsStr.split(',').map(arg => {
+                  arg = arg.trim();
+                  if (arg.startsWith("'") && arg.endsWith("'")) {
+                    return arg.slice(1, -1);
+                  } else if (arg.startsWith('"') && arg.endsWith('"')) {
+                    return arg.slice(1, -1);
+                  }
+                  return arg;
+                });
+                window[funcName](...args);
+              } else {
+                window[funcName]();
+              }
+            }
+          }
+        } catch (err) {
+          console.error('onclick error:', err, onclick);
+        }
+      });
+
+      // Load dashboard on initial page load
+      loadDashboard();
+    });
+
+    // Search handler function
+    async function handleSearch(e) {
+      e.preventDefault();
+      const q = document.getElementById('searchQuery').value.trim();
+      const status = document.getElementById('searchStatus');
+
+      if (!q) {
+        status.textContent = 'Please enter a search term';
+        return;
+      }
+
+      status.textContent = 'Searching...';
+
+      try {
+        const res = await authFetch(`/api/search?q=${encodeURIComponent(q)}`);
+        const result = await res.json();
+
+        if (!result.results || result.results.length === 0) {
+          status.innerHTML = `No results found`;
+          document.getElementById('resultsListContainer').classList.add('hidden');
+          document.getElementById('resultContainer').classList.add('hidden');
+          return;
+        }
+
+        // Sort by relevance
+        const sorted = result.results.sort((a, b) => {
+          const aMatch = a.result_type === 'style' ? a.style_number : a.result_type === 'batch' ? a.batch_id : a.serial_number;
+          const bMatch = b.result_type === 'style' ? b.style_number : b.result_type === 'batch' ? b.batch_id : b.serial_number;
+          const aRelevance = aMatch === q ? 0 : aMatch.startsWith(q) ? 1 : 2;
+          const bRelevance = bMatch === q ? 0 : bMatch.startsWith(q) ? 1 : 2;
+          if (aRelevance !== bRelevance) return aRelevance - bRelevance;
+          const typeOrder = { 'style': 0, 'batch': 1, 'serial': 2 };
+          return (typeOrder[a.result_type] || 3) - (typeOrder[b.result_type] || 3);
+        });
+
+        // Show results
+        const resultsList = document.getElementById('resultsList');
+        resultsList.innerHTML = sorted.map((r, idx) => {
+          const displayName = r.result_type === 'style'
+            ? `${r.style_number} - ${r.product_name || 'No name'}`
+            : r.result_type === 'batch'
+            ? `Batch: ${r.batch_id} (Style: ${r.style_number})`
+            : `Serial: ${r.serial_number} (Batch: ${r.batch_id})`;
+
+          return `<button class="w-full text-left p-3 bg-gray-50 rounded hover:bg-blue-50 border border-gray-200" data-result-index="${idx}">
+            <p class="font-semibold">${displayName}</p>
+            <p class="text-xs text-gray-500">Type: ${r.result_type}</p>
+          </button>`;
+        }).join('');
+
+        // Add click handlers to results
+        resultsList.querySelectorAll('button').forEach((btn, idx) => {
+          btn.addEventListener('click', () => {
+            const r = sorted[idx];
+            loadData(r.result_type, r.style_number || '', r.batch_id || '', r.serial_number || '');
+          });
+        });
+
+        document.getElementById('resultsListContainer').classList.remove('hidden');
+        status.textContent = `Found ${result.results.length} result(s)`;
+      } catch (err) {
+        status.textContent = `Error: ${err.message}`;
+        console.error('Search error:', err);
+      }
+    }
+
+    // Display user info
+    document.getElementById('userDisplay').textContent = `${user.username} (${user.role})`;
+
+    // Apply role-based CSS classes
+    document.body.classList.add(user.role);
+
+    // Check if user can edit
+    function canEdit() {
+      return ['editor', 'admin', 'super_admin'].includes(user.role);
+    }
+
+    function canDelete() {
+      return ['admin', 'super_admin'].includes(user.role);
+    }
+
+    function canPermanentDelete() {
+      return user.role === 'super_admin';
+    }
+
+    // Logout function
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login';
+    }
+
+    // Setup logout button
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+
+    // Setup tab buttons
+    document.getElementById('tabDashboard').addEventListener('click', () => switchTab('dashboard'));
+    document.getElementById('tabEdit').addEventListener('click', () => switchTab('edit'));
+    document.getElementById('tabAdmin').addEventListener('click', () => switchTab('admin'));
+
+
+    // Setup add event button with delegation (button might be recreated)
+    document.addEventListener('click', (e) => {
+      if (e.target.id === 'addEventBtn') {
+        addEvent();
+      }
+    });
+
+    // Helper for authenticated fetch
+    async function authFetch(url, options = {}) {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No token found - redirecting to login');
+        window.location.href = '/login';
+        return;
+      }
+      return fetch(url, {
+        ...options,
+        headers: {
+          ...options.headers,
+          'Authorization': `Bearer ${token}`
+        }
+      });
+    }
+
     const currentData = {};
 
     function showToast(message = 'Saved!') {
@@ -705,7 +868,7 @@
 
       const tbody = document.getElementById('serialsTableBody');
       tbody.innerHTML = pageData.map(s => `
-        <tr class="border-b border-gray-200 hover:bg-blue-50 cursor-pointer" onclick="loadSerial('${s.serial_number}')">
+        <tr class="border-b border-gray-200 hover:bg-gray-50 cursor-pointer" onclick="loadSerial('${s.serial_number}')">
           <td class="px-4 py-2">${s.serial_number}</td>
           <td class="px-4 py-2">${s.condition}</td>
           <td class="px-4 py-2">${s.size}</td>
@@ -724,7 +887,7 @@
         const btn = document.createElement('button');
         btn.textContent = i;
         btn.className = i === serialsCurrentPage
-          ? 'px-3 py-1 bg-blue-600 text-white rounded'
+          ? 'px-3 py-1 bg-gray-900 text-white rounded'
           : 'px-3 py-1 border border-gray-300 rounded hover:bg-gray-100';
         btn.onclick = () => {
           serialsCurrentPage = i;
@@ -745,246 +908,175 @@
       renderSerialsTable();
     }
 
-    // Wizard functions
-    const wizardData = {};
 
-    function wizardNextStep(step) {
-      if (step === 1) {
-        wizardData.styleNumber = document.getElementById('wizardStyleNumber').value;
-        wizardData.productName = document.getElementById('wizardProductName').value;
-        wizardData.material = document.getElementById('wizardMaterial').value;
-        if (!wizardData.styleNumber) { alert('Style Number required'); return; }
-      } else if (step === 2) {
-        wizardData.transparency = document.getElementById('wizardTransparency').value;
-        wizardData.repair = document.getElementById('wizardRepair').value;
-        wizardData.story = document.getElementById('wizardStory').value;
-      } else if (step === 3) {
-        wizardData.batchId = document.getElementById('wizardBatchId').value;
-        wizardData.batchUnits = document.getElementById('wizardBatchUnits').value;
-        wizardData.productionDate = document.getElementById('wizardProductionDate').value;
-        wizardData.manufacturing = document.getElementById('wizardManufacturing').value;
-        if (!wizardData.batchId) { alert('Batch ID required'); return; }
-      } else if (step === 4) {
-        const serialsInput = document.getElementById('wizardSerials').value.trim();
-        wizardData.serials = serialsInput.split(',').map(s => s.trim()).filter(s => s);
-        if (wizardData.serials.length === 0) { alert('Add at least one serial'); return; }
-      } else if (step === 5) {
-        wizardData.sgtin = document.getElementById('wizardSGTINData').value;
-      }
+    // Load Dashboard
+    async function loadDashboard() {
+      try {
+        // Fetch all data
+        const [stylesRes, batchesRes, serialsRes, eventsRes] = await Promise.all([
+          fetch('/api/styles'),
+          fetch('/api/batches'),
+          fetch('/api/serials'),
+          fetch('/api/events')
+        ]);
 
-      showWizardStep(step + 1);
-    }
+        const styles = await stylesRes.json();
+        const batches = await batchesRes.json();
+        const serials = await serialsRes.json();
+        const events = await eventsRes.json();
 
-    function wizardPrevStep(step) {
-      showWizardStep(step - 1);
-    }
+        // Update KPI cards
+        document.getElementById('statsStyles').textContent = styles.length;
+        document.getElementById('statsBatches').textContent = batches.length;
+        document.getElementById('statsSerials').textContent = serials.length;
+        document.getElementById('statsEvents').textContent = events.length;
 
-    function showWizardStep(step) {
-      // Hide all steps
-      document.querySelectorAll('.wizard-step').forEach(s => s.classList.add('hidden'));
-      // Show current step
-      document.getElementById(`wizardStep${step}`).classList.remove('hidden');
-      // Update step indicators
-      document.querySelectorAll('.step-indicator div:first-child').forEach((el, i) => {
-        const stepNum = i + 1;
-        if (stepNum < step) {
-          el.className = 'bg-green-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold';
-          el.textContent = '✓';
-        } else if (stepNum === step) {
-          el.className = 'bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold';
-          el.textContent = stepNum;
+        // Count conditions
+        const conditions = { new: 0, repaired: 0, reused: 0, recycled: 0 };
+        serials.forEach(s => {
+          const cond = s.condition || 'new';
+          if (conditions.hasOwnProperty(cond)) conditions[cond]++;
+        });
+        document.getElementById('conditionNew').textContent = conditions.new;
+        document.getElementById('conditionRepaired').textContent = conditions.repaired;
+        document.getElementById('conditionReused').textContent = conditions.reused;
+        document.getElementById('conditionRecycled').textContent = conditions.recycled;
+
+        // Top 5 styles
+        const styleSerialCounts = {};
+        serials.forEach(s => {
+          const batch = batches.find(b => b.batch_id === s.batch_id);
+          if (batch) {
+            styleSerialCounts[batch.style_number] = (styleSerialCounts[batch.style_number] || 0) + 1;
+          }
+        });
+        const topStyles = Object.entries(styleSerialCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5);
+        const topStylesEl = document.getElementById('topStyles');
+        topStylesEl.innerHTML = topStyles.map(([style, count], idx) => `
+          <div class="flex justify-between p-2 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer" data-style-index="${idx}">
+            <span class="font-semibold text-blue-600 hover:underline">${style}</span>
+            <span class="text-gray-600">${count} serials</span>
+          </div>
+        `).join('');
+
+        // Add click handlers to top styles
+        topStylesEl.querySelectorAll('[data-style-index]').forEach((el, idx) => {
+          el.addEventListener('click', () => {
+            goToLookup('style', topStyles[idx][0]);
+          });
+        });
+
+        // Data quality issues - check Style, Batch, and Serial data
+        const issues = [];
+
+        // Check Styles
+        styles.forEach(s => {
+          if (!s.product_name || s.product_name.trim() === '') issues.push({ type: 'style', target: s.style_number, text: `Style ${s.style_number}: missing product name` });
+          if (!s.description || s.description.trim() === '') issues.push({ type: 'style', target: s.style_number, text: `Style ${s.style_number}: missing description` });
+          if (!s.care_instructions || s.care_instructions.trim() === '') issues.push({ type: 'style', target: s.style_number, text: `Style ${s.style_number}: missing care instructions` });
+          if (!s.size_material_composition || s.size_material_composition.trim() === '') issues.push({ type: 'style', target: s.style_number, text: `Style ${s.style_number}: missing material composition` });
+        });
+
+        // Check Batches (partner_name)
+        batches.forEach(b => {
+          if (!b.partner_name || b.partner_name.trim() === '') issues.push({ type: 'batch', target: b.batch_id, text: `Batch ${b.batch_id}: missing partner/manufacturer` });
+          // Check serials in this batch
+          const batchSerials = serials.filter(s => s.batch_id === b.batch_id);
+          batchSerials.forEach(s => {
+            if (!s.condition || s.condition === '-') issues.push({ type: 'serial', target: s.serial_number, text: `Serial ${s.serial_number}: missing condition` });
+          });
+        });
+
+        const issuesEl = document.getElementById('dataQualityIssues');
+        if (issues.length > 0) {
+          issuesEl.innerHTML = issues.slice(0, 5).map((i, idx) => `
+            <div class="text-gray-700">
+              • <a href="javascript:void(0)" class="text-blue-600 hover:underline cursor-pointer" data-issue-index="${idx}">${i.text}</a>
+            </div>
+          `).join('');
+
+          // Add click handlers to issue links
+          issuesEl.querySelectorAll('[data-issue-index]').forEach((link, idx) => {
+            link.addEventListener('click', (e) => {
+              e.preventDefault();
+              goToLookup(issues[idx].type, issues[idx].target);
+            });
+          });
         } else {
-          el.className = 'bg-gray-300 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold';
-          el.textContent = stepNum;
+          issuesEl.innerHTML = '<div class="text-gray-600">All data is complete</div>';
         }
-      });
 
-      // Update displays
-      if (step >= 2) {
-        document.getElementById('wizardShowStyleDetails').textContent = wizardData.styleNumber;
-      }
-      if (step >= 3) {
-        document.getElementById('wizardShowBatch').textContent = wizardData.batchId;
-      }
-      if (step >= 4) {
-        document.getElementById('wizardShowStyle').textContent = wizardData.styleNumber;
-      }
-      if (step >= 5) {
-        document.getElementById('wizardShowSerials').textContent = wizardData.serials.length + ' serials';
-        document.getElementById('serialsPreview').innerHTML = `<strong>Preview:</strong> ${wizardData.serials.slice(0, 3).join(', ')}${wizardData.serials.length > 3 ? '...' : ''}`;
-      }
-      if (step === 6) {
-        showWizardReview();
-      }
+        // Recent events
+        const recent = events.slice(0, 10);
+        document.getElementById('recentEvents').innerHTML = recent.map(e => `
+          <div class="p-3 bg-gray-50 rounded text-sm">
+            <div class="font-semibold">${e.event_type}</div>
+            <div class="text-xs text-gray-500">${new Date(e.created_at).toLocaleString('sv-SE')}</div>
+          </div>
+        `).join('') || '<div class="text-gray-500">No events yet</div>';
 
-      window.scrollTo(0, 0);
-    }
+        // Load most viewed serials
+        const mostViewedTable = document.getElementById('mostViewedTable');
+        const mostViewed = serials
+          .filter(s => s.view_count > 0)
+          .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
+          .slice(0, 10);
 
-    function showWizardReview() {
-      document.getElementById('wizardReviewStyle').innerHTML = `
-        <div><strong>Number:</strong> ${wizardData.styleNumber}</div>
-        <div><strong>Name:</strong> ${wizardData.productName}</div>
-        <div><strong>Material:</strong> ${wizardData.material}</div>
-      `;
-      document.getElementById('wizardReviewBatch').innerHTML = `
-        <div><strong>ID:</strong> ${wizardData.batchId}</div>
-        <div><strong>Units:</strong> ${wizardData.batchUnits || '-'}</div>
-        <div><strong>Production Date:</strong> ${wizardData.productionDate || '-'}</div>
-        <div><strong>Manufacturing:</strong> ${wizardData.manufacturing || '-'}</div>
-      `;
-      document.getElementById('wizardReviewSerials').innerHTML = `
-        <div><strong>Count:</strong> ${wizardData.serials.length}</div>
-        <div><strong>Samples:</strong> ${wizardData.serials.slice(0, 5).join(', ')}${wizardData.serials.length > 5 ? '...' : ''}</div>
-      `;
-      document.getElementById('wizardReviewSGTIN').innerHTML = `
-        <div><strong>Lines:</strong> ${wizardData.sgtin ? wizardData.sgtin.split('\n').length : 0}</div>
-      `;
-    }
-
-    async function wizardCreate() {
-      const resultDiv = document.getElementById('wizardResult');
-      resultDiv.classList.add('hidden');
-
-      // Step 1: Create style
-      const styleRes = await fetch(`/api/styles/${wizardData.styleNumber}/product-info`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          product_name: wizardData.productName,
-          size_material_composition: wizardData.material
-        })
-      });
-
-      if (!styleRes.ok) {
-        showWizardResult(false, 'Error creating style');
-        return;
-      }
-
-      // Step 1b: Add transparency/nudie/storytelling if provided
-      if (wizardData.transparency) {
-        await fetch(`/api/styles/${wizardData.styleNumber}/transparency`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(JSON.parse(wizardData.transparency))
-        });
-      }
-
-      if (wizardData.repair || wizardData.story) {
-        const nudieData = {};
-        if (wizardData.repair) nudieData.repair_info = wizardData.repair;
-        if (wizardData.story) {
-          const storyData = {
-            summary: wizardData.story,
-            content: wizardData.story,
-            links: []
-          };
-          await fetch(`/api/styles/${wizardData.styleNumber}/storytelling`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(storyData)
-          });
+        if (mostViewed.length > 0) {
+          mostViewedTable.innerHTML = mostViewed.map(s => `
+            <tr class="border-b border-gray-200 hover:bg-gray-50">
+              <td class="px-4 py-3 font-mono text-gray-900">${s.serial_number}</td>
+              <td class="px-4 py-3 text-gray-700">${s.batch_id ? batches.find(b => b.batch_id === s.batch_id)?.style_number || 'N/A' : 'N/A'}</td>
+              <td class="px-4 py-3 text-right">
+                <span class="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-bold">${s.view_count || 0}</span>
+              </td>
+            </tr>
+          `).join('');
+        } else {
+          mostViewedTable.innerHTML = '<tr><td colspan="3" class="px-4 py-3 text-center text-gray-500">No views yet</td></tr>';
         }
-        if (wizardData.repair) {
-          await fetch(`/api/styles/${wizardData.styleNumber}/nudie-values`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(nudieData)
-          });
-        }
-      }
 
-      // Step 2: Create batch
-      const batchRes = await fetch('/api/batch/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          batch_id: wizardData.batchId,
-          style_number: wizardData.styleNumber,
-          total_units: parseInt(wizardData.batchUnits) || 0,
-          partner_name: '',
-          serials: wizardData.serials
-        })
-      });
-
-      if (!batchRes.ok) {
-        showWizardResult(false, 'Error creating batch');
-        return;
-      }
-
-      // Step 3: Save batch metadata
-      if (wizardData.productionDate || wizardData.manufacturing) {
-        await fetch('/api/batch/metadata', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            batch_id: wizardData.batchId,
-            production_date: wizardData.productionDate,
-            manufacturing_details: wizardData.manufacturing
-          })
-        });
-      }
-
-      // Step 4: Import SGTIN
-      if (wizardData.sgtin) {
-        await fetch('/api/serials/import-supplier-data', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            batch_id: wizardData.batchId,
-            data: wizardData.sgtin
-          })
-        });
-      }
-
-      showWizardResult(true, `✓ Complete! Created batch ${wizardData.batchId} with ${wizardData.serials.length} serials`);
-    }
-
-    function showWizardResult(success, message) {
-      const resultDiv = document.getElementById('wizardResult');
-      resultDiv.className = success
-        ? 'mt-4 p-4 rounded bg-green-50 border border-green-200 text-green-900'
-        : 'mt-4 p-4 rounded bg-red-50 border border-red-200 text-red-900';
-      resultDiv.innerHTML = `<p>${message}</p>`;
-      resultDiv.classList.remove('hidden');
-      if (success) {
-        setTimeout(() => {
-          document.getElementById('wizardStep1').classList.remove('hidden');
-          document.querySelectorAll('.wizard-step').forEach((s, i) => {
-            if (i > 0) s.classList.add('hidden');
-          });
-          document.getElementById('wizardStyleNumber').value = '';
-          document.getElementById('wizardProductName').value = '';
-          document.getElementById('wizardMaterial').value = '';
-          document.getElementById('wizardBatchId').value = '';
-          document.getElementById('wizardBatchUnits').value = '';
-          document.getElementById('wizardProductionDate').value = '';
-          document.getElementById('wizardManufacturing').value = '';
-          document.getElementById('wizardSerials').value = '';
-          document.getElementById('wizardSGTINData').value = '';
-          showWizardStep(1);
-        }, 2000);
+      } catch (err) {
+        console.error('Dashboard load error:', err);
       }
     }
 
     // Tab switching
     function switchTab(tab) {
+      // Hide/show tabs
+      document.getElementById('dashboardTab').classList.toggle('hidden', tab !== 'dashboard');
       document.getElementById('editTab').classList.toggle('hidden', tab !== 'edit');
-      document.getElementById('newTab').classList.toggle('hidden', tab !== 'new');
-      document.getElementById('tabEdit').classList.toggle('border-b-2', tab === 'edit');
-      document.getElementById('tabEdit').classList.toggle('border-blue-600', tab === 'edit');
-      document.getElementById('tabEdit').classList.toggle('text-gray-900', tab === 'edit');
-      document.getElementById('tabEdit').classList.toggle('text-gray-700', tab !== 'edit');
-      document.getElementById('tabNew').classList.toggle('border-b-2', tab === 'new');
-      document.getElementById('tabNew').classList.toggle('border-blue-600', tab === 'new');
-      document.getElementById('tabNew').classList.toggle('text-gray-900', tab === 'new');
-      document.getElementById('tabNew').classList.toggle('text-gray-700', tab !== 'new');
+      document.getElementById('adminTab').classList.toggle('hidden', tab !== 'admin');
+
+      // Update button styles
+      ['dashboard', 'edit', 'admin'].forEach(t => {
+        const btn = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        btn.classList.toggle('border-b-2', tab === t);
+        btn.classList.toggle('border-gray-900', tab === t);
+        btn.classList.toggle('text-gray-900', tab === t);
+        btn.classList.toggle('text-gray-700', tab !== t);
+      });
+
+      // Load admin data when admin tab is opened
+      if (tab === 'admin') {
+        loadAdminUsers();
+      }
+
+      // Load dashboard data when dashboard tab is opened
+      if (tab === 'dashboard') {
+        loadDashboard();
+      }
     }
 
     // NEW STYLE form
-    document.getElementById('newStyleForm').addEventListener('submit', async (e) => {
+    const newStyleForm = document.getElementById('newStyleForm');
+    if (newStyleForm) {
+    newStyleForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const styleNumber = document.getElementById('newStyleNumber').value;
-      const res = await fetch(`/api/styles/${styleNumber}/product-info`, {
+      const res = await authFetch(`/api/styles/${styleNumber}/product-info`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1002,16 +1094,19 @@
       resultDiv.classList.remove('hidden');
       if (res.ok) document.getElementById('newStyleForm').reset();
     });
+    }
 
     // NEW BATCH form
-    document.getElementById('newBatchForm').addEventListener('submit', async (e) => {
+    const newBatchForm = document.getElementById('newBatchForm');
+    if (newBatchForm) {
+    newBatchForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const serials = document.getElementById('newSerials').value.split(',').map(s => s.trim());
       const batchId = document.getElementById('newBatchId').value;
       const productionDate = document.getElementById('newBatchProductionDate').value;
       const manufacturingDetails = document.getElementById('newBatchManufacturing').value;
 
-      const res = await fetch('/api/batch/import', {
+      const res = await authFetch('/api/batch/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1026,7 +1121,7 @@
 
       // Save batch metadata (production date and manufacturing details)
       if (res.ok && productionDate) {
-        await fetch('/api/batch/metadata', {
+        await authFetch('/api/batch/metadata', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1043,11 +1138,12 @@
       resultDiv.classList.remove('hidden');
       if (res.ok) document.getElementById('newBatchForm').reset();
     });
+    }
 
     // IMPORT SUPPLIER DATA form
     document.getElementById('importSupplierForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const res = await fetch('/api/serials/import-supplier-data', {
+      const res = await authFetch('/api/serials/import-supplier-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1063,65 +1159,6 @@
       if (res.ok) document.getElementById('importSupplierForm').reset();
     });
 
-    document.getElementById('searchForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const q = document.getElementById('searchQuery').value.trim();
-      const status = document.getElementById('searchStatus');
-
-      status.textContent = 'Searching...';
-
-      try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-        const result = await res.json();
-
-        if (!result.results || result.results.length === 0) {
-          status.textContent = 'No results found';
-          document.getElementById('resultsListContainer').classList.add('hidden');
-          document.getElementById('resultContainer').classList.add('hidden');
-          return;
-        }
-
-        // Sort by relevance - exact match first, then starts with, then contains
-        // Also prioritize: styles > batches > serials
-        const sorted = result.results.sort((a, b) => {
-          const aMatch = a.result_type === 'style' ? a.style_number : a.result_type === 'batch' ? a.batch_id : a.serial_number;
-          const bMatch = b.result_type === 'style' ? b.style_number : b.result_type === 'batch' ? b.batch_id : b.serial_number;
-
-          // Calculate relevance score
-          const aRelevance = aMatch === q ? 0 : aMatch.startsWith(q) ? 1 : 2;
-          const bRelevance = bMatch === q ? 0 : bMatch.startsWith(q) ? 1 : 2;
-
-          // If relevance is the same, prioritize by type
-          if (aRelevance !== bRelevance) return aRelevance - bRelevance;
-
-          const typeOrder = { 'style': 0, 'batch': 1, 'serial': 2 };
-          return (typeOrder[a.result_type] || 3) - (typeOrder[b.result_type] || 3);
-        });
-
-        // Show results list
-        const resultsList = document.getElementById('resultsList');
-        resultsList.innerHTML = sorted.map(r => {
-          const displayName = r.result_type === 'style'
-            ? `📦 ${r.style_number} - ${r.product_name || 'No name'}`
-            : r.result_type === 'batch'
-            ? `📦 Batch: ${r.batch_id} (Style: ${r.style_number})`
-            : `🏷️ Serial: ${r.serial_number} (Batch: ${r.batch_id})`;
-
-          return `
-            <button class="w-full text-left p-3 bg-gray-50 rounded hover:bg-blue-50 border border-gray-200"
-                    onclick="loadData('${r.result_type}', '${r.style_number || ''}', '${r.batch_id || ''}', '${r.serial_number || ''}')">
-              <p class="font-semibold">${displayName}</p>
-              <p class="text-xs text-gray-500">Type: ${r.result_type}</p>
-            </button>
-          `;
-        }).join('');
-
-        document.getElementById('resultsListContainer').classList.remove('hidden');
-        status.textContent = `Found ${result.results.length} result(s)`;
-      } catch (err) {
-        status.textContent = `Error: ${err.message}`;
-      }
-    });
 
     function loadData(type, styleNumber, batchId, serialNumber) {
       document.getElementById('resultContainer').classList.remove('hidden');
@@ -1134,12 +1171,33 @@
       }
     }
 
+    async function showCreateStyleForm(styleNumber) {
+      document.getElementById('resultContainer').classList.remove('hidden');
+      document.getElementById('styleSection').classList.remove('hidden');
+      document.getElementById('batchSection').classList.add('hidden');
+      document.getElementById('serialSection').classList.add('hidden');
+
+      document.getElementById('styleTitle').textContent = styleNumber;
+      document.getElementById('productInfoView').innerHTML = '<p class="text-gray-500">New style - fill in details below</p>';
+
+      // Show edit form
+      document.getElementById('productName').value = '';
+      document.getElementById('productDescription').value = '';
+      document.getElementById('productCare').value = '';
+      document.getElementById('productDelivery').value = '';
+      document.getElementById('productMaterial').value = '';
+      toggleEdit('product-info');
+
+      // Set style number for saving
+      document.getElementById('styleNumber').dataset.styleNumber = styleNumber;
+    }
+
     async function loadStyle(styleNumber) {
       document.getElementById('styleSection').classList.remove('hidden');
       document.getElementById('batchSection').classList.add('hidden');
       document.getElementById('serialSection').classList.add('hidden');
 
-      const res = await fetch(`/api/styles/${styleNumber}/full-data`);
+      const res = await authFetch(`/api/styles/${styleNumber}/full-data`);
       const data = await res.json();
       currentData.style = data;
 
@@ -1192,27 +1250,55 @@
         document.getElementById('storytellingLinks').value = JSON.stringify(data.storytelling.links || [], null, 2);
       }
 
-      // Batches - clickable to navigate down
+      // Batches - table format
       const batchesList = document.getElementById('batchesList');
       batchesList.innerHTML = data.batches.map(b => `
-        <button onclick="loadBatch('${b.batch_id}')" class="w-full text-left p-3 bg-gray-50 rounded hover:bg-blue-50 border border-gray-200 cursor-pointer">
-          <p class="font-semibold">📦 ${b.batch_id}</p>
-          <p class="text-xs text-gray-500">${b.serial_count} serials | Partner: ${b.partner_name || '-'}</p>
-        </button>
+        <tr class="border-b border-gray-200 hover:bg-gray-50">
+          <td class="py-3 px-3"><button onclick="loadBatch('${b.batch_id}')" class="text-blue-600 hover:underline cursor-pointer font-semibold">${b.batch_id}</button></td>
+          <td class="py-3 px-3">${b.serial_count}</td>
+          <td class="py-3 px-3">${b.partner_name || '-'}</td>
+          <td class="py-3 px-3 text-right space-x-2">
+            <button onclick="showCopyBatchModal('${b.batch_id}')" class="edit-button bg-gray-900 text-white px-3 py-1 rounded text-sm hover:bg-gray-800">
+              Copy
+            </button>
+            <button onclick="deleteBatch('${b.batch_id}')" class="delete-button bg-gray-600 text-white px-3 py-1 rounded text-sm hover:bg-gray-700">
+              Delete
+            </button>
+          </td>
+        </tr>
       `).join('');
     }
 
     async function loadStyleImages(styleNumber) {
       try {
-        const res = await fetch(`/api/styles/${styleNumber}/images`);
+        const res = await authFetch(`/api/styles/${styleNumber}/images`);
         const images = await res.json();
         const container = document.getElementById('styleImages');
-        container.innerHTML = images.map(img => `
-          <div class="relative">
-            <img src="data:image/jpeg;base64,${img.image_data}" class="h-24 w-24 object-cover rounded" alt="${img.image_name}">
-            <button onclick="deleteStyleImage(${img.id})" class="absolute top-0 right-0 bg-red-600 text-white text-xs px-2 py-1 rounded">✕</button>
+
+        if (images.length === 0) {
+          container.innerHTML = '<p class="text-gray-500 text-sm">No images yet</p>';
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            ${images.map(img => `
+              <div class="relative group">
+                <div class="bg-gray-100 rounded-lg overflow-hidden aspect-square">
+                  <img src="data:image/jpeg;base64,${img.image_data}"
+                       class="w-full h-full object-cover"
+                       alt="${img.image_name}">
+                </div>
+                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded-lg transition"></div>
+                <button onclick="deleteStyleImage(${img.id})"
+                        class="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-sm opacity-0 group-hover:opacity-100 transition">
+                  Delete
+                </button>
+                <p class="text-xs text-gray-600 mt-2 truncate">${img.image_name}</p>
+              </div>
+            `).join('')}
           </div>
-        `).join('');
+        `;
       } catch (err) {
         console.log('No images found');
       }
@@ -1223,7 +1309,7 @@
       document.getElementById('batchSection').classList.remove('hidden');
       document.getElementById('serialSection').classList.add('hidden');
 
-      const res = await fetch(`/api/batches/${batchId}/full-data`);
+      const res = await authFetch(`/api/batches/${batchId}/full-data`);
       const data = await res.json();
       currentData.batch = data;
 
@@ -1244,14 +1330,16 @@
       }
 
       document.getElementById('batchInfo').innerHTML = `
-        <div><strong>Batch ID:</strong> ${batch.batch_id}</div>
-        <div><strong>Style:</strong> <button onclick="loadStyle('${batch.style_number}')" class="text-blue-600 hover:underline cursor-pointer">${batch.style_number}</button></div>
-        <div><strong>Total Units:</strong> ${batch.total_units || '-'}</div>
-        <div><strong>Production Date:</strong> ${prodDate}</div>
-        <div><strong>Manufacturing Details:</strong> ${mfgDetails.replace(/\n/g, '<br>')}</div>
-        <button onclick="toggleEdit('batch-metadata')" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-          ✏️ Edit Batch Details
-        </button>
+        <div id="batchMetadataView">
+          <div><strong>Batch ID:</strong> ${batch.batch_id}</div>
+          <div><strong>Style:</strong> ${batch.style_number}</div>
+          <div><strong>Total Units:</strong> ${batch.total_units || '-'}</div>
+          <div><strong>Production Date:</strong> ${prodDate}</div>
+          <div><strong>Manufacturing Details:</strong> ${mfgDetails.replace(/\n/g, '<br>')}</div>
+          <button onclick="toggleEdit('batch-metadata')" class="edit-button mt-4 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+            Edit Batch Details
+          </button>
+        </div>
       `;
 
       // Add/update batch edit form (remove old if exists)
@@ -1260,17 +1348,17 @@
 
       batchEditDiv = document.createElement('div');
       batchEditDiv.id = 'batchMetadataEdit';
-      batchEditDiv.className = 'hidden mt-4 space-y-4 bg-gray-50 p-4 rounded';
+      batchEditDiv.className = 'hidden mt-4 space-y-4 bg-gray-50 rounded-lg p-6';
       batchEditDiv.innerHTML = `
         <div>
           <label class="block text-sm font-bold text-gray-700 mb-1">Production Date</label>
-          <input type="date" id="editBatchProductionDate" class="w-full border border-gray-300 rounded px-3 py-2">
+          <input type="date" id="editBatchProductionDate" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
         </div>
         <div>
           <label class="block text-sm font-bold text-gray-700 mb-1">Manufacturing Details</label>
-          <textarea id="editBatchManufacturing" rows="3" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+          <textarea id="editBatchManufacturing" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
         </div>
-        <button onclick="saveBatchMetadata('${batch.batch_id}')" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+        <button onclick="saveBatchMetadata('${batch.batch_id}')" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
           ✓ Save
         </button>
       `;
@@ -1290,15 +1378,34 @@
 
     async function loadBatchImages(batchId) {
       try {
-        const res = await fetch(`/api/batches/${batchId}/images`);
+        const res = await authFetch(`/api/batches/${batchId}/images`);
         const images = await res.json();
         const container = document.getElementById('batchImages');
-        container.innerHTML = images.map(img => `
-          <div class="relative">
-            <img src="data:image/jpeg;base64,${img.image_data}" class="h-24 w-24 object-cover rounded" alt="${img.image_name}">
-            <button onclick="deleteBatchImage(${img.id})" class="absolute top-0 right-0 bg-red-600 text-white text-xs px-2 py-1 rounded">✕</button>
+
+        if (images.length === 0) {
+          container.innerHTML = '<p class="text-gray-500 text-sm">No images yet</p>';
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            ${images.map(img => `
+              <div class="relative group">
+                <div class="bg-gray-100 rounded-lg overflow-hidden aspect-square">
+                  <img src="data:image/jpeg;base64,${img.image_data}"
+                       class="w-full h-full object-cover"
+                       alt="${img.image_name}">
+                </div>
+                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded-lg transition"></div>
+                <button onclick="deleteBatchImage(${img.id})"
+                        class="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-sm opacity-0 group-hover:opacity-100 transition">
+                  Delete
+                </button>
+                <p class="text-xs text-gray-600 mt-2 truncate">${img.image_name}</p>
+              </div>
+            `).join('')}
           </div>
-        `).join('');
+        `;
       } catch (err) {
         console.log('No images found');
       }
@@ -1309,7 +1416,7 @@
       document.getElementById('batchSection').classList.add('hidden');
       document.getElementById('serialSection').classList.remove('hidden');
 
-      const res = await fetch(`/api/serials/${serialNumber}/full-data`);
+      const res = await authFetch(`/api/serials/${serialNumber}/full-data`);
       const data = await res.json();
       currentData.serial = data;
 
@@ -1320,6 +1427,9 @@
         <div><strong>Serial:</strong> ${serial.serial_number}</div>
         <div><strong>SGTIN:</strong> ${serial.sgtin_numeric || '-'}</div>
         <div><strong>RFID:</strong> ${serial.rfid || '-'}</div>
+        <div class="pt-2 border-t border-gray-300">
+          <div><strong>Views:</strong> <span class="text-blue-600 font-bold text-lg">${serial.view_count || 0}</span></div>
+        </div>
       `;
 
       if (data.batch) {
@@ -1352,26 +1462,55 @@
       `;
 
       // Pre-fill edit form - SGTIN/RFID
-      document.getElementById('serialSGTINNumeric').value = serial.sgtin_numeric || '';
-      // Auto-generate Public URL if not set
-      document.getElementById('serialSGTINUri').value = serial.sgtin_uri || `${window.location.origin}/p/${serial.serial_number}`;
-      document.getElementById('serialRFID').value = serial.rfid || '';
+      const serialSGTINNumeric = document.getElementById('serialSGTINNumeric');
+      if (serialSGTINNumeric) serialSGTINNumeric.value = serial.sgtin_numeric || '';
+
+      const serialSGTINUri = document.getElementById('serialSGTINUri');
+      if (serialSGTINUri) serialSGTINUri.value = serial.sgtin_uri || `${window.location.origin}/p/${serial.serial_number}`;
+
+      const serialRFID = document.getElementById('serialRFID');
+      if (serialRFID) serialRFID.value = serial.rfid || '';
 
       // Pre-fill edit form - Metadata
-      document.getElementById('serialSize').value = metadata.size || '';
-      document.getElementById('serialCondition').value = metadata.condition || '';
-      document.getElementById('serialLocation').value = metadata.location || '';
-      document.getElementById('serialOwner').value = metadata.owner_id || '';
-      document.getElementById('serialNotes').value = metadata.notes || '';
+      const serialSize = document.getElementById('serialSize');
+      if (serialSize) serialSize.value = metadata.size || '';
+
+      const serialCondition = document.getElementById('serialCondition');
+      if (serialCondition) serialCondition.value = metadata.condition || '';
+
+      const serialLocation = document.getElementById('serialLocation');
+      if (serialLocation) serialLocation.value = metadata.location || '';
+
+      const serialOwner = document.getElementById('serialOwner');
+      if (serialOwner) serialOwner.value = metadata.owner_id || '';
+
+      const serialNotes = document.getElementById('serialNotes');
+      if (serialNotes) serialNotes.value = metadata.notes || '';
 
       // Events
-      document.getElementById('eventsTimeline').innerHTML = data.events.map(e => `
-        <div class="bg-gray-50 p-4 rounded border-l-4 border-blue-600">
-          <strong>${e.event_type.toUpperCase()}</strong>
-          <div class="text-sm text-gray-600">${new Date(e.created_at).toLocaleDateString('sv-SE')}</div>
-          ${e.event_data ? `<pre class="text-xs mt-2 bg-white p-2 rounded">${JSON.stringify(JSON.parse(e.event_data), null, 2)}</pre>` : ''}
-        </div>
-      `).join('');
+      console.log('Loading events:', data.events);
+      const eventsHTML = data.events.map(e => {
+        try {
+          const eventDataJson = e.event_data && typeof e.event_data === 'string' ? JSON.parse(e.event_data) : e.event_data;
+          return `
+            <div class="bg-gray-50 rounded-lg p-6 border-l-4 border-blue-600">
+              <strong>${e.event_type.toUpperCase()}</strong>
+              <div class="text-sm text-gray-600">${new Date(e.created_at).toLocaleDateString('sv-SE')}</div>
+              ${eventDataJson ? `<pre class="text-xs mt-2 bg-white p-2 rounded">${JSON.stringify(eventDataJson, null, 2)}</pre>` : ''}
+            </div>
+          `;
+        } catch (err) {
+          console.error('Error rendering event:', e, err);
+          return `
+            <div class="bg-gray-50 rounded-lg p-6 border-l-4 border-blue-600">
+              <strong>${e.event_type.toUpperCase()}</strong>
+              <div class="text-sm text-gray-600">${new Date(e.created_at).toLocaleDateString('sv-SE')}</div>
+            </div>
+          `;
+        }
+      }).join('');
+
+      document.getElementById('eventsTimeline').innerHTML = eventsHTML || '<div class="text-gray-500 text-sm">No events yet</div>';
     }
 
     function toggleEdit(section) {
@@ -1388,7 +1527,7 @@
 
     async function saveProductInfo() {
       const styleNumber = currentData.style.style.style_number;
-      const res = await fetch(`/api/styles/${styleNumber}/product-info`, {
+      const res = await authFetch(`/api/styles/${styleNumber}/product-info`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1412,7 +1551,7 @@
     async function saveTransparency() {
       try {
         const styleNumber = currentData.style.style.style_number;
-        const res = await fetch(`/api/styles/${styleNumber}/transparency`, {
+        const res = await authFetch(`/api/styles/${styleNumber}/transparency`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1437,7 +1576,7 @@
 
     async function saveNudieValues() {
       const styleNumber = currentData.style.style.style_number;
-      const res = await fetch(`/api/styles/${styleNumber}/nudie-values`, {
+      const res = await authFetch(`/api/styles/${styleNumber}/nudie-values`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1457,7 +1596,7 @@
     async function saveStorytelling() {
       try {
         const styleNumber = currentData.style.style.style_number;
-        const res = await fetch(`/api/styles/${styleNumber}/storytelling`, {
+        const res = await authFetch(`/api/styles/${styleNumber}/storytelling`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1483,7 +1622,7 @@
       const productionDate = document.getElementById('editBatchProductionDate').value;
       const manufacturingDetails = document.getElementById('editBatchManufacturing').value;
 
-      const res = await fetch('/api/batch/metadata', {
+      const res = await authFetch('/api/batch/metadata', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1514,7 +1653,7 @@
       ].filter(f => f.value);
 
       for (const field of fields) {
-        await fetch(`/api/serials/${serialNumber}/data`, {
+        await authFetch(`/api/serials/${serialNumber}/data`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1530,56 +1669,127 @@
     }
 
     async function addEvent() {
-      const serialNumber = currentData.serial.serial.serial_number;
-      const eventType = document.getElementById('eventType').value;
-      const eventData = document.getElementById('eventData').value;
+      try {
+        if (!currentData.serial) {
+          showToast('No serial selected');
+          return;
+        }
 
-      if (!eventType) {
-        showToast('Please select event type');
-        return;
-      }
+        const serialNumber = currentData.serial.serial.serial_number;
+        const eventType = document.getElementById('eventType').value;
+        const eventDataStr = (document.getElementById('eventData').value || '').trim();
 
-      const res = await fetch(`/api/serials/${serialNumber}/event`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event_type: eventType,
-          event_data: eventData ? JSON.parse(eventData) : {}
-        })
-      });
+        console.log('Adding event:', { serialNumber, eventType, eventDataStr });
 
-      const result = await res.json();
-      if (res.ok) {
-        showToast('Event added!');
-        document.getElementById('eventType').value = '';
-        document.getElementById('eventData').value = '';
-        await loadSerial(serialNumber);
-      } else {
-        showToast('Error: ' + result.error);
+        if (!eventType) {
+          showToast('Please select event type');
+          return;
+        }
+
+        let eventData = {};
+        if (eventDataStr) {
+          // If something is entered, it MUST be valid JSON
+          if (!eventDataStr.startsWith('{') && !eventDataStr.startsWith('[')) {
+            showToast('Event details must be valid JSON or left empty. Example: {"location": "Stockholm"}');
+            return;
+          }
+          try {
+            eventData = JSON.parse(eventDataStr);
+          } catch (e) {
+            showToast('Invalid JSON: ' + e.message);
+            return;
+          }
+        }
+
+        console.log('Sending event data:', { event_type: eventType, event_data: eventData });
+
+        const res = await authFetch(`/api/serials/${serialNumber}/event`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event_type: eventType,
+            event_data: eventData
+          })
+        });
+
+        const result = await res.json();
+        console.log('Event response:', result);
+
+        if (res.status === 401) {
+          showToast('Session expired - please login again');
+          window.location.href = '/login';
+          return;
+        }
+
+        if (res.ok) {
+          showToast('Event added!');
+          const eventTypeEl = document.getElementById('eventType');
+          const eventDataEl = document.getElementById('eventData');
+          if (eventTypeEl) eventTypeEl.value = '';
+          if (eventDataEl) eventDataEl.value = '';
+          await loadSerial(serialNumber);
+        } else {
+          showToast('Error: ' + (result.error || 'Unknown error'));
+        }
+      } catch (err) {
+        console.error('Add event error:', err);
+        showToast('Error: ' + err.message);
       }
     }
 
     async function uploadStyleImage() {
       const file = document.getElementById('styleImageUpload').files[0];
-      if (!file) return;
+      if (!file) {
+        showToast('Please select an image');
+        return;
+      }
 
       const styleNumber = currentData.style.style.style_number;
       const reader = new FileReader();
       reader.onload = async (e) => {
-        const base64 = e.target.result.split(',')[1];
-        const res = await fetch(`/api/styles/${styleNumber}/image`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            image_data: base64,
-            image_name: file.name
-          })
-        });
-        const result = await res.json();
-        showToast(res.ok ? 'Image uploaded!' : 'Error');
-        if (res.ok) {
-          document.getElementById('styleImageUpload').value = '';
-          await loadStyleImages(styleNumber);
+        try {
+          // Compress image
+          const img = new Image();
+          img.onload = async () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+
+            // Scale down to max 800px width while maintaining aspect ratio
+            if (width > 800) {
+              height = (height * 800) / width;
+              width = 800;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Convert to JPEG with 80% quality
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+
+            const res = await authFetch(`/api/styles/${styleNumber}/image`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                image_data: compressedBase64,
+                image_name: file.name
+              })
+            });
+
+            const result = await res.json();
+            if (res.ok) {
+              showToast('✓ Image uploaded!');
+              document.getElementById('styleImageUpload').value = '';
+              await loadStyleImages(styleNumber);
+            } else {
+              showToast('Error: ' + (result.error || 'Upload failed'));
+            }
+          };
+          img.src = e.target.result;
+        } catch (err) {
+          showToast('Error: ' + err.message);
         }
       };
       reader.readAsDataURL(file);
@@ -1587,25 +1797,57 @@
 
     async function uploadBatchImage() {
       const file = document.getElementById('batchImageUpload').files[0];
-      if (!file) return;
+      if (!file) {
+        showToast('Please select an image');
+        return;
+      }
 
       const batchId = currentData.batch.batch.batch_id;
       const reader = new FileReader();
       reader.onload = async (e) => {
-        const base64 = e.target.result.split(',')[1];
-        const res = await fetch(`/api/batches/${batchId}/image`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            image_data: base64,
-            image_name: file.name
-          })
-        });
-        const result = await res.json();
-        showToast(res.ok ? 'Image uploaded!' : 'Error');
-        if (res.ok) {
-          document.getElementById('batchImageUpload').value = '';
-          await loadBatchImages(batchId);
+        try {
+          // Compress image
+          const img = new Image();
+          img.onload = async () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+
+            // Scale down to max 800px width while maintaining aspect ratio
+            if (width > 800) {
+              height = (height * 800) / width;
+              width = 800;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Convert to JPEG with 80% quality
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+
+            const res = await authFetch(`/api/batches/${batchId}/image`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                image_data: compressedBase64,
+                image_name: file.name
+              })
+            });
+
+            const result = await res.json();
+            if (res.ok) {
+              showToast('✓ Image uploaded!');
+              document.getElementById('batchImageUpload').value = '';
+              await loadBatchImages(batchId);
+            } else {
+              showToast('Error: ' + (result.error || 'Upload failed'));
+            }
+          };
+          img.src = e.target.result;
+        } catch (err) {
+          showToast('Error: ' + err.message);
         }
       };
       reader.readAsDataURL(file);
@@ -1613,7 +1855,7 @@
 
     async function deleteStyleImage(id) {
       if (confirm('Delete image?')) {
-        await fetch(`/api/styles/image/${id}`, { method: 'DELETE' });
+        await authFetch(`/api/styles/image/${id}`, { method: 'DELETE' });
         const styleNumber = currentData.style.style.style_number;
         await loadStyleImages(styleNumber);
       }
@@ -1621,11 +1863,336 @@
 
     async function deleteBatchImage(id) {
       if (confirm('Delete image?')) {
-        await fetch(`/api/batches/image/${id}`, { method: 'DELETE' });
+        await authFetch(`/api/batches/image/${id}`, { method: 'DELETE' });
         const batchId = currentData.batch.batch.batch_id;
         await loadBatchImages(batchId);
       }
     }
+
+    // Copy Batch functions
+    let copyBatchSourceId = null;
+    function showCopyBatchModal(batchId) {
+      copyBatchSourceId = batchId;
+      document.getElementById('copyBatchFrom').textContent = `Copying from: ${batchId}`;
+      document.getElementById('copyBatchNewId').value = '';
+      document.getElementById('copyBatchModal').classList.remove('hidden');
+    }
+
+    function closeCopyBatchModal() {
+      document.getElementById('copyBatchModal').classList.add('hidden');
+    }
+
+    async function performCopyBatch() {
+      const newBatchId = document.getElementById('copyBatchNewId').value.trim();
+
+      if (!newBatchId) {
+        showToast('Please enter a new Batch ID');
+        return;
+      }
+
+      try {
+        const res = await authFetch('/api/batch/copy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            source_batch_id: copyBatchSourceId,
+            new_batch_id: newBatchId
+          })
+        });
+
+        const result = await res.json();
+        if (res.ok) {
+          showToast(`✓ Batch copied! Add serials separately.`);
+          closeCopyBatchModal();
+          // Reload current style to show new batch
+          const styleNumber = currentData.style.style.style_number;
+          await loadStyle(styleNumber);
+        } else {
+          showToast('Error: ' + result.error);
+        }
+      } catch (err) {
+        showToast('Error: ' + err.message);
+      }
+    }
+
+    // New Batch functions
+    function showNewBatchModal() {
+      const styleNumber = currentData.style.style.style_number;
+      document.getElementById('newBatchStyle').textContent = `New batch for style: ${styleNumber}`;
+      document.getElementById('newBatchId').value = '';
+      document.getElementById('newBatchUnits').value = '';
+      document.getElementById('newBatchProdDate').value = '';
+      document.getElementById('newBatchManufacturing').value = '';
+      document.getElementById('newBatchSerials').value = '';
+      document.getElementById('newBatchModal').classList.remove('hidden');
+    }
+
+    function closeNewBatchModal() {
+      document.getElementById('newBatchModal').classList.add('hidden');
+    }
+
+    async function performNewBatch() {
+      const styleNumber = currentData.style.style.style_number;
+      const batchId = document.getElementById('newBatchId').value.trim();
+      const totalUnits = parseInt(document.getElementById('newBatchUnits').value) || 0;
+      const prodDate = document.getElementById('newBatchProdDate').value;
+      const manufacturing = document.getElementById('newBatchManufacturing').value;
+      const serialsInput = document.getElementById('newBatchSerials').value.trim();
+
+      if (!batchId) {
+        showToast('Please enter a Batch ID');
+        return;
+      }
+
+      if (!serialsInput) {
+        showToast('Please enter at least one serial number');
+        return;
+      }
+
+      const serials = serialsInput.split(',').map(s => s.trim()).filter(s => s.length > 0);
+
+      try {
+        // Step 1: Create batch
+        const batchRes = await authFetch('/api/batch/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            batch_id: batchId,
+            style_number: styleNumber,
+            total_units: totalUnits,
+            partner_name: '',
+            serials: serials
+          })
+        });
+
+        if (!batchRes.ok) {
+          showToast('Error creating batch: ' + (await batchRes.json()).error);
+          return;
+        }
+
+        // Step 2: Save batch metadata if provided
+        if (prodDate || manufacturing) {
+          await authFetch('/api/batch/metadata', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              batch_id: batchId,
+              production_date: prodDate,
+              manufacturing_details: manufacturing
+            })
+          });
+        }
+
+        showToast(`✓ Batch created with ${serials.length} serials!`);
+        closeNewBatchModal();
+        // Reload current style to show new batch
+        await loadStyle(styleNumber);
+      } catch (err) {
+        showToast('Error: ' + err.message);
+      }
+    }
+
+    // Add Serials functions
+    let addSerialsForBatchId = null;
+    function showAddSerialsModal() {
+      addSerialsForBatchId = currentData.batch.batch.batch_id;
+      document.getElementById('addSerialsForBatch').textContent = `Add serials to: ${addSerialsForBatchId}`;
+      document.getElementById('addSerialsInput').value = '';
+      document.getElementById('addSerialsModal').classList.remove('hidden');
+    }
+
+    function closeAddSerialsModal() {
+      document.getElementById('addSerialsModal').classList.add('hidden');
+    }
+
+    async function performAddSerials() {
+      const serialsInput = document.getElementById('addSerialsInput').value.trim();
+      if (!serialsInput) {
+        showToast('Please enter at least one serial number');
+        return;
+      }
+
+      const serials = serialsInput.split(',').map(s => s.trim()).filter(s => s.length > 0);
+
+      try {
+        const res = await authFetch('/api/batch/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            batch_id: addSerialsForBatchId,
+            style_number: currentData.batch.batch.style_number,
+            total_units: serials.length,
+            partner_name: '',
+            serials: serials
+          })
+        });
+
+        const result = await res.json();
+        if (res.ok) {
+          showToast(`✓ Added ${result.serials_imported} serial(s)!`);
+          closeAddSerialsModal();
+          // Reload batch to show new serials
+          await loadBatch(addSerialsForBatchId);
+        } else {
+          showToast('Error: ' + (result.error || 'Failed to add serials'));
+        }
+      } catch (err) {
+        showToast('Error: ' + err.message);
+      }
+    }
+
+    // Delete Batch function
+    async function deleteBatch(batchId) {
+      if (!confirm(`Delete batch ${batchId}? (This will soft-delete it)`)) return;
+
+      try {
+        const res = await authFetch(`/api/batches/${batchId}/delete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        const result = await res.json();
+        if (res.ok) {
+          showToast('Batch deleted!');
+          const styleNumber = currentData.style.style.style_number;
+          await loadStyle(styleNumber);
+        } else {
+          showToast('Error: ' + result.error);
+        }
+      } catch (err) {
+        showToast('Error: ' + err.message);
+      }
+    }
+
+    // Admin functions
+    async function loadAdminUsers() {
+      try {
+        const res = await authFetch('/api/admin/users');
+        const users = await res.json();
+
+        document.getElementById('usersList').innerHTML = users.map(u => `
+          <div class="border border-gray-300 rounded-lg p-4">
+            <div class="flex justify-between items-start mb-4">
+              <div>
+                <p class="font-semibold text-gray-900">${u.username}</p>
+                <p class="text-xs text-gray-500">ID: ${u.id}</p>
+              </div>
+              <span class="text-sm font-semibold text-gray-700">${u.role}</span>
+            </div>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">Change Role</label>
+                <select onchange="changeUserRole('${u.username}', this.value)" class="w-full text-sm border border-gray-300 rounded px-2 py-1">
+                  <option value="viewer" ${u.role === 'viewer' ? 'selected' : ''}>Viewer</option>
+                  <option value="editor" ${u.role === 'editor' ? 'selected' : ''}>Editor</option>
+                  <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+                  <option value="super_admin" ${u.role === 'super_admin' ? 'selected' : ''}>Super Admin</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">New Password</label>
+                <div class="flex gap-2">
+                  <input type="password" id="newPass_${u.id}" placeholder="Enter new password" class="flex-1 text-sm border border-gray-300 rounded px-2 py-1">
+                  <button onclick="updateUserPassword('${u.username}', document.getElementById('newPass_${u.id}').value)" class="bg-gray-900 text-white px-3 py-1 rounded text-sm hover:bg-gray-800">
+                    Update
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error('Error loading users:', err);
+      }
+    }
+
+    async function changeUserRole(username, newRole) {
+      try {
+        const res = await authFetch(`/api/admin/users/${username}/role`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: newRole })
+        });
+
+        if (res.ok) {
+          showToast(`User ${username} role updated to ${newRole}`);
+          loadAdminUsers();
+        } else {
+          showToast('Error updating role');
+        }
+      } catch (err) {
+        showToast('Error: ' + err.message);
+      }
+    }
+
+    async function createNewUser() {
+      const username = document.getElementById('newUsername').value.trim();
+      const password = document.getElementById('newPassword').value;
+      const role = document.getElementById('newRole').value;
+
+      if (!username || !password) {
+        document.getElementById('createUserMessage').textContent = 'Username and password required';
+        return;
+      }
+
+      try {
+        const res = await authFetch('/api/admin/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password, role })
+        });
+
+        const result = await res.json();
+        if (res.ok) {
+          document.getElementById('createUserMessage').textContent = '✓ User created!';
+          document.getElementById('newUsername').value = '';
+          document.getElementById('newPassword').value = '';
+          document.getElementById('newRole').value = 'viewer';
+          setTimeout(() => loadAdminUsers(), 500);
+        } else {
+          document.getElementById('createUserMessage').textContent = 'Error: ' + (result.error || 'Creation failed');
+        }
+      } catch (err) {
+        document.getElementById('createUserMessage').textContent = 'Error: ' + err.message;
+      }
+    }
+
+    async function updateUserPassword(username, newPassword) {
+      if (!newPassword) {
+        showToast('Password cannot be empty');
+        return;
+      }
+
+      try {
+        const res = await authFetch(`/api/admin/users/${username}/password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: newPassword })
+        });
+
+        if (res.ok) {
+          showToast(`✓ Password updated for ${username}`);
+          document.getElementById(`newPass_${username}`).value = '';
+        } else {
+          showToast('Error updating password');
+        }
+      } catch (err) {
+        showToast('Error: ' + err.message);
+      }
+    }
+
+    // Navigate from Dashboard to Lookup & Edit
+    function goToLookup(type, target) {
+      switchTab('edit');
+      // Set search query and trigger search
+      document.getElementById('searchQuery').value = target;
+      const searchForm = document.getElementById('searchForm');
+      const event = new Event('submit', { bubbles: true });
+      searchForm.dispatchEvent(event);
+    }
+
+    // Run on load
+    document.addEventListener('DOMContentLoaded', () => {});
   </script>
 </body>
 </html>

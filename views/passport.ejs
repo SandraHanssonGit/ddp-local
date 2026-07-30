@@ -6,77 +6,148 @@
   <title>Product Passport - <%= serial.serial_number %></title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50">
-  <div class="max-w-2xl mx-auto py-12 px-4">
-    
-    <!-- Header -->
-    <div class="bg-white rounded-lg shadow-md p-8 mb-6">
-      <div class="flex items-center gap-4 mb-6">
-        <div class="text-4xl">🏷️</div>
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900">Product Passport</h1>
-          <p class="text-gray-600">Digital Product Pass for <%= serial.style_number %></p>
+<body class="bg-white">
+  <!-- Header -->
+  <div class="border-b border-gray-200">
+    <div class="max-w-7xl mx-auto py-6 px-4">
+      <div class="flex items-center gap-3">
+        <h1 class="text-2xl font-bold text-gray-900">Product Passport</h1>
+        <span class="text-sm text-gray-500">|</span>
+        <p class="text-gray-600" id="styleTitle"><%= serial.style_number %></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto py-12 px-4">
+    <!-- Two Column Layout: Image + Info -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
+
+      <!-- Left: Product Image & Gallery -->
+      <div class="sticky top-8">
+        <div id="productImage" class="flex items-center justify-center bg-gray-50 rounded-lg p-8 min-h-96 mb-6 cursor-pointer" onclick="openLightbox(0)">
+          <div class="text-center">
+            <div class="text-6xl mb-4">👖</div>
+            <p class="text-gray-600">Loading image...</p>
+          </div>
         </div>
+        <div id="galleryThumbnails" class="grid grid-cols-3 gap-2 hidden"></div>
       </div>
-      
-      <div class="bg-blue-50 border border-blue-200 rounded p-4 mb-4">
-        <p class="text-sm text-gray-600">Serial Number</p>
-        <p class="text-2xl font-mono font-bold text-blue-900"><%= serial.serial_number %></p>
+
+      <!-- Lightbox Modal -->
+      <div id="lightboxModal" class="hidden fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
+        <button onclick="closeLightbox()" class="absolute top-4 right-4 text-white text-3xl hover:bg-white hover:bg-opacity-20 rounded-lg w-10 h-10">✕</button>
+        <button onclick="prevImage()" class="absolute left-4 text-white text-3xl hover:bg-white hover:bg-opacity-20 rounded-lg w-10 h-10">‹</button>
+        <img id="lightboxImage" src="" alt="Product" class="max-w-4xl max-h-screen object-contain">
+        <button onclick="nextImage()" class="absolute right-4 text-white text-3xl hover:bg-white hover:bg-opacity-20 rounded-lg w-10 h-10">›</button>
+        <p id="imageCounter" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white text-sm bg-black bg-opacity-50 px-4 py-2 rounded-lg"></p>
       </div>
-      
-      <p class="text-xs text-gray-500">
-        Created: <%= new Date(serial.created_at).toLocaleDateString('sv-SE') %>
-      </p>
+
+      <!-- Right: Product Info -->
+      <div class="space-y-8">
+
+        <!-- Serial Info -->
+        <div>
+          <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Serial Information</h2>
+          <div class="bg-gray-50 rounded-lg p-6">
+            <div class="space-y-4">
+              <div>
+                <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Serial Number</p>
+                <p class="text-xl font-mono font-bold text-gray-900"><%= serial.serial_number %></p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Style</p>
+                <p class="text-lg text-gray-900"><%= serial.style_number %></p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Created</p>
+                <p class="text-gray-700"><%= new Date(serial.created_at).toLocaleDateString('sv-SE') %></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product Name & Description -->
+        <div id="productInfo">
+          <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Product</h2>
+          <div id="productName" class="text-2xl font-bold text-gray-900 mb-2"></div>
+          <div id="productDesc" class="text-gray-600 text-sm"></div>
+        </div>
+
+        <!-- Batch Data -->
+        <% if (batchData.length > 0) { %>
+          <div>
+            <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Batch Information</h2>
+            <div class="space-y-3">
+              <% batchData.forEach(item => { %>
+                <div class="border-b border-gray-200 pb-3 last:border-0">
+                  <p class="text-xs text-gray-500 uppercase tracking-wide mb-1"><%= item.key %></p>
+                  <p class="text-gray-900"><%= item.value %></p>
+                </div>
+              <% }) %>
+            </div>
+          </div>
+        <% } %>
+
+        <!-- Unit Data -->
+        <% if (serialData.length > 0) { %>
+          <div>
+            <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Unit Information</h2>
+            <div class="space-y-3">
+              <% serialData.forEach(item => { %>
+                <div class="border-b border-gray-200 pb-3 last:border-0">
+                  <p class="text-xs text-gray-500 uppercase tracking-wide mb-1"><%= item.key %></p>
+                  <p class="text-gray-900"><%= item.value %></p>
+                </div>
+              <% }) %>
+            </div>
+          </div>
+        <% } %>
+      </div>
     </div>
 
-    <!-- Batch Data (shared info) -->
-    <% if (batchData.length > 0) { %>
-      <div class="bg-white rounded-lg shadow-md p-8 mb-6">
-        <h2 class="text-xl font-bold text-gray-900 mb-4">📦 Batch Information (Shared)</h2>
-        <div class="space-y-3">
-          <% batchData.forEach(item => { %>
-            <div class="border-b border-gray-200 pb-2">
-              <p class="text-sm font-semibold text-gray-700"><%= item.key %></p>
-              <p class="text-gray-600"><%= item.value %></p>
-            </div>
-          <% }) %>
-        </div>
-      </div>
-    <% } %>
+    <!-- Full Width Sections -->
 
-    <!-- Serial Data (unique to this unit) -->
-    <% if (serialData.length > 0) { %>
-      <div class="bg-white rounded-lg shadow-md p-8 mb-6">
-        <h2 class="text-xl font-bold text-gray-900 mb-4">🏷️ Unit Information (This Product)</h2>
-        <div class="space-y-3">
-          <% serialData.forEach(item => { %>
-            <div class="border-b border-gray-200 pb-2">
-              <p class="text-sm font-semibold text-gray-700"><%= item.key %></p>
-              <p class="text-gray-600"><%= item.value %></p>
-              <p class="text-xs text-gray-400">Added: <%= new Date(item.added_at).toLocaleDateString('sv-SE') %> by <%= item.added_by %></p>
-            </div>
-          <% }) %>
-        </div>
-      </div>
-    <% } else { %>
-      <div class="bg-blue-50 rounded-lg p-4 mb-6">
-        <p class="text-sm text-blue-900">No unit-specific data yet</p>
-      </div>
-    <% } %>
+    <!-- Care Instructions -->
+    <div id="careSection" class="border-t border-gray-200 pt-16 mb-16 hidden">
+      <h2 class="text-2xl font-bold text-gray-900 mb-8">Care Instructions</h2>
+      <div id="careContent"></div>
+    </div>
 
-    <!-- Events (repair, recycling) -->
+    <!-- Transparency -->
+    <div id="transparencySection" class="border-t border-gray-200 pt-16 mb-16 hidden">
+      <h2 class="text-2xl font-bold text-gray-900 mb-8">Transparency</h2>
+      <div id="transparencyContent" class="grid grid-cols-1 md:grid-cols-2 gap-8"></div>
+    </div>
+
+    <!-- Nudie Values -->
+    <div id="nudieSection" class="border-t border-gray-200 pt-16 mb-16 hidden">
+      <h2 class="text-2xl font-bold text-gray-900 mb-8">Nudie Values</h2>
+      <div id="nudieContent" class="space-y-6"></div>
+    </div>
+
+    <!-- Storytelling -->
+    <div id="storySection" class="border-t border-gray-200 pt-16 mb-16 hidden">
+      <h2 class="text-2xl font-bold text-gray-900 mb-8">Our Story</h2>
+      <div id="storyContent"></div>
+    </div>
+
+    <!-- Events Timeline -->
     <% if (events.length > 0) { %>
-      <div class="bg-white rounded-lg shadow-md p-8 mb-6">
-        <h2 class="text-xl font-bold text-gray-900 mb-4">📋 Lifecycle Events</h2>
+      <div class="border-t border-gray-200 pt-16 mb-16">
+        <h2 class="text-2xl font-bold text-gray-900 mb-8">Lifecycle Events</h2>
         <div class="space-y-4">
           <% events.forEach(event => { %>
-            <div class="border-l-4 border-green-500 bg-green-50 p-4 rounded">
-              <p class="font-semibold text-green-900"><%= event.event_type %></p>
-              <p class="text-sm text-gray-600"><%= new Date(event.created_at).toLocaleDateString('sv-SE') %></p>
+            <div class="border-l-4 border-blue-600 bg-blue-50 p-6 rounded-r">
+              <div class="flex items-start justify-between">
+                <div>
+                  <p class="font-bold text-gray-900 uppercase text-sm"><%= event.event_type %></p>
+                  <p class="text-sm text-gray-600 mt-1"><%= new Date(event.created_at).toLocaleDateString('sv-SE') %></p>
+                </div>
+              </div>
               <% if (Object.keys(event.event_data).length > 0) { %>
-                <div class="mt-2 text-sm bg-white p-2 rounded">
+                <div class="mt-3 text-sm space-y-1">
                   <% Object.entries(event.event_data).forEach(([key, value]) => { %>
-                    <p class="text-gray-600"><strong><%= key %>:</strong> <%= JSON.stringify(value) %></p>
+                    <p class="text-gray-700"><strong><%= key %>:</strong> <%= JSON.stringify(value) %></p>
                   <% }) %>
                 </div>
               <% } %>
@@ -87,9 +158,188 @@
     <% } %>
 
     <!-- Footer -->
-    <div class="bg-white rounded-lg shadow-md p-6 text-center">
-      <p class="text-sm text-gray-600">This is a digital product passport. All information is managed by Nudie Jeans.</p>
+    <div class="border-t border-gray-200 pt-12">
+      <p class="text-sm text-gray-600 text-center">
+        This is a digital product passport managed by Nudie Jeans
+      </p>
     </div>
   </div>
+
+  <script>
+    const styleNumber = '<%= serial.style_number %>';
+    const batchId = '<%= batch_id %>';
+    let allImages = [];
+    let currentImageIndex = 0;
+
+    // Lightbox functions
+    function openLightbox(index) {
+      if (allImages.length === 0) return;
+      currentImageIndex = index;
+      showLightboxImage();
+      document.getElementById('lightboxModal').classList.remove('hidden');
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightboxModal').classList.add('hidden');
+    }
+
+    function nextImage() {
+      currentImageIndex = (currentImageIndex + 1) % allImages.length;
+      showLightboxImage();
+    }
+
+    function prevImage() {
+      currentImageIndex = (currentImageIndex - 1 + allImages.length) % allImages.length;
+      showLightboxImage();
+    }
+
+    function showLightboxImage() {
+      const img = allImages[currentImageIndex];
+      document.getElementById('lightboxImage').src = `data:image/jpeg;base64,${img.image_data}`;
+      document.getElementById('imageCounter').textContent = `${currentImageIndex + 1} / ${allImages.length}`;
+    }
+
+    // Fetch and display style data
+    async function loadStyleData() {
+      try {
+        const res = await fetch(`/api/styles/${styleNumber}/full-data`);
+        const data = await res.json();
+
+        // Product info
+        if (data.style) {
+          document.getElementById('productName').textContent = data.style.product_name || '';
+          document.getElementById('productDesc').textContent = data.style.description || '';
+        }
+
+        // Load image - prefer batch image first, then style
+        allImages = [];
+
+        // Try batch images first
+        if (batchId) {
+          try {
+            const batchImageRes = await fetch(`/api/batches/${batchId}/images`);
+            const batchImages = await batchImageRes.json();
+            if (batchImages.length > 0) {
+              allImages.push(batchImages[0]); // Only first batch image
+            }
+          } catch (err) {
+            // Continue
+          }
+        }
+
+        // If no batch image, try style image
+        if (allImages.length === 0) {
+          try {
+            const styleImageRes = await fetch(`/api/styles/${styleNumber}/images`);
+            const styleImages = await styleImageRes.json();
+            if (styleImages.length > 0) {
+              allImages.push(styleImages[0]); // Only first style image
+            }
+          } catch (err) {
+            // Continue
+          }
+        }
+
+        // Render main image (single image only)
+        if (allImages.length > 0) {
+          currentImageIndex = 0;
+          document.getElementById('productImage').innerHTML = `
+            <img src="data:image/jpeg;base64,${allImages[0].image_data}" alt="${allImages[0].image_name}" class="w-full h-auto object-cover rounded-lg">
+          `;
+          // No gallery thumbnails - single image only
+        }
+
+        // Care instructions
+        if (data.style && data.style.care_instructions) {
+          document.getElementById('careSection').classList.remove('hidden');
+          document.getElementById('careContent').innerHTML = `
+            <p class="text-gray-700 whitespace-pre-wrap">${data.style.care_instructions}</p>
+          `;
+        }
+
+        // Transparency
+        if (data.transparency_data) {
+          document.getElementById('transparencySection').classList.remove('hidden');
+          const trans = data.transparency_data;
+          let transHTML = '';
+
+          if (trans.environmental_data && trans.environmental_data.PEF) {
+            let waterHTML = '';
+            if (trans.environmental_data.water_usage) {
+              waterHTML = `
+                <div>
+                  <p class="text-sm text-gray-500 uppercase tracking-wide mb-1">Water Usage</p>
+                  <p class="text-gray-700">${trans.environmental_data.water_usage}</p>
+                </div>
+              `;
+            }
+
+            transHTML += `
+              <div class="bg-gray-50 rounded-lg p-6">
+                <h3 class="font-bold text-gray-900 mb-4">Environmental Impact</h3>
+                <div class="space-y-3">
+                  <div>
+                    <p class="text-sm text-gray-500 uppercase tracking-wide mb-1">CO2 Emission</p>
+                    <p class="text-gray-700">${trans.environmental_data.PEF}</p>
+                  </div>
+                  ${waterHTML}
+                </div>
+              </div>
+            `;
+          }
+
+          if (trans.certifications && Object.keys(trans.certifications).length > 0) {
+            transHTML += `
+              <div class="bg-gray-50 rounded-lg p-6">
+                <h3 class="font-bold text-gray-900 mb-4">Certifications</h3>
+                <div class="space-y-2">
+                  ${Object.entries(trans.certifications).map(([cert, val]) =>
+                    `<p class="text-gray-700">✓ ${cert}</p>`
+                  ).join('')}
+                </div>
+              </div>
+            `;
+          }
+
+          document.getElementById('transparencyContent').innerHTML = transHTML;
+        }
+
+        // Nudie Values (Repair info)
+        if (data.nudie_values && data.nudie_values.repair_info) {
+          document.getElementById('nudieSection').classList.remove('hidden');
+          document.getElementById('nudieContent').innerHTML = `
+            <div class="bg-blue-50 rounded-lg p-6 border border-blue-200">
+              <h3 class="font-bold text-gray-900 mb-2">🔧 Repair</h3>
+              <p class="text-gray-700 text-sm">${data.nudie_values.repair_info}</p>
+            </div>
+          `;
+        }
+
+        // Storytelling
+        if (data.storytelling && data.storytelling.content) {
+          document.getElementById('storySection').classList.remove('hidden');
+          document.getElementById('storyContent').innerHTML = `
+            <p class="text-gray-700 leading-relaxed">${data.storytelling.content}</p>
+          `;
+        }
+
+      } catch (err) {
+        console.error('Error loading style data:', err);
+      }
+    }
+
+    loadStyleData();
+
+    // Track page view (public passport)
+    // Send analytics without requiring authentication
+    fetch('/api/track-public-view', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        page_type: 'public_passport',
+        page_id: serialNumber
+      })
+    }).catch(() => {}); // Silent fail - don't break the page if tracking fails
+  </script>
 </body>
 </html>
