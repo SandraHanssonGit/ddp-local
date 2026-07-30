@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DPP Search & View</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+  <div class="max-w-7xl mx-auto py-12 px-4">
+    <h1 class="text-4xl font-bold text-gray-900 mb-8">🔍 DPP Search & View</h1>
+
+    <!-- Search Form -->
+    <div class="bg-white rounded-lg shadow-md p-8 mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Search</h2>
+      <form id="searchForm" class="space-y-4">
+        <div class="flex gap-4">
+          <input type="text" name="q" placeholder="Search: Style, batch, serial number, SGTIN..." class="flex-1 border border-gray-300 rounded px-4 py-3 text-lg" required>
+          <button type="submit" class="bg-blue-600 text-white px-8 py-3 rounded font-semibold hover:bg-blue-700 whitespace-nowrap">
+            Search
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Search Results -->
+    <div id="resultsContainer" class="hidden bg-white rounded-lg shadow-md p-8 mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Search Results</h2>
+      <div id="resultsList" class="space-y-2 max-h-64 overflow-y-auto"></div>
+    </div>
+
+    <!-- Data View -->
+    <div id="dataViewContainer" class="hidden">
+      <!-- Style View -->
+      <div id="styleView" class="hidden bg-white rounded-lg shadow-md p-8 mb-6">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold text-gray-900">📦 Style: <span id="styleNumber"></span></h2>
+          <button onclick="closeView()" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <!-- Product Info -->
+          <div class="border-r pr-6">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl font-bold text-gray-900">Product Information</h3>
+              <button onclick="goToAdminEdit('product-info', document.getElementById('styleNumber').textContent)" class="bg-blue-600 text-white px-3 py-1 text-sm rounded hover:bg-blue-700">
+                ✏️ Edit
+              </button>
+            </div>
+            <div id="productInfo" class="space-y-3 text-sm"></div>
+
+            <hr class="my-6">
+
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Batches (<span id="batchCount">0</span>)</h3>
+            <div id="batchesList" class="space-y-2"></div>
+          </div>
+
+          <!-- Transparency & Values -->
+          <div class="pl-6">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl font-bold text-gray-900">Transparency Data</h3>
+              <button onclick="goToAdminEdit('transparency', document.getElementById('styleNumber').textContent)" class="bg-blue-600 text-white px-3 py-1 text-sm rounded hover:bg-blue-700">
+                ✏️ Edit
+              </button>
+            </div>
+            <pre id="transparencyView" class="bg-gray-50 p-4 rounded text-xs overflow-auto max-h-80"></pre>
+
+            <hr class="my-6">
+
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl font-bold text-gray-900">Nudie Values</h3>
+              <button onclick="goToAdminEdit('nudie-values', document.getElementById('styleNumber').textContent)" class="bg-blue-600 text-white px-3 py-1 text-sm rounded hover:bg-blue-700">
+                ✏️ Edit
+              </button>
+            </div>
+            <pre id="nudieValuesView" class="bg-gray-50 p-4 rounded text-xs overflow-auto max-h-40"></pre>
+
+            <hr class="my-6">
+
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl font-bold text-gray-900">Storytelling</h3>
+              <button onclick="goToAdminEdit('storytelling', document.getElementById('styleNumber').textContent)" class="bg-blue-600 text-white px-3 py-1 text-sm rounded hover:bg-blue-700">
+                ✏️ Edit
+              </button>
+            </div>
+            <div id="storytellingView" class="space-y-2"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Batch View -->
+      <div id="batchView" class="hidden bg-white rounded-lg shadow-md p-8 mb-6">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold text-gray-900">📦 Batch: <span id="batchNumber"></span></h2>
+          <button onclick="closeView()" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Batch Info</h3>
+            <div id="batchInfo" class="space-y-2 text-sm"></div>
+
+            <hr class="my-6">
+
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Style Info</h3>
+            <div id="batchStyleInfo" class="space-y-2 text-sm"></div>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Serials (<span id="serialCount">0</span>)</h3>
+            <div id="serialsList" class="space-y-2 max-h-96 overflow-y-auto"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Serial View -->
+      <div id="serialView" class="hidden bg-white rounded-lg shadow-md p-8 mb-6">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold text-gray-900">🏷️ Serial: <span id="serialNumber"></span></h2>
+          <button onclick="closeView()" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Serial Info</h3>
+            <div id="serialInfo" class="space-y-2 text-sm bg-gray-50 p-4 rounded"></div>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Batch Info</h3>
+            <div id="serialBatchInfo" class="space-y-2 text-sm bg-gray-50 p-4 rounded"></div>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Style Info</h3>
+            <div id="serialStyleInfo" class="space-y-2 text-sm bg-gray-50 p-4 rounded"></div>
+          </div>
+        </div>
+
+        <hr class="my-6">
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div>
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-lg font-bold text-gray-900">Serial Data</h3>
+              <button onclick="goToAdminEdit('serial-data', document.getElementById('serialNumber').textContent)" class="bg-blue-600 text-white px-3 py-1 text-sm rounded hover:bg-blue-700">
+                ✏️ Edit
+              </button>
+            </div>
+            <div id="serialDataView" class="space-y-2 max-h-64 overflow-y-auto bg-gray-50 p-4 rounded text-sm"></div>
+          </div>
+
+          <div>
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-lg font-bold text-gray-900">Events</h3>
+              <button onclick="goToAdminEdit('events', document.getElementById('serialNumber').textContent)" class="bg-blue-600 text-white px-3 py-1 text-sm rounded hover:bg-blue-700">
+                ➕ Add Event
+              </button>
+            </div>
+            <div id="eventsView" class="space-y-2 max-h-64 overflow-y-auto bg-gray-50 p-4 rounded text-sm"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Search
+    document.getElementById('searchForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = new FormData(e.target);
+      const q = data.get('q').trim();
+
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+        const result = await res.json();
+
+        if (!result.results || result.results.length === 0) {
+          document.getElementById('resultsContainer').classList.remove('hidden');
+          document.getElementById('resultsList').innerHTML = '<p class="text-gray-500">No results found</p>';
+          return;
+        }
+
+        // Sort by relevance - exact match first, then starts with, then contains
+        // Also prioritize: styles > batches > serials
+        const sorted = result.results.sort((a, b) => {
+          const aMatch = a.result_type === 'style' ? a.style_number : a.result_type === 'batch' ? a.batch_id : a.serial_number;
+          const bMatch = b.result_type === 'style' ? b.style_number : b.result_type === 'batch' ? b.batch_id : b.serial_number;
+
+          // Calculate relevance score
+          const aRelevance = aMatch === q ? 0 : aMatch.startsWith(q) ? 1 : 2;
+          const bRelevance = bMatch === q ? 0 : bMatch.startsWith(q) ? 1 : 2;
+
+          // If relevance is the same, prioritize by type
+          if (aRelevance !== bRelevance) return aRelevance - bRelevance;
+
+          const typeOrder = { 'style': 0, 'batch': 1, 'serial': 2 };
+          return (typeOrder[a.result_type] || 3) - (typeOrder[b.result_type] || 3);
+        });
+
+        const resultsList = document.getElementById('resultsList');
+        resultsList.innerHTML = sorted.map(r => {
+          const displayName = r.result_type === 'style'
+            ? `${r.style_number} - ${r.product_name || 'No name'}`
+            : r.result_type === 'batch'
+            ? `Batch: ${r.batch_id} (Style: ${r.style_number})`
+            : `Serial: ${r.serial_number} (Batch: ${r.batch_id})`;
+
+          return `
+            <button class="w-full text-left p-3 bg-gray-50 rounded hover:bg-blue-50 border border-gray-200"
+                    onclick="loadData('${r.result_type}', '${r.style_number || ''}', '${r.batch_id || ''}', '${r.serial_number || ''}')">
+              <p class="font-semibold">${displayName}</p>
+              <p class="text-xs text-gray-500">Type: ${r.result_type}</p>
+            </button>
+          `;
+        }).join('');
+
+        document.getElementById('resultsContainer').classList.remove('hidden');
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    });
+
+    async function loadData(type, styleNumber, batchId, serialNumber) {
+      document.getElementById('dataViewContainer').classList.remove('hidden');
+
+      if (type === 'style') {
+        loadStyleData(styleNumber);
+      } else if (type === 'batch') {
+        loadBatchData(batchId);
+      } else if (type === 'serial') {
+        loadSerialData(serialNumber);
+      }
+    }
+
+    async function loadStyleData(styleNumber) {
+      document.getElementById('styleView').classList.remove('hidden');
+      document.getElementById('batchView').classList.add('hidden');
+      document.getElementById('serialView').classList.add('hidden');
+
+      try {
+        const res = await fetch(`/api/styles/${styleNumber}/full-data`);
+        const data = await res.json();
+
+        document.getElementById('styleNumber').textContent = styleNumber;
+
+        // Product info
+        const productInfo = data.style;
+        document.getElementById('productInfo').innerHTML = `
+          <div><strong>Name:</strong> ${productInfo.product_name || '-'}</div>
+          <div><strong>Description:</strong> ${productInfo.description || '-'}</div>
+          <div><strong>Care:</strong> ${productInfo.care_instructions || '-'}</div>
+          <div><strong>Delivery:</strong> ${productInfo.delivery_returns || '-'}</div>
+          <div><strong>Material:</strong> ${productInfo.size_material_composition || '-'}</div>
+          <div><strong>Created:</strong> ${new Date(productInfo.created_at).toLocaleDateString('sv-SE')}</div>
+        `;
+
+        // Transparency
+        document.getElementById('transparencyView').textContent = data.transparency_data
+          ? JSON.stringify(data.transparency_data, null, 2)
+          : 'No transparency data';
+
+        // Nudie values
+        if (data.nudie_values) {
+          document.getElementById('nudieValuesView').textContent = JSON.stringify({
+            repair_info: data.nudie_values.repair_info,
+            trade_in_info: data.nudie_values.trade_in_info,
+            partner_links: data.nudie_values.partner_links
+          }, null, 2);
+        } else {
+          document.getElementById('nudieValuesView').textContent = 'No Nudie values data';
+        }
+
+        // Storytelling
+        if (data.storytelling) {
+          document.getElementById('storytellingView').innerHTML = `
+            <div><strong>Summary:</strong> ${data.storytelling.summary || '-'}</div>
+            <div><strong>Content:</strong> ${data.storytelling.content || '-'}</div>
+          `;
+        } else {
+          document.getElementById('storytellingView').innerHTML = '<p>No storytelling data</p>';
+        }
+
+        // Batches
+        document.getElementById('batchCount').textContent = data.batches.length;
+        document.getElementById('batchesList').innerHTML = data.batches.map(b => `
+          <div class="p-3 bg-gray-50 rounded cursor-pointer hover:bg-blue-50" onclick="loadBatchData('${b.batch_id}')">
+            <p class="font-semibold">${b.batch_id}</p>
+            <p class="text-xs text-gray-500">${b.serial_count} serials | Partner: ${b.partner_name || '-'}</p>
+          </div>
+        `).join('');
+      } catch (err) {
+        alert('Error loading style data: ' + err.message);
+      }
+    }
+
+    async function loadBatchData(batchId) {
+      document.getElementById('styleView').classList.add('hidden');
+      document.getElementById('batchView').classList.remove('hidden');
+      document.getElementById('serialView').classList.add('hidden');
+
+      try {
+        const res = await fetch(`/api/batches/${batchId}/full-data`);
+        const data = await res.json();
+
+        document.getElementById('batchNumber').textContent = batchId;
+
+        // Batch info
+        const batch = data.batch;
+        document.getElementById('batchInfo').innerHTML = `
+          <div><strong>Batch ID:</strong> ${batch.batch_id}</div>
+          <div><strong>Style:</strong> ${batch.style_number}</div>
+          <div><strong>Total Units:</strong> ${batch.total_units || '-'}</div>
+          <div><strong>Partner:</strong> ${batch.partner_name || '-'}</div>
+          <div><strong>Created:</strong> ${new Date(batch.created_at).toLocaleDateString('sv-SE')}</div>
+        `;
+
+        // Style info
+        const style = data.style;
+        document.getElementById('batchStyleInfo').innerHTML = style ? `
+          <div><strong>Name:</strong> ${style.product_name || '-'}</div>
+          <div><strong>Material:</strong> ${style.size_material_composition || '-'}</div>
+        ` : '<p>No style data</p>';
+
+        // Serials
+        document.getElementById('serialCount').textContent = data.serials.length;
+        document.getElementById('serialsList').innerHTML = data.serials.map(s => `
+          <div class="p-3 bg-gray-50 rounded cursor-pointer hover:bg-blue-50" onclick="loadSerialData('${s.serial_number}')">
+            <p class="font-semibold">${s.serial_number}</p>
+            <p class="text-xs text-gray-500">SGTIN: ${s.sgtin_numeric || '-'}</p>
+          </div>
+        `).join('');
+      } catch (err) {
+        alert('Error loading batch data: ' + err.message);
+      }
+    }
+
+    async function loadSerialData(serialNumber) {
+      document.getElementById('styleView').classList.add('hidden');
+      document.getElementById('batchView').classList.add('hidden');
+      document.getElementById('serialView').classList.remove('hidden');
+
+      try {
+        const res = await fetch(`/api/serials/${serialNumber}/full-data`);
+        const data = await res.json();
+
+        document.getElementById('serialNumber').textContent = serialNumber;
+
+        // Serial info
+        const serial = data.serial;
+        document.getElementById('serialInfo').innerHTML = `
+          <div><strong>Serial:</strong> ${serial.serial_number}</div>
+          <div><strong>SGTIN:</strong> ${serial.sgtin_numeric || '-'}</div>
+          <div><strong>SGTIN URI:</strong> ${serial.sgtin_uri ? `<a href="${serial.sgtin_uri}" target="_blank" class="text-blue-600">Link</a>` : '-'}</div>
+          <div><strong>RFID:</strong> ${serial.rfid || '-'}</div>
+          <div><strong>GTIN:</strong> ${serial.gtin || '-'}</div>
+        `;
+
+        // Batch info
+        const batch = data.batch;
+        document.getElementById('serialBatchInfo').innerHTML = batch ? `
+          <div><strong>Batch:</strong> ${batch.batch_id}</div>
+          <div><strong>Total Units:</strong> ${batch.total_units || '-'}</div>
+          <div><strong>Partner:</strong> ${batch.partner_name || '-'}</div>
+        ` : '<p>No batch data</p>';
+
+        // Style info
+        const style = data.style;
+        document.getElementById('serialStyleInfo').innerHTML = style ? `
+          <div><strong>Style:</strong> ${style.style_number}</div>
+          <div><strong>Name:</strong> ${style.product_name || '-'}</div>
+        ` : '<p>No style data</p>';
+
+        // Serial data
+        document.getElementById('serialDataView').innerHTML = data.serial_data && data.serial_data.length > 0
+          ? data.serial_data.map(d => `
+              <div class="border-b pb-2">
+                <strong>${d.key}:</strong> ${d.value}
+                <div class="text-xs text-gray-500">By: ${d.added_by || '-'} | ${new Date(d.added_at).toLocaleDateString('sv-SE')}</div>
+              </div>
+            `).join('')
+          : '<p>No serial data</p>';
+
+        // Events
+        document.getElementById('eventsView').innerHTML = data.events && data.events.length > 0
+          ? data.events.map(e => `
+              <div class="border-b pb-2">
+                <strong>${e.event_type}</strong>
+                <p class="text-xs text-gray-500">${new Date(e.created_at).toLocaleDateString('sv-SE')}</p>
+                ${e.event_data ? `<pre class="text-xs bg-white p-1 rounded">${JSON.stringify(JSON.parse(e.event_data), null, 2)}</pre>` : ''}
+              </div>
+            `).join('')
+          : '<p>No events</p>';
+      } catch (err) {
+        alert('Error loading serial data: ' + err.message);
+      }
+    }
+
+    function closeView() {
+      document.getElementById('dataViewContainer').classList.add('hidden');
+    }
+
+    function goToAdminEdit(tab, identifier) {
+      // Store which field to focus on
+      sessionStorage.setItem('adminTab', tab);
+      if (tab === 'product-info' || tab === 'transparency' || tab === 'nudie-values' || tab === 'storytelling') {
+        sessionStorage.setItem('adminStyle', identifier);
+      } else if (tab === 'serial-data' || tab === 'events') {
+        sessionStorage.setItem('adminSerial', identifier);
+      }
+
+      // Navigate to admin
+      window.location.href = '/admin';
+    }
+  </script>
+</body>
+</html>

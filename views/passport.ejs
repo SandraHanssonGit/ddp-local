@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product Passport - <%= serial.serial_number %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+  <div class="max-w-2xl mx-auto py-12 px-4">
+    
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-md p-8 mb-6">
+      <div class="flex items-center gap-4 mb-6">
+        <div class="text-4xl">🏷️</div>
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Product Passport</h1>
+          <p class="text-gray-600">Digital Product Pass for <%= serial.style_number %></p>
+        </div>
+      </div>
+      
+      <div class="bg-blue-50 border border-blue-200 rounded p-4 mb-4">
+        <p class="text-sm text-gray-600">Serial Number</p>
+        <p class="text-2xl font-mono font-bold text-blue-900"><%= serial.serial_number %></p>
+      </div>
+      
+      <p class="text-xs text-gray-500">
+        Created: <%= new Date(serial.created_at).toLocaleDateString('sv-SE') %>
+      </p>
+    </div>
+
+    <!-- Batch Data (shared info) -->
+    <% if (batchData.length > 0) { %>
+      <div class="bg-white rounded-lg shadow-md p-8 mb-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">📦 Batch Information (Shared)</h2>
+        <div class="space-y-3">
+          <% batchData.forEach(item => { %>
+            <div class="border-b border-gray-200 pb-2">
+              <p class="text-sm font-semibold text-gray-700"><%= item.key %></p>
+              <p class="text-gray-600"><%= item.value %></p>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+    <% } %>
+
+    <!-- Serial Data (unique to this unit) -->
+    <% if (serialData.length > 0) { %>
+      <div class="bg-white rounded-lg shadow-md p-8 mb-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">🏷️ Unit Information (This Product)</h2>
+        <div class="space-y-3">
+          <% serialData.forEach(item => { %>
+            <div class="border-b border-gray-200 pb-2">
+              <p class="text-sm font-semibold text-gray-700"><%= item.key %></p>
+              <p class="text-gray-600"><%= item.value %></p>
+              <p class="text-xs text-gray-400">Added: <%= new Date(item.added_at).toLocaleDateString('sv-SE') %> by <%= item.added_by %></p>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+    <% } else { %>
+      <div class="bg-blue-50 rounded-lg p-4 mb-6">
+        <p class="text-sm text-blue-900">No unit-specific data yet</p>
+      </div>
+    <% } %>
+
+    <!-- Events (repair, recycling) -->
+    <% if (events.length > 0) { %>
+      <div class="bg-white rounded-lg shadow-md p-8 mb-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">📋 Lifecycle Events</h2>
+        <div class="space-y-4">
+          <% events.forEach(event => { %>
+            <div class="border-l-4 border-green-500 bg-green-50 p-4 rounded">
+              <p class="font-semibold text-green-900"><%= event.event_type %></p>
+              <p class="text-sm text-gray-600"><%= new Date(event.created_at).toLocaleDateString('sv-SE') %></p>
+              <% if (Object.keys(event.event_data).length > 0) { %>
+                <div class="mt-2 text-sm bg-white p-2 rounded">
+                  <% Object.entries(event.event_data).forEach(([key, value]) => { %>
+                    <p class="text-gray-600"><strong><%= key %>:</strong> <%= JSON.stringify(value) %></p>
+                  <% }) %>
+                </div>
+              <% } %>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+    <% } %>
+
+    <!-- Footer -->
+    <div class="bg-white rounded-lg shadow-md p-6 text-center">
+      <p class="text-sm text-gray-600">This is a digital product passport. All information is managed by Nudie Jeans.</p>
+    </div>
+  </div>
+</body>
+</html>

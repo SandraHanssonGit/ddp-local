@@ -1,0 +1,1631 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DPP Hub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+  <div class="max-w-7xl mx-auto py-12 px-4">
+    <h1 class="text-4xl font-bold text-gray-900 mb-8">🌐 DPP Hub</h1>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toastNotification" class="hidden fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50">
+      <span>✓</span>
+      <span id="toastMessage">Saved!</span>
+    </div>
+
+    <!-- TAB NAVIGATION -->
+    <div class="flex gap-4 mb-8 border-b border-gray-300">
+      <button onclick="switchTab('edit')" id="tabEdit" class="active px-6 py-4 font-semibold text-gray-900 border-b-2 border-blue-600">
+        🔍 Lookup & Edit
+      </button>
+      <button onclick="switchTab('new')" id="tabNew" class="px-6 py-4 font-semibold text-gray-700">
+        ➕ New Data
+      </button>
+    </div>
+
+    <!-- EDIT TAB -->
+    <div id="editTab">
+    <!-- SEARCH SECTION -->
+    <div class="bg-white rounded-lg shadow-md p-8 mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Search</h2>
+      <form id="searchForm" class="flex gap-4">
+        <input type="text" id="searchQuery" placeholder="Style, Serial, Batch, SGTIN..." class="flex-1 border border-gray-300 rounded px-4 py-3" required>
+        <button type="submit" class="bg-blue-600 text-white px-8 py-3 rounded font-semibold hover:bg-blue-700">
+          Search
+        </button>
+      </form>
+      <div id="searchStatus" class="mt-4 text-sm text-gray-600"></div>
+    </div>
+
+    <!-- SEARCH RESULTS LIST -->
+    <div id="resultsListContainer" class="hidden bg-white rounded-lg shadow-md p-8 mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Search Results</h2>
+      <div id="resultsList" class="space-y-2 max-h-64 overflow-y-auto"></div>
+    </div>
+
+    <!-- RESULT CONTAINER -->
+    <div id="resultContainer" class="hidden space-y-6">
+
+      <!-- STYLE VIEW -->
+      <div id="styleSection" class="hidden bg-white rounded-lg shadow-md p-8">
+        <h2 class="text-3xl font-bold text-gray-900 mb-6">📦 STYLE: <span id="styleTitle"></span></h2>
+
+        <!-- Images Section -->
+        <div class="bg-gray-50 p-6 rounded mb-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">📸 Style Images</h3>
+          <div id="styleImages" class="flex gap-4 mb-4 flex-wrap"></div>
+          <input type="file" id="styleImageUpload" accept="image/*" class="border border-gray-300 rounded px-3 py-2 w-full">
+          <button onclick="uploadStyleImage()" class="mt-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+            Upload Image
+          </button>
+        </div>
+
+        <!-- Style Data Tabs -->
+        <div class="space-y-6">
+          <div class="border-t pt-6">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl font-bold text-gray-900">Product Information</h3>
+              <button onclick="toggleEdit('product-info')" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                ✏️ Edit
+              </button>
+            </div>
+            <div id="productInfoView" class="bg-gray-50 p-4 rounded space-y-2"></div>
+            <div id="productInfoEdit" class="hidden space-y-4 mt-4">
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Product Name</label>
+                <input type="text" id="productName" class="w-full border border-gray-300 rounded px-3 py-2">
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Description</label>
+                <textarea id="productDescription" rows="3" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Care Instructions</label>
+                <textarea id="productCare" rows="2" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Delivery & Returns</label>
+                <textarea id="productDelivery" rows="2" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Size, Material & Composition</label>
+                <textarea id="productMaterial" rows="2" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+              </div>
+              <button onclick="saveProductInfo()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                ✓ Save
+              </button>
+            </div>
+          </div>
+
+          <div class="border-t pt-6">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl font-bold text-gray-900">Transparency Data</h3>
+              <button onclick="toggleEdit('transparency')" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                ✏️ Edit
+              </button>
+            </div>
+            <div id="transparencyView" class="bg-gray-50 p-4 rounded text-sm overflow-auto max-h-48"></div>
+            <div id="transparencyEdit" class="hidden space-y-4 mt-4">
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Suppliers Chain (JSON)</label>
+                <textarea id="transparencySuppliers" rows="3" class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-xs"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Certifications (JSON)</label>
+                <textarea id="transparencyCerts" rows="3" class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-xs"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Environmental Data (JSON)</label>
+                <textarea id="transparencyEnv" rows="3" class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-xs"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Social Data (JSON)</label>
+                <textarea id="transparencySocial" rows="3" class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-xs"></textarea>
+              </div>
+              <button onclick="saveTransparency()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                ✓ Save
+              </button>
+            </div>
+          </div>
+
+          <div class="border-t pt-6">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl font-bold text-gray-900">Nudie Values</h3>
+              <button onclick="toggleEdit('nudie-values')" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                ✏️ Edit
+              </button>
+            </div>
+            <div id="nudieValuesView" class="bg-gray-50 p-4 rounded space-y-2"></div>
+            <div id="nudieValuesEdit" class="hidden space-y-4 mt-4">
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Repair Info</label>
+                <textarea id="nudieRepair" rows="3" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+              </div>
+              <button onclick="saveNudieValues()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                ✓ Save
+              </button>
+            </div>
+          </div>
+
+          <div class="border-t pt-6">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl font-bold text-gray-900">Storytelling</h3>
+              <button onclick="toggleEdit('storytelling')" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                ✏️ Edit
+              </button>
+            </div>
+            <div id="storytellingView" class="bg-gray-50 p-4 rounded space-y-2"></div>
+            <div id="storytellingEdit" class="hidden space-y-4 mt-4">
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Summary</label>
+                <textarea id="storytellinSummary" rows="2" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Content</label>
+                <textarea id="storytellingContent" rows="4" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Links (JSON)</label>
+                <textarea id="storytellingLinks" rows="3" class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-xs"></textarea>
+              </div>
+              <button onclick="saveStorytelling()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                ✓ Save
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BATCH VIEW -->
+      <div id="batchSection" class="hidden bg-white rounded-lg shadow-md p-8">
+        <h2 class="text-3xl font-bold text-gray-900 mb-6">📦 BATCH: <span id="batchTitle"></span></h2>
+
+        <!-- Batch Images -->
+        <div class="bg-gray-50 p-6 rounded mb-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">📸 Batch Images</h3>
+          <div id="batchImages" class="flex gap-4 mb-4 flex-wrap"></div>
+          <input type="file" id="batchImageUpload" accept="image/*" class="border border-gray-300 rounded px-3 py-2 w-full">
+          <button onclick="uploadBatchImage()" class="mt-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+            Upload Image
+          </button>
+        </div>
+
+        <div id="batchInfo" class="bg-gray-50 p-4 rounded space-y-2"></div>
+
+        <!-- Serials Table -->
+        <div class="border-t pt-6 mt-6">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-gray-900">🏷️ Serials (<span id="serialsCount">0</span>)</h3>
+            <input type="text" id="serialsSearchInput" placeholder="Search serials..." class="border border-gray-300 rounded px-4 py-2 w-64" oninput="filterSerials()">
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-sm">
+              <thead>
+                <tr class="bg-gray-100 border-b border-gray-300">
+                  <th class="px-4 py-2 text-left font-bold cursor-pointer hover:bg-gray-200" onclick="sortSerials('serial_number')">Serial Number ↕️</th>
+                  <th class="px-4 py-2 text-left font-bold cursor-pointer hover:bg-gray-200" onclick="sortSerials('condition')">Condition ↕️</th>
+                  <th class="px-4 py-2 text-left font-bold cursor-pointer hover:bg-gray-200" onclick="sortSerials('size')">Size ↕️</th>
+                  <th class="px-4 py-2 text-left font-bold">Owner</th>
+                </tr>
+              </thead>
+              <tbody id="serialsTableBody">
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div id="serialsPagination" class="flex gap-2 justify-center mt-4"></div>
+        </div>
+      </div>
+
+      <!-- SERIAL VIEW -->
+      <div id="serialSection" class="hidden bg-white rounded-lg shadow-md p-8">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-3xl font-bold text-gray-900">🏷️ SERIAL: <span id="serialTitle"></span></h2>
+          <div class="flex gap-2">
+            <button onclick="previewPublicPassport()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+              👁️ Preview Passport
+            </button>
+            <button onclick="copyPublicLink()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+              🔗 Copy Public Link
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-6 mb-6">
+          <div class="bg-gray-50 p-4 rounded">
+            <h3 class="font-bold text-gray-900 mb-2">Serial Info</h3>
+            <div id="serialInfo" class="text-sm space-y-1"></div>
+          </div>
+          <div class="bg-gray-50 p-4 rounded">
+            <h3 class="font-bold text-gray-900 mb-2">Batch Info</h3>
+            <div id="serialBatchInfo" class="text-sm space-y-1"></div>
+          </div>
+          <div class="bg-gray-50 p-4 rounded">
+            <h3 class="font-bold text-gray-900 mb-2">Style Info</h3>
+            <div id="serialStyleInfo" class="text-sm space-y-1"></div>
+          </div>
+        </div>
+
+        <!-- Serial Metadata -->
+        <div class="border-t pt-6">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-gray-900">Serial Metadata</h3>
+            <button onclick="toggleEdit('serial-metadata')" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+              ✏️ Edit
+            </button>
+          </div>
+          <div id="serialMetadataView" class="bg-gray-50 p-4 rounded grid grid-cols-2 gap-4"></div>
+          <div id="serialMetadataEdit" class="hidden space-y-4 mt-4 bg-gray-50 p-4 rounded">
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">SGTIN (Numeric) - Read only</label>
+              <input type="text" id="serialSGTINNumeric" placeholder="301414170001200ABC" class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-sm bg-gray-100" readonly>
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Public URL (QR Code Link)</label>
+              <input type="text" id="serialSGTINUri" placeholder="https://id.gs1.org/01/.../21/..." class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-sm">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Size</label>
+                <select id="serialSize" class="w-full border border-gray-300 rounded px-3 py-2">
+                  <option value="">-- Not specified --</option>
+                  <option value="XS">XS</option>
+                  <option value="S">S</option>
+                  <option value="M">M</option>
+                  <option value="L">L</option>
+                  <option value="XL">XL</option>
+                  <option value="XXL">XXL</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Condition (Lifecycle)</label>
+                <select id="serialCondition" class="w-full border border-gray-300 rounded px-3 py-2">
+                  <option value="">-- Not specified --</option>
+                  <option value="new">🆕 New</option>
+                  <option value="repaired">🔧 Repaired</option>
+                  <option value="reused">♻️ Reused</option>
+                  <option value="recycled">🗑️ Recycled</option>
+                </select>
+              </div>
+            </div>
+            <input type="text" id="serialLocation" placeholder="Location" class="w-full border border-gray-300 rounded px-3 py-2">
+            <input type="text" id="serialOwner" placeholder="Owner/Customer ID" class="w-full border border-gray-300 rounded px-3 py-2">
+            <textarea id="serialNotes" placeholder="Notes" rows="3" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+            <button onclick="saveSerialMetadata()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+              ✓ Save
+            </button>
+          </div>
+        </div>
+
+        <!-- Events Timeline -->
+        <div class="border-t pt-6">
+          <h3 class="text-xl font-bold text-gray-900 mb-4">📅 Events & History</h3>
+          <div id="eventsTimeline" class="space-y-3 mb-6"></div>
+
+          <div class="bg-gray-50 p-4 rounded">
+            <h4 class="font-bold text-gray-900 mb-4">➕ Add New Event</h4>
+            <div class="space-y-4">
+              <select id="eventType" class="w-full border border-gray-300 rounded px-3 py-2">
+                <option value="">-- Select Event Type --</option>
+                <option value="service">Service</option>
+                <option value="repair">Repair</option>
+                <option value="reuse">Reuse (Trade-in)</option>
+                <option value="recycling">Recycling</option>
+                <option value="scanned">Scanned</option>
+              </select>
+              <textarea id="eventData" placeholder='Event details (JSON)' rows="4" class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-xs"></textarea>
+              <button onclick="addEvent()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                ✓ Add Event
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    </div>
+
+    <!-- NEW TAB -->
+    <div id="newTab" class="hidden space-y-6">
+
+      <!-- QUICK BATCH CREATOR WIZARD -->
+      <div class="bg-white rounded-lg shadow-md p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">🚀 Quick Batch Creator</h2>
+
+        <!-- Progress Steps -->
+        <div class="flex gap-4 mb-8 overflow-x-auto">
+          <div class="step-indicator" data-step="1">
+            <div class="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">1</div>
+            <div class="text-sm font-bold text-gray-700 mt-1">Style</div>
+          </div>
+          <div class="step-indicator" data-step="2">
+            <div class="bg-gray-300 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">2</div>
+            <div class="text-sm font-bold text-gray-700 mt-1">Details</div>
+          </div>
+          <div class="step-indicator" data-step="3">
+            <div class="bg-gray-300 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">3</div>
+            <div class="text-sm font-bold text-gray-700 mt-1">Batch</div>
+          </div>
+          <div class="step-indicator" data-step="4">
+            <div class="bg-gray-300 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">4</div>
+            <div class="text-sm font-bold text-gray-700 mt-1">Serials</div>
+          </div>
+          <div class="step-indicator" data-step="5">
+            <div class="bg-gray-300 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">5</div>
+            <div class="text-sm font-bold text-gray-700 mt-1">SGTIN</div>
+          </div>
+          <div class="step-indicator" data-step="6">
+            <div class="bg-gray-300 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">6</div>
+            <div class="text-sm font-bold text-gray-700 mt-1">Review</div>
+          </div>
+        </div>
+
+        <!-- Step 1: Style -->
+        <div id="wizardStep1" class="wizard-step space-y-4">
+          <h3 class="text-xl font-bold text-gray-900 mb-4">Step 1: Select or Create Style</h3>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Style Number</label>
+              <input type="text" id="wizardStyleNumber" placeholder="114519" class="w-full border border-gray-300 rounded px-3 py-2">
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Product Name</label>
+              <input type="text" id="wizardProductName" placeholder="Lofty Lo" class="w-full border border-gray-300 rounded px-3 py-2">
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Material & Composition</label>
+              <textarea id="wizardMaterial" rows="2" placeholder="95% Cotton, 5% Elastane" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+            </div>
+            <button onclick="wizardNextStep(1)" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+              Next →
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 2: Style Details -->
+        <div id="wizardStep2" class="wizard-step hidden space-y-4">
+          <h3 class="text-xl font-bold text-gray-900 mb-4">Step 2: Style Details (Optional)</h3>
+          <p class="text-sm text-gray-600 mb-4">Add transparency, nudie values, and storytelling info. You can skip this and add later.</p>
+          <div class="bg-blue-50 p-4 rounded mb-4">
+            <p class="text-sm"><strong>Style:</strong> <span id="wizardShowStyleDetails"></span></p>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Transparency Data (JSON)</label>
+              <textarea id="wizardTransparency" rows="3" placeholder='{"suppliers": "..."}' class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-xs"></textarea>
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Nudie Values - Repair Info</label>
+              <textarea id="wizardRepair" rows="2" placeholder="Free repairs for 2 years..." class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Storytelling Summary</label>
+              <textarea id="wizardStory" rows="2" placeholder="The story of this collection..." class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+            </div>
+            <div class="flex gap-4">
+              <button onclick="wizardPrevStep(2)" class="bg-gray-400 text-white px-6 py-2 rounded hover:bg-gray-500">
+                ← Back
+              </button>
+              <button onclick="wizardNextStep(2)" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+                Next →
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Batch -->
+        <div id="wizardStep3" class="wizard-step hidden space-y-4">
+          <h3 class="text-xl font-bold text-gray-900 mb-4">Step 3: Batch Details</h3>
+          <div class="bg-blue-50 p-4 rounded mb-4">
+            <p class="text-sm"><strong>Style:</strong> <span id="wizardShowStyle"></span></p>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Batch ID</label>
+              <input type="text" id="wizardBatchId" placeholder="114519-BATCH001" class="w-full border border-gray-300 rounded px-3 py-2">
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Total Units</label>
+              <input type="number" id="wizardBatchUnits" placeholder="100" class="w-full border border-gray-300 rounded px-3 py-2">
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Production Date</label>
+              <input type="date" id="wizardProductionDate" class="w-full border border-gray-300 rounded px-3 py-2">
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Manufacturing Details</label>
+              <textarea id="wizardManufacturing" rows="3" placeholder="Factory: XYZ&#10;QC Status: Passed" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+            </div>
+            <div class="flex gap-4">
+              <button onclick="wizardPrevStep(2)" class="bg-gray-400 text-white px-6 py-2 rounded hover:bg-gray-500">
+                ← Back
+              </button>
+              <button onclick="wizardNextStep(2)" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+                Next →
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4: Serials -->
+        <div id="wizardStep4" class="wizard-step hidden space-y-4">
+          <h3 class="text-xl font-bold text-gray-900 mb-4">Step 4: Serial Numbers</h3>
+          <div class="bg-blue-50 p-4 rounded mb-4">
+            <p class="text-sm"><strong>Batch:</strong> <span id="wizardShowBatch"></span></p>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Serial Numbers (paste comma-separated)</label>
+              <textarea id="wizardSerials" rows="6" placeholder="114519-001-AA,114519-001-AB,114519-001-AC" class="w-full border border-gray-300 rounded px-3 py-2" required></textarea>
+            </div>
+            <div id="serialsPreview" class="bg-gray-50 p-4 rounded text-sm"></div>
+            <div class="flex gap-4">
+              <button onclick="wizardPrevStep(4)" class="bg-gray-400 text-white px-6 py-2 rounded hover:bg-gray-500">
+                ← Back
+              </button>
+              <button onclick="wizardNextStep(4)" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+                Next →
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 5: SGTIN -->
+        <div id="wizardStep5" class="wizard-step hidden space-y-4">
+          <h3 class="text-xl font-bold text-gray-900 mb-4">Step 5: Supplier Data (SGTIN + RFID)</h3>
+          <div class="bg-blue-50 p-4 rounded mb-4">
+            <p class="text-sm"><strong>Serials:</strong> <span id="wizardShowSerials"></span></p>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Paste Data (Format: serial_number,sgtin_numeric,sgtin_uri,rfid)</label>
+              <textarea id="wizardSGTINData" rows="6" placeholder="114519-001-AA,301414170001200ABC,https://id.gs1.org/01/.../21/001AA,12AB34CD56EF" class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-sm"></textarea>
+              <p class="text-xs text-gray-500 mt-1">Each line: serial_number, sgtin_numeric, sgtin_uri, rfid (RFID optional)</p>
+            </div>
+            <div class="flex gap-4">
+              <button onclick="wizardPrevStep(4)" class="bg-gray-400 text-white px-6 py-2 rounded hover:bg-gray-500">
+                ← Back
+              </button>
+              <button onclick="wizardNextStep(4)" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+                Next →
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 6: Review -->
+        <div id="wizardStep6" class="wizard-step hidden space-y-4">
+          <h3 class="text-xl font-bold text-gray-900 mb-4">Step 6: Review & Create</h3>
+          <div class="space-y-4 bg-gray-50 p-6 rounded">
+            <div class="border-b pb-4">
+              <h4 class="font-bold text-gray-900 mb-2">Style</h4>
+              <div id="wizardReviewStyle" class="text-sm space-y-1"></div>
+            </div>
+            <div class="border-b pb-4">
+              <h4 class="font-bold text-gray-900 mb-2">Batch</h4>
+              <div id="wizardReviewBatch" class="text-sm space-y-1"></div>
+            </div>
+            <div class="border-b pb-4">
+              <h4 class="font-bold text-gray-900 mb-2">Serials</h4>
+              <div id="wizardReviewSerials" class="text-sm space-y-1"></div>
+            </div>
+            <div>
+              <h4 class="font-bold text-gray-900 mb-2">SGTIN Data</h4>
+              <div id="wizardReviewSGTIN" class="text-sm space-y-1"></div>
+            </div>
+          </div>
+          <div class="flex gap-4">
+            <button onclick="wizardPrevStep(5)" class="bg-gray-400 text-white px-6 py-2 rounded hover:bg-gray-500">
+              ← Back
+            </button>
+            <button onclick="wizardCreate()" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 font-bold">
+              ✓ Create Complete Batch
+            </button>
+          </div>
+          <div id="wizardResult" class="mt-4 hidden p-4 rounded"></div>
+        </div>
+      </div>
+
+      <!-- NEW STYLE (kept for advanced users) -->
+      <div class="bg-white rounded-lg shadow-md p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">🆕 Create New Style</h2>
+        <form id="newStyleForm" class="space-y-4 max-w-2xl">
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">Style Number</label>
+            <input type="text" id="newStyleNumber" placeholder="114519" class="w-full border border-gray-300 rounded px-3 py-2" required>
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">Product Name</label>
+            <input type="text" id="newProductName" placeholder="Lofty Lo" class="w-full border border-gray-300 rounded px-3 py-2" required>
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">Description</label>
+            <textarea id="newDescription" rows="3" placeholder="Product description..." class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Care Instructions</label>
+              <textarea id="newCare" rows="2" placeholder="Wash at 40°C..." class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Delivery & Returns</label>
+              <textarea id="newDelivery" rows="2" placeholder="Free shipping..." class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">Material & Composition</label>
+            <textarea id="newMaterial" rows="2" placeholder="95% Cotton, 5% Elastane" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+          </div>
+          <button type="submit" class="bg-green-600 text-white px-6 py-3 rounded font-semibold hover:bg-green-700">
+            ✓ Create Style
+          </button>
+          <div id="newStyleResult" class="mt-4 hidden p-4 rounded"></div>
+        </form>
+      </div>
+
+      <!-- NEW BATCH -->
+      <div class="bg-white rounded-lg shadow-md p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">🆕 Create New Batch + Serials</h2>
+        <form id="newBatchForm" class="space-y-4 max-w-2xl">
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">Batch ID</label>
+            <input type="text" id="newBatchId" placeholder="114519-BATCH001" class="w-full border border-gray-300 rounded px-3 py-2" required>
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">Style Number</label>
+            <input type="text" id="newBatchStyle" placeholder="114519" class="w-full border border-gray-300 rounded px-3 py-2" required>
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">Total Units</label>
+            <input type="number" id="newBatchUnits" placeholder="100" class="w-full border border-gray-300 rounded px-3 py-2">
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">Production Date</label>
+            <input type="date" id="newBatchProductionDate" class="w-full border border-gray-300 rounded px-3 py-2">
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">Manufacturing Details (Factory, QC-status, etc)</label>
+            <textarea id="newBatchManufacturing" rows="3" placeholder="Factory: XYZ Factory&#10;QC Status: Passed&#10;Certifications: GOTS, OCS" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">Serial Numbers (comma-separated)</label>
+            <textarea id="newSerials" rows="5" placeholder="114519-001-AA,114519-001-AB,114519-001-AC" class="w-full border border-gray-300 rounded px-3 py-2" required></textarea>
+          </div>
+          <button type="submit" class="bg-green-600 text-white px-6 py-3 rounded font-semibold hover:bg-green-700">
+            ✓ Create Batch
+          </button>
+          <div id="newBatchResult" class="mt-4 hidden p-4 rounded"></div>
+        </form>
+      </div>
+
+      <!-- IMPORT SUPPLIER DATA -->
+      <div class="bg-white rounded-lg shadow-md p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">📨 Import Supplier Data (SGTIN + RFID)</h2>
+        <form id="importSupplierForm" class="space-y-4 max-w-2xl">
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">Batch ID</label>
+            <input type="text" id="importBatchId" placeholder="114519-BATCH001" class="w-full border border-gray-300 rounded px-3 py-2" required>
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">Paste Data (Format: serial_number,sgtin_numeric,sgtin_uri,rfid)</label>
+            <textarea id="importData" placeholder="114519-001-AA,301414170001200ABC,https://id.gs1.org/01/.../21/001AA,12AB34CD56EF" rows="8" class="w-full border border-gray-300 rounded px-3 py-2 font-mono text-sm" required></textarea>
+            <p class="text-xs text-gray-500 mt-1">Each line: serial_number, sgtin_numeric, sgtin_uri, rfid (RFID can be empty)</p>
+          </div>
+          <button type="submit" class="bg-green-600 text-white px-6 py-3 rounded font-semibold hover:bg-green-700">
+            ✓ Import Supplier Data
+          </button>
+          <div id="importSupplierResult" class="mt-4 hidden p-4 rounded"></div>
+        </form>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    const currentData = {};
+
+    function showToast(message = 'Saved!') {
+      const toast = document.getElementById('toastNotification');
+      const msg = document.getElementById('toastMessage');
+      msg.textContent = message;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 2500);
+    }
+
+    function copyPublicLink() {
+      const serialNumber = document.getElementById('serialTitle').textContent;
+      const publicLink = `${window.location.origin}/p/${serialNumber}`;
+      navigator.clipboard.writeText(publicLink).then(() => {
+        showToast('📋 Link copied!');
+      });
+    }
+
+    function previewPublicPassport() {
+      const serialNumber = document.getElementById('serialTitle').textContent;
+      window.open(`/p/${serialNumber}`, '_blank');
+    }
+
+    // Serials table globals
+    let serialsTableData = [];
+    let serialsFilteredData = [];
+    let serialsCurrentSort = { column: 'serial_number', direction: 'asc' };
+    let serialsCurrentPage = 1;
+    let serialsSearchQuery = '';
+    const SERIALS_PER_PAGE = 50;
+
+    function showSerialsTable(serials, allSerialData) {
+      // Map serial data to serials
+      serialsTableData = serials.map(s => {
+        const data = {};
+        const serialDataForThis = allSerialData.filter(sd => sd.serial_id === s.id);
+        serialDataForThis.forEach(sd => {
+          data[sd.key] = sd.value;
+        });
+        return {
+          ...s,
+          condition: data.condition || '-',
+          size: data.size || '-',
+          owner_id: data.owner_id || '-'
+        };
+      });
+
+      serialsFilteredData = [...serialsTableData];
+      document.getElementById('serialsCount').textContent = serialsTableData.length;
+      document.getElementById('serialsSearchInput').value = '';
+      serialsCurrentPage = 1;
+      renderSerialsTable();
+    }
+
+    function filterSerials() {
+      serialsSearchQuery = document.getElementById('serialsSearchInput').value.toLowerCase();
+      serialsFilteredData = serialsTableData.filter(s =>
+        s.serial_number.toLowerCase().includes(serialsSearchQuery)
+      );
+      serialsCurrentPage = 1;
+      renderSerialsTable();
+    }
+
+    function renderSerialsTable() {
+      const sorted = [...serialsFilteredData].sort((a, b) => {
+        const aVal = a[serialsCurrentSort.column];
+        const bVal = b[serialsCurrentSort.column];
+        const cmp = aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+        return serialsCurrentSort.direction === 'asc' ? cmp : -cmp;
+      });
+
+      const start = (serialsCurrentPage - 1) * SERIALS_PER_PAGE;
+      const end = start + SERIALS_PER_PAGE;
+      const pageData = sorted.slice(start, end);
+
+      const tbody = document.getElementById('serialsTableBody');
+      tbody.innerHTML = pageData.map(s => `
+        <tr class="border-b border-gray-200 hover:bg-blue-50 cursor-pointer" onclick="loadSerial('${s.serial_number}')">
+          <td class="px-4 py-2">${s.serial_number}</td>
+          <td class="px-4 py-2">${s.condition}</td>
+          <td class="px-4 py-2">${s.size}</td>
+          <td class="px-4 py-2 text-xs">${s.owner_id}</td>
+        </tr>
+      `).join('');
+
+      // Render pagination
+      const totalPages = Math.ceil(serialsFilteredData.length / SERIALS_PER_PAGE);
+      const pagination = document.getElementById('serialsPagination');
+      pagination.innerHTML = '';
+
+      if (totalPages <= 1) return;
+
+      for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.className = i === serialsCurrentPage
+          ? 'px-3 py-1 bg-blue-600 text-white rounded'
+          : 'px-3 py-1 border border-gray-300 rounded hover:bg-gray-100';
+        btn.onclick = () => {
+          serialsCurrentPage = i;
+          renderSerialsTable();
+          document.querySelector('#batchSection').scrollIntoView({ behavior: 'smooth' });
+        };
+        pagination.appendChild(btn);
+      }
+    }
+
+    function sortSerials(column) {
+      if (serialsCurrentSort.column === column) {
+        serialsCurrentSort.direction = serialsCurrentSort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        serialsCurrentSort = { column, direction: 'asc' };
+      }
+      serialsCurrentPage = 1;
+      renderSerialsTable();
+    }
+
+    // Wizard functions
+    const wizardData = {};
+
+    function wizardNextStep(step) {
+      if (step === 1) {
+        wizardData.styleNumber = document.getElementById('wizardStyleNumber').value;
+        wizardData.productName = document.getElementById('wizardProductName').value;
+        wizardData.material = document.getElementById('wizardMaterial').value;
+        if (!wizardData.styleNumber) { alert('Style Number required'); return; }
+      } else if (step === 2) {
+        wizardData.transparency = document.getElementById('wizardTransparency').value;
+        wizardData.repair = document.getElementById('wizardRepair').value;
+        wizardData.story = document.getElementById('wizardStory').value;
+      } else if (step === 3) {
+        wizardData.batchId = document.getElementById('wizardBatchId').value;
+        wizardData.batchUnits = document.getElementById('wizardBatchUnits').value;
+        wizardData.productionDate = document.getElementById('wizardProductionDate').value;
+        wizardData.manufacturing = document.getElementById('wizardManufacturing').value;
+        if (!wizardData.batchId) { alert('Batch ID required'); return; }
+      } else if (step === 4) {
+        const serialsInput = document.getElementById('wizardSerials').value.trim();
+        wizardData.serials = serialsInput.split(',').map(s => s.trim()).filter(s => s);
+        if (wizardData.serials.length === 0) { alert('Add at least one serial'); return; }
+      } else if (step === 5) {
+        wizardData.sgtin = document.getElementById('wizardSGTINData').value;
+      }
+
+      showWizardStep(step + 1);
+    }
+
+    function wizardPrevStep(step) {
+      showWizardStep(step - 1);
+    }
+
+    function showWizardStep(step) {
+      // Hide all steps
+      document.querySelectorAll('.wizard-step').forEach(s => s.classList.add('hidden'));
+      // Show current step
+      document.getElementById(`wizardStep${step}`).classList.remove('hidden');
+      // Update step indicators
+      document.querySelectorAll('.step-indicator div:first-child').forEach((el, i) => {
+        const stepNum = i + 1;
+        if (stepNum < step) {
+          el.className = 'bg-green-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold';
+          el.textContent = '✓';
+        } else if (stepNum === step) {
+          el.className = 'bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold';
+          el.textContent = stepNum;
+        } else {
+          el.className = 'bg-gray-300 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold';
+          el.textContent = stepNum;
+        }
+      });
+
+      // Update displays
+      if (step >= 2) {
+        document.getElementById('wizardShowStyleDetails').textContent = wizardData.styleNumber;
+      }
+      if (step >= 3) {
+        document.getElementById('wizardShowBatch').textContent = wizardData.batchId;
+      }
+      if (step >= 4) {
+        document.getElementById('wizardShowStyle').textContent = wizardData.styleNumber;
+      }
+      if (step >= 5) {
+        document.getElementById('wizardShowSerials').textContent = wizardData.serials.length + ' serials';
+        document.getElementById('serialsPreview').innerHTML = `<strong>Preview:</strong> ${wizardData.serials.slice(0, 3).join(', ')}${wizardData.serials.length > 3 ? '...' : ''}`;
+      }
+      if (step === 6) {
+        showWizardReview();
+      }
+
+      window.scrollTo(0, 0);
+    }
+
+    function showWizardReview() {
+      document.getElementById('wizardReviewStyle').innerHTML = `
+        <div><strong>Number:</strong> ${wizardData.styleNumber}</div>
+        <div><strong>Name:</strong> ${wizardData.productName}</div>
+        <div><strong>Material:</strong> ${wizardData.material}</div>
+      `;
+      document.getElementById('wizardReviewBatch').innerHTML = `
+        <div><strong>ID:</strong> ${wizardData.batchId}</div>
+        <div><strong>Units:</strong> ${wizardData.batchUnits || '-'}</div>
+        <div><strong>Production Date:</strong> ${wizardData.productionDate || '-'}</div>
+        <div><strong>Manufacturing:</strong> ${wizardData.manufacturing || '-'}</div>
+      `;
+      document.getElementById('wizardReviewSerials').innerHTML = `
+        <div><strong>Count:</strong> ${wizardData.serials.length}</div>
+        <div><strong>Samples:</strong> ${wizardData.serials.slice(0, 5).join(', ')}${wizardData.serials.length > 5 ? '...' : ''}</div>
+      `;
+      document.getElementById('wizardReviewSGTIN').innerHTML = `
+        <div><strong>Lines:</strong> ${wizardData.sgtin ? wizardData.sgtin.split('\n').length : 0}</div>
+      `;
+    }
+
+    async function wizardCreate() {
+      const resultDiv = document.getElementById('wizardResult');
+      resultDiv.classList.add('hidden');
+
+      // Step 1: Create style
+      const styleRes = await fetch(`/api/styles/${wizardData.styleNumber}/product-info`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_name: wizardData.productName,
+          size_material_composition: wizardData.material
+        })
+      });
+
+      if (!styleRes.ok) {
+        showWizardResult(false, 'Error creating style');
+        return;
+      }
+
+      // Step 1b: Add transparency/nudie/storytelling if provided
+      if (wizardData.transparency) {
+        await fetch(`/api/styles/${wizardData.styleNumber}/transparency`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(JSON.parse(wizardData.transparency))
+        });
+      }
+
+      if (wizardData.repair || wizardData.story) {
+        const nudieData = {};
+        if (wizardData.repair) nudieData.repair_info = wizardData.repair;
+        if (wizardData.story) {
+          const storyData = {
+            summary: wizardData.story,
+            content: wizardData.story,
+            links: []
+          };
+          await fetch(`/api/styles/${wizardData.styleNumber}/storytelling`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(storyData)
+          });
+        }
+        if (wizardData.repair) {
+          await fetch(`/api/styles/${wizardData.styleNumber}/nudie-values`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(nudieData)
+          });
+        }
+      }
+
+      // Step 2: Create batch
+      const batchRes = await fetch('/api/batch/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          batch_id: wizardData.batchId,
+          style_number: wizardData.styleNumber,
+          total_units: parseInt(wizardData.batchUnits) || 0,
+          partner_name: '',
+          serials: wizardData.serials
+        })
+      });
+
+      if (!batchRes.ok) {
+        showWizardResult(false, 'Error creating batch');
+        return;
+      }
+
+      // Step 3: Save batch metadata
+      if (wizardData.productionDate || wizardData.manufacturing) {
+        await fetch('/api/batch/metadata', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            batch_id: wizardData.batchId,
+            production_date: wizardData.productionDate,
+            manufacturing_details: wizardData.manufacturing
+          })
+        });
+      }
+
+      // Step 4: Import SGTIN
+      if (wizardData.sgtin) {
+        await fetch('/api/serials/import-supplier-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            batch_id: wizardData.batchId,
+            data: wizardData.sgtin
+          })
+        });
+      }
+
+      showWizardResult(true, `✓ Complete! Created batch ${wizardData.batchId} with ${wizardData.serials.length} serials`);
+    }
+
+    function showWizardResult(success, message) {
+      const resultDiv = document.getElementById('wizardResult');
+      resultDiv.className = success
+        ? 'mt-4 p-4 rounded bg-green-50 border border-green-200 text-green-900'
+        : 'mt-4 p-4 rounded bg-red-50 border border-red-200 text-red-900';
+      resultDiv.innerHTML = `<p>${message}</p>`;
+      resultDiv.classList.remove('hidden');
+      if (success) {
+        setTimeout(() => {
+          document.getElementById('wizardStep1').classList.remove('hidden');
+          document.querySelectorAll('.wizard-step').forEach((s, i) => {
+            if (i > 0) s.classList.add('hidden');
+          });
+          document.getElementById('wizardStyleNumber').value = '';
+          document.getElementById('wizardProductName').value = '';
+          document.getElementById('wizardMaterial').value = '';
+          document.getElementById('wizardBatchId').value = '';
+          document.getElementById('wizardBatchUnits').value = '';
+          document.getElementById('wizardProductionDate').value = '';
+          document.getElementById('wizardManufacturing').value = '';
+          document.getElementById('wizardSerials').value = '';
+          document.getElementById('wizardSGTINData').value = '';
+          showWizardStep(1);
+        }, 2000);
+      }
+    }
+
+    // Tab switching
+    function switchTab(tab) {
+      document.getElementById('editTab').classList.toggle('hidden', tab !== 'edit');
+      document.getElementById('newTab').classList.toggle('hidden', tab !== 'new');
+      document.getElementById('tabEdit').classList.toggle('border-b-2', tab === 'edit');
+      document.getElementById('tabEdit').classList.toggle('border-blue-600', tab === 'edit');
+      document.getElementById('tabEdit').classList.toggle('text-gray-900', tab === 'edit');
+      document.getElementById('tabEdit').classList.toggle('text-gray-700', tab !== 'edit');
+      document.getElementById('tabNew').classList.toggle('border-b-2', tab === 'new');
+      document.getElementById('tabNew').classList.toggle('border-blue-600', tab === 'new');
+      document.getElementById('tabNew').classList.toggle('text-gray-900', tab === 'new');
+      document.getElementById('tabNew').classList.toggle('text-gray-700', tab !== 'new');
+    }
+
+    // NEW STYLE form
+    document.getElementById('newStyleForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const styleNumber = document.getElementById('newStyleNumber').value;
+      const res = await fetch(`/api/styles/${styleNumber}/product-info`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_name: document.getElementById('newProductName').value,
+          description: document.getElementById('newDescription').value,
+          care_instructions: document.getElementById('newCare').value,
+          delivery_returns: document.getElementById('newDelivery').value,
+          size_material_composition: document.getElementById('newMaterial').value
+        })
+      });
+      const result = await res.json();
+      const resultDiv = document.getElementById('newStyleResult');
+      resultDiv.className = res.ok ? 'mt-4 p-4 rounded bg-green-50 border border-green-200 text-green-900' : 'mt-4 p-4 rounded bg-red-50 border border-red-200 text-red-900';
+      resultDiv.innerHTML = `<p>${res.ok ? '✓ Style created! Now add transparency/nudie/storytelling data.' : '✗ Error: ' + result.error}</p>`;
+      resultDiv.classList.remove('hidden');
+      if (res.ok) document.getElementById('newStyleForm').reset();
+    });
+
+    // NEW BATCH form
+    document.getElementById('newBatchForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const serials = document.getElementById('newSerials').value.split(',').map(s => s.trim());
+      const batchId = document.getElementById('newBatchId').value;
+      const productionDate = document.getElementById('newBatchProductionDate').value;
+      const manufacturingDetails = document.getElementById('newBatchManufacturing').value;
+
+      const res = await fetch('/api/batch/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          batch_id: batchId,
+          style_number: document.getElementById('newBatchStyle').value,
+          total_units: parseInt(document.getElementById('newBatchUnits').value) || 0,
+          partner_name: '', // Empty now
+          serials
+        })
+      });
+      const result = await res.json();
+
+      // Save batch metadata (production date and manufacturing details)
+      if (res.ok && productionDate) {
+        await fetch('/api/batch/metadata', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            batch_id: batchId,
+            production_date: productionDate,
+            manufacturing_details: manufacturingDetails
+          })
+        });
+      }
+
+      const resultDiv = document.getElementById('newBatchResult');
+      resultDiv.className = res.ok ? 'mt-4 p-4 rounded bg-green-50 border border-green-200 text-green-900' : 'mt-4 p-4 rounded bg-red-50 border border-red-200 text-red-900';
+      resultDiv.innerHTML = `<p>${res.ok ? '✓ Batch created with ' + result.serials_imported + ' serials!' : '✗ Error: ' + result.error}</p>`;
+      resultDiv.classList.remove('hidden');
+      if (res.ok) document.getElementById('newBatchForm').reset();
+    });
+
+    // IMPORT SUPPLIER DATA form
+    document.getElementById('importSupplierForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const res = await fetch('/api/serials/import-supplier-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          batch_id: document.getElementById('importBatchId').value,
+          data: document.getElementById('importData').value
+        })
+      });
+      const result = await res.json();
+      const resultDiv = document.getElementById('importSupplierResult');
+      resultDiv.className = res.ok ? 'mt-4 p-4 rounded bg-green-50 border border-green-200 text-green-900' : 'mt-4 p-4 rounded bg-red-50 border border-red-200 text-red-900';
+      resultDiv.innerHTML = `<p>${res.ok ? '✓ Imported ' + result.processed + ' records' : '✗ Error: ' + result.error}</p>`;
+      resultDiv.classList.remove('hidden');
+      if (res.ok) document.getElementById('importSupplierForm').reset();
+    });
+
+    document.getElementById('searchForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const q = document.getElementById('searchQuery').value.trim();
+      const status = document.getElementById('searchStatus');
+
+      status.textContent = 'Searching...';
+
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+        const result = await res.json();
+
+        if (!result.results || result.results.length === 0) {
+          status.textContent = 'No results found';
+          document.getElementById('resultsListContainer').classList.add('hidden');
+          document.getElementById('resultContainer').classList.add('hidden');
+          return;
+        }
+
+        // Sort by relevance - exact match first, then starts with, then contains
+        // Also prioritize: styles > batches > serials
+        const sorted = result.results.sort((a, b) => {
+          const aMatch = a.result_type === 'style' ? a.style_number : a.result_type === 'batch' ? a.batch_id : a.serial_number;
+          const bMatch = b.result_type === 'style' ? b.style_number : b.result_type === 'batch' ? b.batch_id : b.serial_number;
+
+          // Calculate relevance score
+          const aRelevance = aMatch === q ? 0 : aMatch.startsWith(q) ? 1 : 2;
+          const bRelevance = bMatch === q ? 0 : bMatch.startsWith(q) ? 1 : 2;
+
+          // If relevance is the same, prioritize by type
+          if (aRelevance !== bRelevance) return aRelevance - bRelevance;
+
+          const typeOrder = { 'style': 0, 'batch': 1, 'serial': 2 };
+          return (typeOrder[a.result_type] || 3) - (typeOrder[b.result_type] || 3);
+        });
+
+        // Show results list
+        const resultsList = document.getElementById('resultsList');
+        resultsList.innerHTML = sorted.map(r => {
+          const displayName = r.result_type === 'style'
+            ? `📦 ${r.style_number} - ${r.product_name || 'No name'}`
+            : r.result_type === 'batch'
+            ? `📦 Batch: ${r.batch_id} (Style: ${r.style_number})`
+            : `🏷️ Serial: ${r.serial_number} (Batch: ${r.batch_id})`;
+
+          return `
+            <button class="w-full text-left p-3 bg-gray-50 rounded hover:bg-blue-50 border border-gray-200"
+                    onclick="loadData('${r.result_type}', '${r.style_number || ''}', '${r.batch_id || ''}', '${r.serial_number || ''}')">
+              <p class="font-semibold">${displayName}</p>
+              <p class="text-xs text-gray-500">Type: ${r.result_type}</p>
+            </button>
+          `;
+        }).join('');
+
+        document.getElementById('resultsListContainer').classList.remove('hidden');
+        status.textContent = `Found ${result.results.length} result(s)`;
+      } catch (err) {
+        status.textContent = `Error: ${err.message}`;
+      }
+    });
+
+    function loadData(type, styleNumber, batchId, serialNumber) {
+      document.getElementById('resultContainer').classList.remove('hidden');
+      if (type === 'style') {
+        loadStyle(styleNumber);
+      } else if (type === 'batch') {
+        loadBatch(batchId);
+      } else if (type === 'serial') {
+        loadSerial(serialNumber);
+      }
+    }
+
+    async function loadStyle(styleNumber) {
+      document.getElementById('styleSection').classList.remove('hidden');
+      document.getElementById('batchSection').classList.add('hidden');
+      document.getElementById('serialSection').classList.add('hidden');
+
+      const res = await fetch(`/api/styles/${styleNumber}/full-data`);
+      const data = await res.json();
+      currentData.style = data;
+
+      document.getElementById('styleTitle').textContent = styleNumber;
+
+      // Load style images
+      await loadStyleImages(styleNumber);
+
+      // Product info
+      const style = data.style;
+      document.getElementById('productInfoView').innerHTML = `
+        <div><strong>Name:</strong> ${style.product_name || '-'}</div>
+        <div><strong>Description:</strong> ${style.description || '-'}</div>
+        <div><strong>Care:</strong> ${style.care_instructions || '-'}</div>
+        <div><strong>Material:</strong> ${style.size_material_composition || '-'}</div>
+      `;
+
+      // Pre-fill edit form
+      document.getElementById('productName').value = style.product_name || '';
+      document.getElementById('productDescription').value = style.description || '';
+      document.getElementById('productCare').value = style.care_instructions || '';
+      document.getElementById('productDelivery').value = style.delivery_returns || '';
+      document.getElementById('productMaterial').value = style.size_material_composition || '';
+
+      // Transparency
+      if (data.transparency_data) {
+        document.getElementById('transparencyView').textContent = JSON.stringify(data.transparency_data, null, 2);
+        document.getElementById('transparencySuppliers').value = JSON.stringify(data.transparency_data.suppliers_chain || {}, null, 2);
+        document.getElementById('transparencyCerts').value = JSON.stringify(data.transparency_data.certifications || {}, null, 2);
+        document.getElementById('transparencyEnv').value = JSON.stringify(data.transparency_data.environmental_data || {}, null, 2);
+        document.getElementById('transparencySocial').value = JSON.stringify(data.transparency_data.social_data || {}, null, 2);
+      }
+
+      // Nudie values
+      if (data.nudie_values) {
+        document.getElementById('nudieValuesView').innerHTML = `
+          <div><strong>Repair Info:</strong> ${data.nudie_values.repair_info || '-'}</div>
+        `;
+        document.getElementById('nudieRepair').value = data.nudie_values.repair_info || '';
+      }
+
+      // Storytelling
+      if (data.storytelling) {
+        document.getElementById('storytellingView').innerHTML = `
+          <div><strong>Summary:</strong> ${data.storytelling.summary || '-'}</div>
+          <div><strong>Content:</strong> ${data.storytelling.content || '-'}</div>
+        `;
+        document.getElementById('storytellinSummary').value = data.storytelling.summary || '';
+        document.getElementById('storytellingContent').value = data.storytelling.content || '';
+        document.getElementById('storytellingLinks').value = JSON.stringify(data.storytelling.links || [], null, 2);
+      }
+
+      // Batches - clickable to navigate down
+      const batchesList = document.getElementById('batchesList');
+      batchesList.innerHTML = data.batches.map(b => `
+        <button onclick="loadBatch('${b.batch_id}')" class="w-full text-left p-3 bg-gray-50 rounded hover:bg-blue-50 border border-gray-200 cursor-pointer">
+          <p class="font-semibold">📦 ${b.batch_id}</p>
+          <p class="text-xs text-gray-500">${b.serial_count} serials | Partner: ${b.partner_name || '-'}</p>
+        </button>
+      `).join('');
+    }
+
+    async function loadStyleImages(styleNumber) {
+      try {
+        const res = await fetch(`/api/styles/${styleNumber}/images`);
+        const images = await res.json();
+        const container = document.getElementById('styleImages');
+        container.innerHTML = images.map(img => `
+          <div class="relative">
+            <img src="data:image/jpeg;base64,${img.image_data}" class="h-24 w-24 object-cover rounded" alt="${img.image_name}">
+            <button onclick="deleteStyleImage(${img.id})" class="absolute top-0 right-0 bg-red-600 text-white text-xs px-2 py-1 rounded">✕</button>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.log('No images found');
+      }
+    }
+
+    async function loadBatch(batchId) {
+      document.getElementById('styleSection').classList.add('hidden');
+      document.getElementById('batchSection').classList.remove('hidden');
+      document.getElementById('serialSection').classList.add('hidden');
+
+      const res = await fetch(`/api/batches/${batchId}/full-data`);
+      const data = await res.json();
+      currentData.batch = data;
+
+      document.getElementById('batchTitle').textContent = batchId;
+
+      await loadBatchImages(batchId);
+
+      const batch = data.batch;
+
+      // Get batch metadata if available
+      let prodDate = '-';
+      let mfgDetails = '-';
+      if (data.batch_data && data.batch_data.length > 0) {
+        const pd = data.batch_data.find(d => d.key === 'production_date');
+        const mfg = data.batch_data.find(d => d.key === 'manufacturing_details');
+        if (pd) prodDate = pd.value;
+        if (mfg) mfgDetails = mfg.value;
+      }
+
+      document.getElementById('batchInfo').innerHTML = `
+        <div><strong>Batch ID:</strong> ${batch.batch_id}</div>
+        <div><strong>Style:</strong> <button onclick="loadStyle('${batch.style_number}')" class="text-blue-600 hover:underline cursor-pointer">${batch.style_number}</button></div>
+        <div><strong>Total Units:</strong> ${batch.total_units || '-'}</div>
+        <div><strong>Production Date:</strong> ${prodDate}</div>
+        <div><strong>Manufacturing Details:</strong> ${mfgDetails.replace(/\n/g, '<br>')}</div>
+        <button onclick="toggleEdit('batch-metadata')" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+          ✏️ Edit Batch Details
+        </button>
+      `;
+
+      // Add/update batch edit form (remove old if exists)
+      let batchEditDiv = document.getElementById('batchMetadataEdit');
+      if (batchEditDiv) batchEditDiv.remove();
+
+      batchEditDiv = document.createElement('div');
+      batchEditDiv.id = 'batchMetadataEdit';
+      batchEditDiv.className = 'hidden mt-4 space-y-4 bg-gray-50 p-4 rounded';
+      batchEditDiv.innerHTML = `
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">Production Date</label>
+          <input type="date" id="editBatchProductionDate" class="w-full border border-gray-300 rounded px-3 py-2">
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">Manufacturing Details</label>
+          <textarea id="editBatchManufacturing" rows="3" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+        </div>
+        <button onclick="saveBatchMetadata('${batch.batch_id}')" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+          ✓ Save
+        </button>
+      `;
+      document.getElementById('batchInfo').parentElement.appendChild(batchEditDiv);
+
+      // Pre-fill batch edit form
+      if (data.batch_data && data.batch_data.length > 0) {
+        const pd = data.batch_data.find(d => d.key === 'production_date');
+        const mfg = data.batch_data.find(d => d.key === 'manufacturing_details');
+        if (pd) document.getElementById('editBatchProductionDate').value = pd.value;
+        if (mfg) document.getElementById('editBatchManufacturing').value = mfg.value;
+      }
+
+      // Show serials in table with pagination
+      showSerialsTable(data.serials, data.serial_data || []);
+    }
+
+    async function loadBatchImages(batchId) {
+      try {
+        const res = await fetch(`/api/batches/${batchId}/images`);
+        const images = await res.json();
+        const container = document.getElementById('batchImages');
+        container.innerHTML = images.map(img => `
+          <div class="relative">
+            <img src="data:image/jpeg;base64,${img.image_data}" class="h-24 w-24 object-cover rounded" alt="${img.image_name}">
+            <button onclick="deleteBatchImage(${img.id})" class="absolute top-0 right-0 bg-red-600 text-white text-xs px-2 py-1 rounded">✕</button>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.log('No images found');
+      }
+    }
+
+    async function loadSerial(serialNumber) {
+      document.getElementById('styleSection').classList.add('hidden');
+      document.getElementById('batchSection').classList.add('hidden');
+      document.getElementById('serialSection').classList.remove('hidden');
+
+      const res = await fetch(`/api/serials/${serialNumber}/full-data`);
+      const data = await res.json();
+      currentData.serial = data;
+
+      document.getElementById('serialTitle').textContent = serialNumber;
+
+      const serial = data.serial;
+      document.getElementById('serialInfo').innerHTML = `
+        <div><strong>Serial:</strong> ${serial.serial_number}</div>
+        <div><strong>SGTIN:</strong> ${serial.sgtin_numeric || '-'}</div>
+        <div><strong>RFID:</strong> ${serial.rfid || '-'}</div>
+      `;
+
+      if (data.batch) {
+        document.getElementById('serialBatchInfo').innerHTML = `
+          <div><strong>Batch:</strong> ${data.batch.batch_id}</div>
+          <div><strong>Units:</strong> ${data.batch.total_units || '-'}</div>
+        `;
+      }
+
+      if (data.style) {
+        document.getElementById('serialStyleInfo').innerHTML = `
+          <div><strong>Style:</strong> ${data.style.style_number}</div>
+          <div><strong>Name:</strong> ${data.style.product_name || '-'}</div>
+        `;
+      }
+
+      // Serial metadata
+      const metadata = {};
+      data.serial_data.forEach(d => {
+        metadata[d.key] = d.value;
+      });
+
+      document.getElementById('serialMetadataView').innerHTML = `
+        <div><strong>Public URL:</strong> <span class="font-mono text-xs break-all">${serial.sgtin_uri || `${window.location.origin}/p/${serial.serial_number}`}</span></div>
+        <div><strong>Size:</strong> ${metadata.size || '-'}</div>
+        <div><strong>Condition:</strong> ${metadata.condition || '-'}</div>
+        <div><strong>Location:</strong> ${metadata.location || '-'}</div>
+        <div><strong>Owner:</strong> ${metadata.owner_id || '-'}</div>
+        <div><strong>Notes:</strong> ${metadata.notes || '-'}</div>
+      `;
+
+      // Pre-fill edit form - SGTIN/RFID
+      document.getElementById('serialSGTINNumeric').value = serial.sgtin_numeric || '';
+      // Auto-generate Public URL if not set
+      document.getElementById('serialSGTINUri').value = serial.sgtin_uri || `${window.location.origin}/p/${serial.serial_number}`;
+      document.getElementById('serialRFID').value = serial.rfid || '';
+
+      // Pre-fill edit form - Metadata
+      document.getElementById('serialSize').value = metadata.size || '';
+      document.getElementById('serialCondition').value = metadata.condition || '';
+      document.getElementById('serialLocation').value = metadata.location || '';
+      document.getElementById('serialOwner').value = metadata.owner_id || '';
+      document.getElementById('serialNotes').value = metadata.notes || '';
+
+      // Events
+      document.getElementById('eventsTimeline').innerHTML = data.events.map(e => `
+        <div class="bg-gray-50 p-4 rounded border-l-4 border-blue-600">
+          <strong>${e.event_type.toUpperCase()}</strong>
+          <div class="text-sm text-gray-600">${new Date(e.created_at).toLocaleDateString('sv-SE')}</div>
+          ${e.event_data ? `<pre class="text-xs mt-2 bg-white p-2 rounded">${JSON.stringify(JSON.parse(e.event_data), null, 2)}</pre>` : ''}
+        </div>
+      `).join('');
+    }
+
+    function toggleEdit(section) {
+      // Convert kebab-case to camelCase
+      const camelCase = section.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+      const viewId = `${camelCase}View`;
+      const editId = `${camelCase}Edit`;
+      const viewEl = document.getElementById(viewId);
+      const editEl = document.getElementById(editId);
+
+      if (viewEl) viewEl.classList.toggle('hidden');
+      if (editEl) editEl.classList.toggle('hidden');
+    }
+
+    async function saveProductInfo() {
+      const styleNumber = currentData.style.style.style_number;
+      const res = await fetch(`/api/styles/${styleNumber}/product-info`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_name: document.getElementById('productName').value,
+          description: document.getElementById('productDescription').value,
+          care_instructions: document.getElementById('productCare').value,
+          delivery_returns: document.getElementById('productDelivery').value,
+          size_material_composition: document.getElementById('productMaterial').value
+        })
+      });
+      const result = await res.json();
+      if (res.ok) {
+        showToast('Saved!');
+        toggleEdit('product-info');
+        await loadStyle(styleNumber);
+      } else {
+        showToast('Error: ' + result.error);
+      }
+    }
+
+    async function saveTransparency() {
+      try {
+        const styleNumber = currentData.style.style.style_number;
+        const res = await fetch(`/api/styles/${styleNumber}/transparency`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            suppliers_chain: JSON.parse(document.getElementById('transparencySuppliers').value || '{}'),
+            certifications: JSON.parse(document.getElementById('transparencyCerts').value || '{}'),
+            environmental_data: JSON.parse(document.getElementById('transparencyEnv').value || '{}'),
+            social_data: JSON.parse(document.getElementById('transparencySocial').value || '{}')
+          })
+        });
+        const result = await res.json();
+        if (res.ok) {
+          showToast('Saved!');
+          toggleEdit('transparency');
+          await loadStyle(styleNumber);
+        } else {
+          showToast('Error: ' + result.error);
+        }
+      } catch (err) {
+        showToast('Invalid JSON: ' + err.message);
+      }
+    }
+
+    async function saveNudieValues() {
+      const styleNumber = currentData.style.style.style_number;
+      const res = await fetch(`/api/styles/${styleNumber}/nudie-values`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          repair_info: document.getElementById('nudieRepair').value
+        })
+      });
+      const result = await res.json();
+      if (res.ok) {
+        showToast('Saved!');
+        toggleEdit('nudie-values');
+        await loadStyle(styleNumber);
+      } else {
+        showToast('Error: ' + result.error);
+      }
+    }
+
+    async function saveStorytelling() {
+      try {
+        const styleNumber = currentData.style.style.style_number;
+        const res = await fetch(`/api/styles/${styleNumber}/storytelling`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            summary: document.getElementById('storytellinSummary').value,
+            content: document.getElementById('storytellingContent').value,
+            links: JSON.parse(document.getElementById('storytellingLinks').value || '[]')
+          })
+        });
+        const result = await res.json();
+        if (res.ok) {
+          showToast('Saved!');
+          toggleEdit('storytelling');
+          await loadStyle(styleNumber);
+        } else {
+          showToast('Error: ' + result.error);
+        }
+      } catch (err) {
+        showToast('Invalid JSON: ' + err.message);
+      }
+    }
+
+    async function saveBatchMetadata(batchId) {
+      const productionDate = document.getElementById('editBatchProductionDate').value;
+      const manufacturingDetails = document.getElementById('editBatchManufacturing').value;
+
+      const res = await fetch('/api/batch/metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          batch_id: batchId,
+          production_date: productionDate,
+          manufacturing_details: manufacturingDetails
+        })
+      });
+
+      if (res.ok) {
+        showToast('Batch details saved!');
+        toggleEdit('batch-metadata');
+        await loadBatch(batchId);
+      } else {
+        showToast('Error saving batch details');
+      }
+    }
+
+    async function saveSerialMetadata() {
+      const serialNumber = currentData.serial.serial.serial_number;
+      const fields = [
+        { key: 'size', value: document.getElementById('serialSize').value },
+        { key: 'condition', value: document.getElementById('serialCondition').value },
+        { key: 'location', value: document.getElementById('serialLocation').value },
+        { key: 'owner_id', value: document.getElementById('serialOwner').value },
+        { key: 'notes', value: document.getElementById('serialNotes').value },
+        { key: 'sgtin_uri', value: document.getElementById('serialSGTINUri').value }
+      ].filter(f => f.value);
+
+      for (const field of fields) {
+        await fetch(`/api/serials/${serialNumber}/data`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            key: field.key,
+            value: field.value,
+            added_by: 'admin-edit'
+          })
+        });
+      }
+      showToast('Saved!');
+      toggleEdit('serial-metadata');
+      await loadSerial(serialNumber);
+    }
+
+    async function addEvent() {
+      const serialNumber = currentData.serial.serial.serial_number;
+      const eventType = document.getElementById('eventType').value;
+      const eventData = document.getElementById('eventData').value;
+
+      if (!eventType) {
+        showToast('Please select event type');
+        return;
+      }
+
+      const res = await fetch(`/api/serials/${serialNumber}/event`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_type: eventType,
+          event_data: eventData ? JSON.parse(eventData) : {}
+        })
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        showToast('Event added!');
+        document.getElementById('eventType').value = '';
+        document.getElementById('eventData').value = '';
+        await loadSerial(serialNumber);
+      } else {
+        showToast('Error: ' + result.error);
+      }
+    }
+
+    async function uploadStyleImage() {
+      const file = document.getElementById('styleImageUpload').files[0];
+      if (!file) return;
+
+      const styleNumber = currentData.style.style.style_number;
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64 = e.target.result.split(',')[1];
+        const res = await fetch(`/api/styles/${styleNumber}/image`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image_data: base64,
+            image_name: file.name
+          })
+        });
+        const result = await res.json();
+        showToast(res.ok ? 'Image uploaded!' : 'Error');
+        if (res.ok) {
+          document.getElementById('styleImageUpload').value = '';
+          await loadStyleImages(styleNumber);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function uploadBatchImage() {
+      const file = document.getElementById('batchImageUpload').files[0];
+      if (!file) return;
+
+      const batchId = currentData.batch.batch.batch_id;
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64 = e.target.result.split(',')[1];
+        const res = await fetch(`/api/batches/${batchId}/image`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image_data: base64,
+            image_name: file.name
+          })
+        });
+        const result = await res.json();
+        showToast(res.ok ? 'Image uploaded!' : 'Error');
+        if (res.ok) {
+          document.getElementById('batchImageUpload').value = '';
+          await loadBatchImages(batchId);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function deleteStyleImage(id) {
+      if (confirm('Delete image?')) {
+        await fetch(`/api/styles/image/${id}`, { method: 'DELETE' });
+        const styleNumber = currentData.style.style.style_number;
+        await loadStyleImages(styleNumber);
+      }
+    }
+
+    async function deleteBatchImage(id) {
+      if (confirm('Delete image?')) {
+        await fetch(`/api/batches/image/${id}`, { method: 'DELETE' });
+        const batchId = currentData.batch.batch.batch_id;
+        await loadBatchImages(batchId);
+      }
+    }
+  </script>
+</body>
+</html>
