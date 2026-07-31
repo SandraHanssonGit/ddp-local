@@ -1,7 +1,9 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 const path = require('path');
 const helmet = require('helmet');
+const jwt = require('jsonwebtoken');
 const db = require('./db/init');
 
 const app = express();
@@ -30,9 +32,24 @@ app.use(helmet.contentSecurityPolicy({
 // Middleware
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+app.use(cookieParser());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Middleware to check if user is authenticated
+const requireAuth = (req, res, next) => {
+  const token = req.cookies?.token || req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return res.redirect('/login');
+  }
+  try {
+    jwt.verify(token, process.env.JWT_SECRET);
+    next();
+  } catch (err) {
+    res.redirect('/login');
+  }
+};
 
 // Routes
 app.use('/api', require('./routes/api'));
@@ -43,14 +60,9 @@ app.get('/login', (req, res) => {
   res.render('login');
 });
 
-// DPP Hub (admin)
-app.get('/admin-edit', (req, res) => {
+// DPP Hub (admin) - requires authentication
+app.get('/admin-edit', requireAuth, (req, res) => {
   res.render('admin-edit');
-});
-
-// Search & view page
-app.get('/search', (req, res) => {
-  res.render('search');
 });
 
 // Home redirect

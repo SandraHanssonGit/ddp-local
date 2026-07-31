@@ -42,7 +42,7 @@
       <button id="tabEdit" class="px-6 py-4 font-semibold text-gray-700">
         Design
       </button>
-      <button id="tabAdmin" class="px-6 py-4 font-semibold text-gray-700">
+      <button id="tabAdmin" class="adminTabBtn px-6 py-4 font-semibold text-gray-700">
         Admin
       </button>
     </div>
@@ -402,7 +402,7 @@
             </div>
             <div>
               <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Public URL (QR Code Link)</label>
-              <input type="text" id="serialSGTINUri" placeholder="https://id.gs1.org/01/.../21/..." class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-sm focus:outline-none focus:border-gray-900">
+              <input type="text" id="serialSGTINUri" placeholder="https://nudiejeans.dpp.com/01/.../21/..." class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-sm focus:outline-none focus:border-gray-900">
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div>
@@ -439,7 +439,7 @@
 
         <!-- Events Timeline -->
         <div class="border-t pt-6">
-          <h3 class="text-xl font-bold text-gray-900 mb-4">📅 Events & History</h3>
+          <h3 class="text-xl font-bold text-gray-900 mb-4">Events & History</h3>
           <div id="eventsTimeline" class="space-y-3 mb-6"></div>
 
           <div class="bg-gray-50 rounded-lg p-6">
@@ -533,6 +533,22 @@
             Copy
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE EVENT MODAL -->
+  <div id="deleteEventModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+      <h2 class="text-2xl font-semibold text-gray-900 mb-4">Delete Event</h2>
+      <p class="text-sm text-gray-600 mb-6">Are you sure you want to delete this event? This action cannot be undone.</p>
+      <div class="flex gap-2">
+        <button onclick="closeDeleteEventModal()" class="flex-1 bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
+          Cancel
+        </button>
+        <button id="confirmDeleteEventBtn" class="flex-1 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+          Delete
+        </button>
       </div>
     </div>
   </div>
@@ -748,6 +764,16 @@
       return ['admin', 'super_admin'].includes(user.role);
     }
 
+    function isAdmin() {
+      return ['admin', 'super_admin'].includes(user.role);
+    }
+
+    // Hide Admin tab for non-admins
+    if (!isAdmin()) {
+      const adminTabBtn = document.querySelector('.adminTabBtn');
+      if (adminTabBtn) adminTabBtn.style.display = 'none';
+    }
+
     function canPermanentDelete() {
       return user.role === 'super_admin';
     }
@@ -764,7 +790,16 @@
     // Setup tab buttons
     document.getElementById('tabDashboard').addEventListener('click', () => switchTab('dashboard'));
     document.getElementById('tabEdit').addEventListener('click', () => switchTab('edit'));
-    document.getElementById('tabAdmin').addEventListener('click', () => switchTab('admin'));
+    const adminTabBtn = document.getElementById('tabAdmin');
+    if (adminTabBtn) {
+      adminTabBtn.addEventListener('click', () => {
+        if (isAdmin()) {
+          switchTab('admin');
+        } else {
+          showToast('Admin access denied');
+        }
+      });
+    }
 
 
     // Setup add event button with delegation (button might be recreated)
@@ -812,6 +847,78 @@
     function previewPublicPassport() {
       const serialNumber = document.getElementById('serialTitle').textContent;
       window.open(`/p/${serialNumber}`, '_blank');
+    }
+
+    // Event listeners for edit/delete buttons
+    function attachEventListeners() {
+      document.querySelectorAll('.editEventBtn').forEach(btn => {
+        btn.removeEventListener('click', handleEditEvent);
+        btn.addEventListener('click', handleEditEvent);
+      });
+      document.querySelectorAll('.deleteEventBtn').forEach(btn => {
+        btn.removeEventListener('click', handleDeleteEvent);
+        btn.addEventListener('click', handleDeleteEvent);
+      });
+      const confirmBtn = document.getElementById('confirmDeleteEventBtn');
+      if (confirmBtn) {
+        confirmBtn.removeEventListener('click', confirmDeleteEvent);
+        confirmBtn.addEventListener('click', confirmDeleteEvent);
+      }
+    }
+
+    let pendingDeleteEventId = null;
+    let addSerialsForBatchId = null;
+
+    function handleEditEvent(e) {
+      const btn = e.target.closest('.editEventBtn');
+      const eventId = btn.getAttribute('data-event-id');
+      const eventType = btn.getAttribute('data-event-type');
+      const eventDataStr = btn.getAttribute('data-event-data');
+
+      // Only let user edit the JSON data, not the event type
+      document.getElementById('eventType').value = eventType;
+      document.getElementById('eventType').disabled = true;
+      document.getElementById('eventData').value = eventDataStr;
+      document.getElementById('eventData').focus();
+      document.getElementById('addEventBtn').textContent = '✓ Update Event';
+      document.getElementById('addEventBtn').dataset.editingEventId = eventId;
+
+      showToast('Edit the event data and click Update');
+    }
+
+    function handleDeleteEvent(e) {
+      const btn = e.target.closest('.deleteEventBtn');
+      pendingDeleteEventId = btn.getAttribute('data-event-id');
+      document.getElementById('deleteEventModal').classList.remove('hidden');
+    }
+
+    function closeDeleteEventModal() {
+      document.getElementById('deleteEventModal').classList.add('hidden');
+      pendingDeleteEventId = null;
+    }
+
+    async function confirmDeleteEvent() {
+      if (!pendingDeleteEventId) return;
+
+      const serialNumber = document.getElementById('serialTitle').textContent;
+      const eventId = pendingDeleteEventId;
+
+      try {
+        const res = await authFetch(`/api/serials/${serialNumber}/event/${eventId}`, {
+          method: 'DELETE'
+        });
+
+        if (res.ok) {
+          showToast('Event deleted');
+          closeDeleteEventModal();
+          // Force reload the serial data to refresh events list
+          await loadSerial(serialNumber);
+        } else {
+          showToast('Error deleting event');
+        }
+      } catch (err) {
+        showToast('Error: ' + err.message);
+      }
     }
 
     // Serials table globals
@@ -1494,23 +1601,43 @@
           const eventDataJson = e.event_data && typeof e.event_data === 'string' ? JSON.parse(e.event_data) : e.event_data;
           return `
             <div class="bg-gray-50 rounded-lg p-6 border-l-4 border-blue-600">
-              <strong>${e.event_type.toUpperCase()}</strong>
-              <div class="text-sm text-gray-600">${new Date(e.created_at).toLocaleDateString('sv-SE')}</div>
-              ${eventDataJson ? `<pre class="text-xs mt-2 bg-white p-2 rounded">${JSON.stringify(eventDataJson, null, 2)}</pre>` : ''}
+              <div class="flex justify-between items-start gap-4">
+                <div class="flex-1">
+                  <strong>${e.event_type.toUpperCase()}</strong>
+                  <div class="text-sm text-gray-600">${new Date(e.created_at).toLocaleDateString('sv-SE')}</div>
+                  ${eventDataJson && Object.keys(eventDataJson).length > 0 ? `<pre class="text-xs mt-2 bg-white p-2 rounded overflow-auto">${JSON.stringify(eventDataJson, null, 2)}</pre>` : '<div class="text-xs text-gray-500 mt-2">(no data)</div>'}
+                </div>
+                <div class="flex gap-2 whitespace-nowrap">
+                  <button class="editEventBtn text-gray-900 hover:text-gray-700 text-sm font-semibold" data-event-id="${e.id}" data-event-type="${e.event_type}" data-event-data='${JSON.stringify(eventDataJson)}'>
+                    Edit
+                  </button>
+                  <button class="deleteEventBtn text-gray-900 hover:text-gray-700 text-sm font-semibold" data-event-id="${e.id}">
+                    Delete
+                  </button>
+                </div>
+              </div>
             </div>
           `;
         } catch (err) {
           console.error('Error rendering event:', e, err);
           return `
             <div class="bg-gray-50 rounded-lg p-6 border-l-4 border-blue-600">
-              <strong>${e.event_type.toUpperCase()}</strong>
-              <div class="text-sm text-gray-600">${new Date(e.created_at).toLocaleDateString('sv-SE')}</div>
+              <div class="flex justify-between items-start gap-4">
+                <div>
+                  <strong>${e.event_type.toUpperCase()}</strong>
+                  <div class="text-sm text-gray-600">${new Date(e.created_at).toLocaleDateString('sv-SE')}</div>
+                </div>
+                <button class="deleteEventBtn text-red-600 hover:text-red-800 text-sm font-semibold" data-event-id="${e.id}">
+                  Delete
+                </button>
+              </div>
             </div>
           `;
         }
       }).join('');
 
       document.getElementById('eventsTimeline').innerHTML = eventsHTML || '<div class="text-gray-500 text-sm">No events yet</div>';
+      attachEventListeners();
     }
 
     function toggleEdit(section) {
@@ -1678,8 +1805,10 @@
         const serialNumber = currentData.serial.serial.serial_number;
         const eventType = document.getElementById('eventType').value;
         const eventDataStr = (document.getElementById('eventData').value || '').trim();
+        const addBtn = document.getElementById('addEventBtn');
+        const isEditing = addBtn.dataset.editingEventId;
 
-        console.log('Adding event:', { serialNumber, eventType, eventDataStr });
+        console.log('Adding event:', { serialNumber, eventType, eventDataStr, isEditing });
 
         if (!eventType) {
           showToast('Please select event type');
@@ -1703,8 +1832,13 @@
 
         console.log('Sending event data:', { event_type: eventType, event_data: eventData });
 
-        const res = await authFetch(`/api/serials/${serialNumber}/event`, {
-          method: 'POST',
+        const endpoint = isEditing
+          ? `/api/serials/${serialNumber}/event/${isEditing}`
+          : `/api/serials/${serialNumber}/event`;
+        const method = isEditing ? 'PUT' : 'POST';
+
+        const res = await authFetch(endpoint, {
+          method: method,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             event_type: eventType,
@@ -1722,11 +1856,18 @@
         }
 
         if (res.ok) {
-          showToast('Event added!');
+          showToast(isEditing ? 'Event updated!' : 'Event added!');
           const eventTypeEl = document.getElementById('eventType');
           const eventDataEl = document.getElementById('eventData');
-          if (eventTypeEl) eventTypeEl.value = '';
+          if (eventTypeEl) {
+            eventTypeEl.value = '';
+            eventTypeEl.disabled = false;
+          }
           if (eventDataEl) eventDataEl.value = '';
+          if (addBtn) {
+            addBtn.textContent = '✓ Add Event';
+            delete addBtn.dataset.editingEventId;
+          }
           await loadSerial(serialNumber);
         } else {
           showToast('Error: ' + (result.error || 'Unknown error'));
@@ -1993,9 +2134,20 @@
     }
 
     // Add Serials functions
-    let addSerialsForBatchId = null;
     function showAddSerialsModal() {
+      console.log('showAddSerialsModal called, currentData:', currentData);
+
+      if (!currentData.batch || !currentData.batch.batch) {
+        showToast('Please select a batch first');
+        return;
+      }
+
       addSerialsForBatchId = currentData.batch.batch.batch_id;
+      if (!addSerialsForBatchId) {
+        showToast('Batch ID not found');
+        return;
+      }
+
       document.getElementById('addSerialsForBatch').textContent = `Add serials to: ${addSerialsForBatchId}`;
       document.getElementById('addSerialsInput').value = '';
       document.getElementById('addSerialsModal').classList.remove('hidden');
@@ -2065,6 +2217,23 @@
     }
 
     // Admin functions
+    // Handle password update buttons after users are loaded
+    function attachPasswordUpdateListeners() {
+      document.querySelectorAll('.updatePassBtn').forEach(btn => {
+        btn.removeEventListener('click', handlePasswordUpdate);
+        btn.addEventListener('click', handlePasswordUpdate);
+      });
+    }
+
+    function handlePasswordUpdate(e) {
+      const btn = e.target;
+      const username = btn.getAttribute('data-username');
+      const userId = btn.getAttribute('data-user-id');
+      const passField = document.getElementById(`newPass_${userId}`);
+      const newPassword = passField ? passField.value : '';
+      updateUserPassword(username, newPassword, userId);
+    }
+
     async function loadAdminUsers() {
       try {
         const res = await authFetch('/api/admin/users');
@@ -2093,7 +2262,7 @@
                 <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">New Password</label>
                 <div class="flex gap-2">
                   <input type="password" id="newPass_${u.id}" placeholder="Enter new password" class="flex-1 text-sm border border-gray-300 rounded px-2 py-1">
-                  <button onclick="updateUserPassword('${u.username}', document.getElementById('newPass_${u.id}').value)" class="bg-gray-900 text-white px-3 py-1 rounded text-sm hover:bg-gray-800">
+                  <button class="updatePassBtn bg-gray-900 text-white px-3 py-1 rounded text-sm hover:bg-gray-800" data-username="${u.username}" data-user-id="${u.id}">
                     Update
                   </button>
                 </div>
@@ -2101,6 +2270,7 @@
             </div>
           </div>
         `).join('');
+        attachPasswordUpdateListeners();
       } catch (err) {
         console.error('Error loading users:', err);
       }
@@ -2145,9 +2315,12 @@
         const result = await res.json();
         if (res.ok) {
           document.getElementById('createUserMessage').textContent = '✓ User created!';
-          document.getElementById('newUsername').value = '';
-          document.getElementById('newPassword').value = '';
-          document.getElementById('newRole').value = 'viewer';
+          const usernameField = document.getElementById('newUsername');
+          const passwordField = document.getElementById('newPassword');
+          const roleField = document.getElementById('newRole');
+          if (usernameField) usernameField.value = '';
+          if (passwordField) passwordField.value = '';
+          if (roleField) roleField.value = 'viewer';
           setTimeout(() => loadAdminUsers(), 500);
         } else {
           document.getElementById('createUserMessage').textContent = 'Error: ' + (result.error || 'Creation failed');
@@ -2157,7 +2330,7 @@
       }
     }
 
-    async function updateUserPassword(username, newPassword) {
+    async function updateUserPassword(username, newPassword, userId) {
       if (!newPassword) {
         showToast('Password cannot be empty');
         return;
@@ -2172,7 +2345,8 @@
 
         if (res.ok) {
           showToast(`✓ Password updated for ${username}`);
-          document.getElementById(`newPass_${username}`).value = '';
+          const passField = document.getElementById(`newPass_${userId}`);
+          if (passField) passField.value = '';
         } else {
           showToast('Error updating password');
         }

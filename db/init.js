@@ -8,6 +8,10 @@ const db = new sqlite3.Database(dbPath, (err) => {
   else console.log('✓ Database connected');
 });
 
+// Configure SQLite for better concurrency
+db.configure('busyTimeout', 5000); // Wait up to 5 seconds if database is locked
+db.run('PRAGMA journal_mode = WAL'); // Use Write-Ahead Logging mode for better concurrency
+
 // Create tables
 db.serialize(() => {
   // Users table
@@ -324,9 +328,9 @@ const seedTestData = async () => {
 
     // Insert test serials with SGTIN data
     const testSerials = [
-      { serial: '114519-001-AA', sgtin_num: '3014141701120001', sgtin_uri: 'https://id.gs1.org/01/05707141145391/21/001AA', rfid: '12AB34CD56EF00' },
-      { serial: '114519-001-AB', sgtin_num: '3014141701120002', sgtin_uri: 'https://id.gs1.org/01/05707141145391/21/001AB', rfid: '12AB34CD56EF01' },
-      { serial: '114519-001-AC', sgtin_num: '3014141701120003', sgtin_uri: 'https://id.gs1.org/01/05707141145391/21/001AC', rfid: '12AB34CD56EF02' }
+      { serial: '114519-001-AA', sgtin_num: '3014141701120001', sgtin_uri: 'https://nudiejeans.dpp.com/01/05707141145391/21/001AA', rfid: '12AB34CD56EF00' },
+      { serial: '114519-001-AB', sgtin_num: '3014141701120002', sgtin_uri: 'https://nudiejeans.dpp.com/01/05707141145391/21/001AB', rfid: '12AB34CD56EF01' },
+      { serial: '114519-001-AC', sgtin_num: '3014141701120003', sgtin_uri: 'https://nudiejeans.dpp.com/01/05707141145391/21/001AC', rfid: '12AB34CD56EF02' }
     ];
 
     testSerials.forEach(s => {

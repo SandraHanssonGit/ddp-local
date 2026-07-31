@@ -96,9 +96,15 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: false, // set to true in production with HTTPS
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    });
+
     res.json({
       success: true,
-      token,
+      token, // Also return token in response for localStorage backup
       user: { id: user.id, username: user.username, role: user.role }
     });
   });
@@ -239,6 +245,31 @@ router.post('/serials/:serial_number/event', validateSerialNumber, verifyToken, 
       }
       res.json({ success: true, serial_number, event_type });
     });
+  });
+});
+
+// Update event
+router.put('/serials/:serial_number/event/:event_id', validateSerialNumber, verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
+  const { serial_number, event_id } = req.params;
+  const { event_type, event_data } = req.body;
+
+  const eventDataStr = typeof event_data === 'string' ? event_data : JSON.stringify(event_data);
+
+  db.run(`UPDATE events SET event_type = ?, event_data = ? WHERE id = ?`,
+    [event_type, eventDataStr, event_id],
+    function(err) {
+      if (err) return res.status(400).json({ error: err.message });
+      res.json({ success: true, message: 'Event updated' });
+    });
+});
+
+// Delete event
+router.delete('/serials/:serial_number/event/:event_id', validateSerialNumber, verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
+  const { serial_number, event_id } = req.params;
+
+  db.run(`DELETE FROM events WHERE id = ?`, [event_id], function(err) {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ success: true, message: 'Event deleted' });
   });
 });
 

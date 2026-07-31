@@ -137,9 +137,13 @@
         const data = await res.json();
 
         if (res.ok) {
-          // Save JWT to localStorage
-          localStorage.setItem('token', data.token);
+          // Token is saved in httpOnly cookie by server
+          // Also save to localStorage for client-side auth operations
           localStorage.setItem('user', JSON.stringify(data.user));
+          // Get token from response and save locally for authFetch calls
+          // Note: The server also sets it as httpOnly cookie for server-side verification
+          const token = data.token || 'authenticated'; // Server sets cookie, we just mark as authenticated
+          if (data.token) localStorage.setItem('token', data.token);
           // Redirect to DPP Hub
           window.location.href = '/admin-edit';
         } else {
