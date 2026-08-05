@@ -124,10 +124,12 @@
           </div>
         </div>
 
-        <!-- Recent Activity -->
+        <!-- Activity Timeline -->
         <div class="bg-white rounded-lg shadow-md p-6">
-          <h2 class="text-xl font-semibold text-gray-900 mb-4">Recent Events</h2>
-          <div id="recentEvents" class="space-y-2 max-h-64 overflow-y-auto"></div>
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Activity Timeline</h2>
+          <div id="activityTimeline" class="space-y-3 max-h-96 overflow-y-auto">
+            <div class="text-gray-500 text-sm">Loading...</div>
+          </div>
         </div>
       </div>
 
@@ -147,6 +149,33 @@
       <div id="searchStatus" class="mt-4 text-sm text-gray-600"></div>
     </div>
 
+    <!-- RECENT BATCHES (DEFAULT) -->
+    <div id="recentBatchesContainer" class="bg-white rounded-lg shadow-md p-8 mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Recent Batches</h2>
+
+      <!-- DESKTOP TABLE VIEW -->
+      <div class="hidden md:block overflow-x-auto">
+        <table class="w-full border-collapse text-sm">
+          <thead>
+            <tr class="border-b border-gray-300">
+              <th class="text-left py-2 px-3 font-bold text-gray-900">Batch ID</th>
+              <th class="text-left py-2 px-3 font-bold text-gray-900">Style</th>
+              <th class="text-left py-2 px-3 font-bold text-gray-900">Serials</th>
+              <th class="text-left py-2 px-3 font-bold text-gray-900">Partner</th>
+            </tr>
+          </thead>
+          <tbody id="recentBatchesTable">
+            <tr><td colspan="4" class="px-3 py-2 text-center text-gray-500">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- MOBILE CARD VIEW -->
+      <div id="recentBatchesCards" class="md:hidden space-y-3">
+        <!-- Cards will be rendered here -->
+      </div>
+    </div>
+
     <!-- SEARCH RESULTS LIST -->
     <div id="resultsListContainer" class="hidden bg-white rounded-lg shadow-md p-8 mb-8">
       <h2 class="text-2xl font-bold text-gray-900 mb-6">Search Results</h2>
@@ -158,7 +187,12 @@
 
       <!-- STYLE VIEW -->
       <div id="styleSection" class="hidden bg-white rounded-lg shadow-md p-8">
-        <h2 class="text-3xl font-semibold text-gray-900 mb-8">Style: <span id="styleTitle"></span></h2>
+        <div class="flex justify-between items-center mb-8">
+          <h2 class="text-3xl font-semibold text-gray-900">Style: <span id="styleTitle"></span></h2>
+          <button id="fetchNudieBtn" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800" onclick="showFetchNudieModal()" style="display: none;">
+            Fetch from Nudie Jeans
+          </button>
+        </div>
 
         <!-- Images Section -->
         <div class="bg-gray-50 p-6 rounded mb-6">
@@ -575,6 +609,28 @@
     </div>
   </div>
 
+  <!-- FETCH NUDIE MODAL -->
+  <div id="fetchNudieModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+      <h2 class="text-2xl font-semibold text-gray-900 mb-4">Fetch from Nudie Jeans</h2>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">Product URL</label>
+          <input type="text" id="nudieUrl" placeholder="https://www.nudiejeans.com/en-SE/product/..." class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+          <p class="text-xs text-gray-500 mt-2">Paste the product URL from nudiejeans.com</p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="closeFetchNudieModal()" class="flex-1 bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
+            Cancel
+          </button>
+          <button onclick="performFetchNudie()" class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+            Fetch Data
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- NEW BATCH MODAL -->
   <div id="newBatchModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
     <div class="bg-white rounded-lg shadow-lg p-8 max-w-2xl w-full my-8">
@@ -691,6 +747,8 @@
 
       if (!q) {
         status.textContent = 'Please enter a search term';
+        document.getElementById('resultsListContainer').classList.add('hidden');
+        document.getElementById('recentBatchesContainer').classList.remove('hidden');
         return;
       }
 
@@ -701,11 +759,20 @@
         const result = await res.json();
 
         if (!result.results || result.results.length === 0) {
-          status.innerHTML = `No results found`;
+          // Check if search query looks like a style number - offer to create new style
+          if (/^\d+$/.test(q)) {
+            status.innerHTML = `No results found. <button class="text-blue-600 hover:underline font-semibold" onclick="showCreateStyleForm('${q}')">Create new style ${q}</button>`;
+          } else {
+            status.innerHTML = `No results found`;
+          }
           document.getElementById('resultsListContainer').classList.add('hidden');
+          document.getElementById('recentBatchesContainer').classList.remove('hidden');
           document.getElementById('resultContainer').classList.add('hidden');
           return;
         }
+
+        // Hide recent batches when showing search results
+        document.getElementById('recentBatchesContainer').classList.add('hidden');
 
         // Sort by relevance
         const sorted = result.results.sort((a, b) => {
@@ -1016,6 +1083,72 @@
     }
 
 
+    // Load recent batches for Design tab
+    async function loadRecentBatches() {
+      try {
+        const [batchesRes, serialsRes] = await Promise.all([
+          fetch('/api/batches'),
+          fetch('/api/serials')
+        ]);
+
+        const batches = await batchesRes.json();
+        const serials = await serialsRes.json();
+
+        // Sort batches by ID (newest first) and take top 10
+        const recentBatches = batches
+          .sort((a, b) => b.batch_id.localeCompare(a.batch_id))
+          .slice(0, 10);
+
+        // Count serials per batch
+        const serialCountPerBatch = {};
+        serials.forEach(s => {
+          serialCountPerBatch[s.batch_id] = (serialCountPerBatch[s.batch_id] || 0) + 1;
+        });
+
+        // Render desktop table
+        const tbody = document.getElementById('recentBatchesTable');
+        tbody.innerHTML = recentBatches.map(b => `
+          <tr class="border-b border-gray-200 hover:bg-gray-50 cursor-pointer" data-batch-id="${b.batch_id}">
+            <td class="py-2 px-3 font-semibold text-blue-600 hover:underline">${b.batch_id}</td>
+            <td class="py-2 px-3">${b.style_number}</td>
+            <td class="py-2 px-3">${serialCountPerBatch[b.batch_id] || 0}</td>
+            <td class="py-2 px-3">${b.partner_name || '-'}</td>
+          </tr>
+        `).join('');
+
+        // Render mobile cards
+        const cardsContainer = document.getElementById('recentBatchesCards');
+        cardsContainer.innerHTML = recentBatches.map(b => `
+          <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:bg-gray-100 cursor-pointer" data-batch-id="${b.batch_id}">
+            <div class="font-semibold text-blue-600 mb-2">${b.batch_id}</div>
+            <div class="space-y-1 text-sm text-gray-700">
+              <div><span class="font-semibold">Style:</span> ${b.style_number}</div>
+              <div><span class="font-semibold">Serials:</span> ${serialCountPerBatch[b.batch_id] || 0}</div>
+              <div><span class="font-semibold">Partner:</span> ${b.partner_name || '-'}</div>
+            </div>
+          </div>
+        `).join('');
+
+        // Add click handlers to both table rows and cards
+        const attachClickHandlers = (selector) => {
+          document.querySelectorAll(selector).forEach(element => {
+            element.addEventListener('click', () => {
+              const batchId = element.getAttribute('data-batch-id');
+              document.getElementById('resultContainer').classList.remove('hidden');
+              document.getElementById('recentBatchesContainer').classList.add('hidden');
+              loadBatch(batchId);
+            });
+          });
+        };
+
+        attachClickHandlers('tbody tr[data-batch-id]');
+        attachClickHandlers('#recentBatchesCards [data-batch-id]');
+      } catch (err) {
+        console.error('Error loading recent batches:', err);
+        document.getElementById('recentBatchesTable').innerHTML = '<tr><td colspan="4" class="px-3 py-2 text-center text-red-500">Error loading batches</td></tr>';
+      }
+    }
+
     // Load Dashboard
     async function loadDashboard() {
       try {
@@ -1115,14 +1248,45 @@
           issuesEl.innerHTML = '<div class="text-gray-600">All data is complete</div>';
         }
 
-        // Recent events
-        const recent = events.slice(0, 10);
-        document.getElementById('recentEvents').innerHTML = recent.map(e => `
-          <div class="p-3 bg-gray-50 rounded text-sm">
-            <div class="font-semibold">${e.event_type}</div>
-            <div class="text-xs text-gray-500">${new Date(e.created_at).toLocaleString('sv-SE')}</div>
-          </div>
-        `).join('') || '<div class="text-gray-500">No events yet</div>';
+        // Activity timeline - show events with detailed context (exclude scanned events)
+        const recentEvents = events.filter(e => e.event_type !== 'scanned').slice(0, 20);
+        const timelineHTML = recentEvents.map(e => {
+          const serial = serials.find(s => s.serial_number === e.serial_number);
+          const batch = serial ? batches.find(b => b.batch_id === serial.batch_id) : batches.find(b => b.batch_id === e.batch_id);
+          const styleNumber = batch ? batch.style_number : 'N/A';
+
+          let itemInfo = '';
+          let locationInfo = '';
+
+          // Get location from event_data if available
+          if (e.event_data) {
+            try {
+              const data = typeof e.event_data === 'string' ? JSON.parse(e.event_data) : e.event_data;
+              if (data.location) {
+                locationInfo = `Location: ${data.location}`;
+              }
+            } catch (err) {}
+          }
+
+          if (e.serial_number) {
+            itemInfo = `${e.serial_number} (Style: ${styleNumber})`;
+          } else if (e.batch_id) {
+            itemInfo = `Batch: ${e.batch_id} (Style: ${styleNumber})`;
+          }
+
+          return `
+            <div class="border-l-4 border-blue-500 pl-4 py-3 pb-3 border-b border-gray-100">
+              <div class="flex justify-between items-start mb-2">
+                <div class="font-semibold text-gray-900 capitalize">${e.event_type}</div>
+                <div class="text-xs text-gray-500">${new Date(e.created_at).toLocaleDateString('sv-SE')} ${new Date(e.created_at).toLocaleTimeString('sv-SE', {hour: '2-digit', minute:'2-digit'})}</div>
+              </div>
+              ${itemInfo ? `<div class="text-sm text-blue-600 hover:underline cursor-pointer font-mono" onclick="loadData('${e.serial_number ? 'serial' : 'batch'}', '${styleNumber}', '${e.batch_id || ''}', '${e.serial_number || ''}')">${itemInfo}</div>` : ''}
+              ${locationInfo ? `<div class="text-sm text-gray-600">${locationInfo}</div>` : ''}
+            </div>
+          `;
+        }).join('') || '<div class="text-gray-500 text-sm p-2">No events yet</div>';
+
+        document.getElementById('activityTimeline').innerHTML = timelineHTML;
 
         // Load most viewed serials
         const mostViewedTable = document.getElementById('mostViewedTable');
@@ -1174,6 +1338,11 @@
       // Load dashboard data when dashboard tab is opened
       if (tab === 'dashboard') {
         loadDashboard();
+      }
+
+      // Load recent batches when design tab is opened
+      if (tab === 'edit') {
+        loadRecentBatches();
       }
     }
 
@@ -1268,7 +1437,12 @@
 
 
     function loadData(type, styleNumber, batchId, serialNumber) {
+      // Switch to Design tab
+      switchTab('edit');
+      // Show result container and hide recent batches
       document.getElementById('resultContainer').classList.remove('hidden');
+      document.getElementById('recentBatchesContainer').classList.add('hidden');
+
       if (type === 'style') {
         loadStyle(styleNumber);
       } else if (type === 'batch') {
@@ -1285,6 +1459,7 @@
       document.getElementById('serialSection').classList.add('hidden');
 
       document.getElementById('styleTitle').textContent = styleNumber;
+      document.getElementById('fetchNudieBtn').style.display = 'block';
       document.getElementById('productInfoView').innerHTML = '<p class="text-gray-500">New style - fill in details below</p>';
 
       // Show edit form
@@ -1303,6 +1478,7 @@
       document.getElementById('styleSection').classList.remove('hidden');
       document.getElementById('batchSection').classList.add('hidden');
       document.getElementById('serialSection').classList.add('hidden');
+      document.getElementById('fetchNudieBtn').style.display = 'none';
 
       const res = await authFetch(`/api/styles/${styleNumber}/full-data`);
       const data = await res.json();
@@ -1440,7 +1616,7 @@
         <div id="batchMetadataView">
           <div><strong>Batch ID:</strong> ${batch.batch_id}</div>
           <div><strong>Style:</strong> ${batch.style_number}</div>
-          <div><strong>Total Units:</strong> ${batch.total_units || '-'}</div>
+          <div><strong>Total Units:</strong> ${data.serials.length}</div>
           <div><strong>Production Date:</strong> ${prodDate}</div>
           <div><strong>Manufacturing Details:</strong> ${mfgDetails.replace(/\n/g, '<br>')}</div>
           <button onclick="toggleEdit('batch-metadata')" class="edit-button mt-4 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
@@ -1653,7 +1829,7 @@
     }
 
     async function saveProductInfo() {
-      const styleNumber = currentData.style.style.style_number;
+      const styleNumber = currentData.style?.style?.style_number || document.getElementById('styleTitle').textContent;
       const res = await authFetch(`/api/styles/${styleNumber}/product-info`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2068,6 +2244,47 @@
       document.getElementById('newBatchModal').classList.remove('hidden');
     }
 
+    function showFetchNudieModal() {
+      document.getElementById('fetchNudieModal').classList.remove('hidden');
+      document.getElementById('nudieUrl').value = '';
+      document.getElementById('nudieUrl').focus();
+    }
+
+    function closeFetchNudieModal() {
+      document.getElementById('fetchNudieModal').classList.add('hidden');
+    }
+
+    async function performFetchNudie() {
+      const url = document.getElementById('nudieUrl').value.trim();
+      if (!url) {
+        showToast('Please enter a URL');
+        return;
+      }
+
+      showToast('Fetching...');
+
+      try {
+        const res = await authFetch('/api/styles/scrape-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          // Fill in the form with fetched data
+          document.getElementById('productName').value = data.product_name || '';
+          document.getElementById('productDescription').value = data.description || '';
+          showToast('✓ Data fetched!');
+          closeFetchNudieModal();
+        } else {
+          showToast('Error: ' + (data.error || 'Failed to fetch'));
+        }
+      } catch (err) {
+        showToast('Error: ' + err.message);
+      }
+    }
+
     function closeNewBatchModal() {
       document.getElementById('newBatchModal').classList.add('hidden');
     }
@@ -2357,12 +2574,14 @@
 
     // Navigate from Dashboard to Lookup & Edit
     function goToLookup(type, target) {
-      switchTab('edit');
-      // Set search query and trigger search
-      document.getElementById('searchQuery').value = target;
-      const searchForm = document.getElementById('searchForm');
-      const event = new Event('submit', { bubbles: true });
-      searchForm.dispatchEvent(event);
+      // Open Design tab and load the data directly
+      if (type === 'style') {
+        loadData('style', target, '', '');
+      } else if (type === 'batch') {
+        loadData('batch', '', target, '');
+      } else if (type === 'serial') {
+        loadData('serial', '', '', target);
+      }
     }
 
     // Run on load

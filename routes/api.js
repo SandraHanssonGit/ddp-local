@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const cheerio = require('cheerio');
+const https = require('https');
 const { db, queries } = require('../db/init');
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -271,6 +273,42 @@ router.delete('/serials/:serial_number/event/:event_id', validateSerialNumber, v
     if (err) return res.status(400).json({ error: err.message });
     res.json({ success: true, message: 'Event deleted' });
   });
+});
+
+// Scrape Nudie Jeans product page
+router.post('/styles/scrape-url', verifyToken, checkRole(['editor', 'admin', 'super_admin']), async (req, res) => {
+  const { url } = req.body;
+
+  if (!url || !url.includes('nudiejeans.com')) {
+    return res.status(400).json({ error: 'Invalid Nudie Jeans URL' });
+  }
+
+  try {
+    const html = await new Promise((resolve, reject) => {
+      https.get(url, (response) => {
+        let data = '';
+        response.on('data', chunk => { data += chunk; });
+        response.on('end', () => resolve(data));
+      }).on('error', reject);
+    });
+
+    const $ = cheerio.load(html);
+
+    // Extract product information
+    const productName = $('h1').first().text().trim() ||
+                       $('meta[property="og:title"]').attr('content')?.split('|')[0]?.trim();
+
+    const description = $('meta[name="description"]').attr('content') ||
+                       $('meta[property="og:description"]').attr('content');
+
+    res.json({
+      product_name: productName || '',
+      description: description || ''
+    });
+  } catch (err) {
+    console.error('Scrape error:', err);
+    res.status(500).json({ error: 'Failed to fetch URL' });
+  }
 });
 
 // Save product information (style-level)
@@ -820,7 +858,7 @@ router.get('/serials', (req, res) => {
 
 router.get('/events', (req, res) => {
   db.all(`
-    SELECT e.*, s.serial_number
+    SELECT e.*, s.serial_number, s.batch_id
     FROM events e
     LEFT JOIN serials s ON e.serial_id = s.id
     ORDER BY e.created_at DESC
