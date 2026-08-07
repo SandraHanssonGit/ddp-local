@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { queries } = require('../db/init');
+const { db, queries } = require('../db/init');
 
 // Public passport page
 // Format: /p/:style_number/:batch_id/:serial_number
@@ -8,7 +8,6 @@ router.get('/:style_number/:batch_id/:serial_number', (req, res) => {
   const { style_number, batch_id, serial_number } = req.params;
 
   // Get serial by all three identifiers
-  const db = require('../db/init');
   db.get(
     `SELECT * FROM serials WHERE style_number = ? AND batch_id = ? AND serial_number = ?`,
     [style_number, batch_id, serial_number],
@@ -21,14 +20,7 @@ router.get('/:style_number/:batch_id/:serial_number', (req, res) => {
 
       const serial_id = serial.id;
 
-      // Get batch data
-      const { getBatchData, getSerialData, getEvents } = require('../db/init').queries || {
-        getBatchData: (bid, cb) => db.all(`SELECT key, value FROM batch_data WHERE batch_id = ?`, [bid], cb),
-        getSerialData: (sid, cb) => db.all(`SELECT key, value, added_by, added_at FROM serial_data WHERE serial_id = ?`, [sid], cb),
-        getEvents: (sid, cb) => db.all(`SELECT event_type, event_data, created_at FROM events WHERE serial_id = ?`, [sid], cb)
-      };
-
-      const queries = require('../db/init').queries;
+      // Get batch data using queries helper
       queries.getBatchData(batch_id, (err, batchData) => {
         // Get serial-specific data
         queries.getSerialData(serial_id, (err, serialData) => {
