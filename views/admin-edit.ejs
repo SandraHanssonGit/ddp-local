@@ -1519,7 +1519,9 @@
       document.getElementById('fetchNudieBtn').style.display = 'block';
       document.getElementById('productInfoView').innerHTML = '<p class="text-gray-500">New style - fill in details below</p>';
 
-      // Show edit form
+      // Show edit form with all fields
+      document.getElementById('productType').value = 'jeans';
+      document.getElementById('productVariant').value = '';
       document.getElementById('productName').value = '';
       document.getElementById('productDescription').value = '';
       document.getElementById('productCare').value = '';
