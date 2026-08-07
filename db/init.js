@@ -108,31 +108,31 @@ db.serialize(() => {
     )
   `);
 
-  // Batches table
+  // Batches table (can contain serials from multiple styles)
   db.run(`
     CREATE TABLE IF NOT EXISTS batches (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       batch_id TEXT UNIQUE NOT NULL,
-      style_number TEXT NOT NULL,
       total_units INTEGER,
       partner_name TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY(style_number) REFERENCES styles(style_number)
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
-  // Serials table
+  // Serials table (belongs to both a batch AND a style)
   db.run(`
     CREATE TABLE IF NOT EXISTS serials (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       batch_id TEXT NOT NULL,
+      style_number TEXT NOT NULL,
       serial_number TEXT UNIQUE NOT NULL,
       gtin TEXT,
       sgtin_numeric TEXT,
       sgtin_uri TEXT,
       rfid TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY(batch_id) REFERENCES batches(batch_id)
+      FOREIGN KEY(batch_id) REFERENCES batches(batch_id),
+      FOREIGN KEY(style_number) REFERENCES styles(style_number)
     )
   `);
 
@@ -209,9 +209,9 @@ db.serialize(() => {
   // Primary lookup indexes
   db.run(`CREATE INDEX IF NOT EXISTS idx_styles_style_number ON styles(style_number)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_batches_batch_id ON batches(batch_id)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_batches_style_number ON batches(style_number)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_serials_serial_number ON serials(serial_number)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_serials_batch_id ON serials(batch_id)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_serials_style_number ON serials(style_number)`);
 
   // Foreign key and data lookup indexes
   db.run(`CREATE INDEX IF NOT EXISTS idx_serial_data_serial_id ON serial_data(serial_id)`);
@@ -322,22 +322,22 @@ const seedTestData = async () => {
 
     // Insert test batch
     db.run(`
-      INSERT OR IGNORE INTO batches (batch_id, style_number, total_units, partner_name)
-      VALUES (?, ?, ?, ?)
-    `, ['114519-BATCH001', '114519', 100, 'Trimco Manufacturing']);
+      INSERT OR IGNORE INTO batches (batch_id, total_units, partner_name)
+      VALUES (?, ?, ?)
+    `, ['114519-BATCH001', 100, 'Trimco Manufacturing']);
 
     // Insert test serials with SGTIN data
     const testSerials = [
-      { serial: '114519-001-AA', sgtin_num: '3014141701120001', sgtin_uri: 'https://nudiejeans.dpp.com/01/05707141145391/21/001AA', rfid: '12AB34CD56EF00' },
-      { serial: '114519-001-AB', sgtin_num: '3014141701120002', sgtin_uri: 'https://nudiejeans.dpp.com/01/05707141145391/21/001AB', rfid: '12AB34CD56EF01' },
-      { serial: '114519-001-AC', sgtin_num: '3014141701120003', sgtin_uri: 'https://nudiejeans.dpp.com/01/05707141145391/21/001AC', rfid: '12AB34CD56EF02' }
+      { serial: '114519-001-AA', style: '114519', sgtin_num: '3014141701120001', sgtin_uri: 'https://nudiejeans.dpp.com/01/05707141145391/21/001AA', rfid: '12AB34CD56EF00' },
+      { serial: '114519-001-AB', style: '114519', sgtin_num: '3014141701120002', sgtin_uri: 'https://nudiejeans.dpp.com/01/05707141145391/21/001AB', rfid: '12AB34CD56EF01' },
+      { serial: '114519-001-AC', style: '114519', sgtin_num: '3014141701120003', sgtin_uri: 'https://nudiejeans.dpp.com/01/05707141145391/21/001AC', rfid: '12AB34CD56EF02' }
     ];
 
     testSerials.forEach(s => {
       db.run(`
-        INSERT OR IGNORE INTO serials (batch_id, serial_number, sgtin_numeric, sgtin_uri, rfid)
-        VALUES (?, ?, ?, ?, ?)
-      `, ['114519-BATCH001', s.serial, s.sgtin_num, s.sgtin_uri, s.rfid], function() {
+        INSERT OR IGNORE INTO serials (batch_id, style_number, serial_number, sgtin_numeric, sgtin_uri, rfid)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, ['114519-BATCH001', s.style, s.serial, s.sgtin_num, s.sgtin_uri, s.rfid], function() {
         const serialId = this.lastID;
 
         // Add serial data (size, condition, location)
@@ -374,9 +374,8 @@ const queries = {
 
   getSerial: (serial_number, callback) => {
     db.all(`
-      SELECT s.*, b.style_number, b.batch_id as batch_name
+      SELECT s.*
       FROM serials s
-      LEFT JOIN batches b ON s.batch_id = b.batch_id
       WHERE s.serial_number = ?
     `, [serial_number], callback);
   },

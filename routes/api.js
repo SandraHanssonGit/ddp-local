@@ -149,8 +149,10 @@ router.post('/serials/add', verifyToken, checkRole(['editor', 'admin', 'super_ad
 });
 
 // Import batch + serials from partner (creates new or adds serials to existing)
+// Now: batch is generic container, style_number specified per serial
 router.post('/batch/import', verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
-  const { batch_id, style_number, total_units, partner_name, serials } = req.body;
+  const { batch_id, total_units, partner_name, serials } = req.body;
+  // serials format: [{ serial_number, style_number }, ...]
 
   // Check if batch exists
   db.get(`SELECT * FROM batches WHERE batch_id = ?`, [batch_id], (err, existingBatch) => {
@@ -161,8 +163,8 @@ router.post('/batch/import', verifyToken, checkRole(['editor', 'admin', 'super_a
     // If batch doesn't exist, create it
     if (!existingBatch) {
       return db.run(
-        `INSERT INTO batches (batch_id, style_number, total_units, partner_name) VALUES (?, ?, ?, ?)`,
-        [batch_id, style_number, total_units, partner_name],
+        `INSERT INTO batches (batch_id, total_units, partner_name) VALUES (?, ?, ?)`,
+        [batch_id, total_units, partner_name],
         function(err) {
           if (err) {
             return res.status(400).json({ error: err.message });
@@ -179,10 +181,15 @@ router.post('/batch/import', verifyToken, checkRole(['editor', 'admin', 'super_a
 
       // Insert serials
       let inserted = 0;
-      serials.forEach(serial_number => {
+      serials.forEach(serial => {
+        const { serial_number, style_number } = serial;
+        if (!style_number) {
+          inserted++;
+          return; // Skip if no style_number
+        }
         db.run(
-          `INSERT INTO serials (batch_id, serial_number) VALUES (?, ?)`,
-          [batch_id, serial_number],
+          `INSERT INTO serials (batch_id, style_number, serial_number) VALUES (?, ?, ?)`,
+          [batch_id, style_number, serial_number],
           function(err) {
             if (!err) {
               // Auto-set condition to "new" for new serials
@@ -465,7 +472,7 @@ router.get('/styles/:style_number/full-data', (req, res) => {
     db.all(`SELECT * FROM transparency_data WHERE style_number = ?`, [style_number], (err, transparency) => {
       db.all(`SELECT * FROM nudie_values WHERE style_number = ?`, [style_number], (err, nudieValues) => {
         db.all(`SELECT * FROM storytelling WHERE style_number = ?`, [style_number], (err, storytelling) => {
-          db.all(`SELECT b.*, (SELECT COUNT(*) FROM serials WHERE batch_id = b.batch_id) as serial_count FROM batches b WHERE b.style_number = ?`, [style_number], (err, batches) => {
+          db.all(`SELECT DISTINCT b.*, (SELECT COUNT(*) FROM serials WHERE batch_id = b.batch_id AND style_number = ?) as serial_count FROM batches b INNER JOIN serials s ON b.batch_id = s.batch_id WHERE s.style_number = ?`, [style_number, style_number], (err, batches) => {
             let transData = null;
             if (transparency && transparency.length > 0) {
               const trans = transparency[0];
@@ -793,8 +800,8 @@ router.post('/batch/copy', verifyToken, checkRole(['editor', 'admin', 'super_adm
     }
 
     // Create new batch
-    db.run(`INSERT INTO batches (batch_id, style_number, total_units, partner_name) VALUES (?, ?, ?, ?)`,
-      [new_batch_id, sourceBatch.style_number, sourceBatch.total_units, sourceBatch.partner_name],
+    db.run(`INSERT INTO batches (batch_id, total_units, partner_name) VALUES (?, ?, ?)`,
+      [new_batch_id, sourceBatch.total_units, sourceBatch.partner_name],
       function(err) {
         if (err) return res.status(400).json({ error: err.message });
 
