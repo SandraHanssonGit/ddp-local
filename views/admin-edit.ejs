@@ -2037,9 +2037,14 @@
           <div><strong>Total Units:</strong> ${data.serials.length}</div>
           <div><strong>Production Date:</strong> ${prodDate}</div>
           <div><strong>Manufacturing Details:</strong> ${mfgDetails.replace(/\n/g, '<br>')}</div>
-          <button onclick="toggleEdit('batch-metadata')" class="edit-button mt-4 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
-            Edit Batch Details
-          </button>
+          <div class="mt-4 flex gap-2">
+            <button onclick="toggleEdit('batch-metadata')" class="edit-button bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+              Edit Batch Details
+            </button>
+            <button onclick="showAddStyleToBatchModal('${batch.batch_id}')" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+              ➕ Add Style to Batch
+            </button>
+          </div>
         </div>
       `;
 
@@ -2869,15 +2874,19 @@
     }
 
     // Add Serials functions
-    async function showAddSerialsModal() {
-      console.log('showAddSerialsModal called, currentData:', currentData);
+    async function showAddSerialsModal(batchId, styleNumber, variant) {
+      console.log('showAddSerialsModal called, batchId:', batchId, 'styleNumber:', styleNumber, 'variant:', variant);
 
-      if (!currentData.batch || !currentData.batch.batch) {
-        showToast('Please select a batch first');
-        return;
+      // If batchId not provided, use from currentData
+      if (!batchId) {
+        if (!currentData.batch || !currentData.batch.batch) {
+          showToast('Please select a batch first');
+          return;
+        }
+        batchId = currentData.batch.batch.batch_id;
       }
 
-      addSerialsForBatchId = currentData.batch.batch.batch_id;
+      addSerialsForBatchId = batchId;
       if (!addSerialsForBatchId) {
         showToast('Batch ID not found');
         return;
@@ -2885,7 +2894,7 @@
 
       // Load all available styles from the batch's existing serials
       const existingStyles = new Set();
-      if (currentData.batch.serials) {
+      if (currentData.batch && currentData.batch.serials) {
         currentData.batch.serials.forEach(s => {
           if (s.style_number) existingStyles.add(s.style_number);
         });
@@ -2900,14 +2909,19 @@
         styleSelect.innerHTML = '<option value="">-- Select a style --</option>';
 
         allStyles.forEach(style => {
+          const optionValue = style.variant ? `${style.style_number}|${style.variant}` : style.style_number;
           const option = document.createElement('option');
-          option.value = style.style_number;
-          option.textContent = `${style.style_number} - ${style.product_name || 'Unnamed'}`;
+          option.value = optionValue;
+          option.textContent = `${style.style_number}${style.variant ? '-' + style.variant : ''} - ${style.product_name || 'Unnamed'}`;
           styleSelect.appendChild(option);
         });
 
-        // Auto-select first existing style if only one exists
-        if (existingStyles.size === 1) {
+        // Pre-select if styleNumber provided
+        if (styleNumber) {
+          const selectValue = variant ? `${styleNumber}|${variant}` : styleNumber;
+          styleSelect.value = selectValue;
+          styleSelect.disabled = true; // Lock style selection if pre-selected
+        } else if (existingStyles.size === 1) {
           styleSelect.value = Array.from(existingStyles)[0];
         }
       } catch (err) {
@@ -2924,11 +2938,14 @@
     }
 
     async function performAddSerials() {
-      const selectedStyle = document.getElementById('addSerialsStyleSelect').value;
-      if (!selectedStyle) {
+      const selectedValue = document.getElementById('addSerialsStyleSelect').value;
+      if (!selectedValue) {
         showToast('Please select a style');
         return;
       }
+
+      // Parse style_number|variant format
+      const [styleNumber, variant] = selectedValue.split('|');
 
       const serialsInput = document.getElementById('addSerialsInput').value.trim();
       if (!serialsInput) {
@@ -2948,10 +2965,11 @@
           body: JSON.stringify({
             batch_id: addSerialsForBatchId,
             total_units: serialNumbers.length,
-            partner_name: currentData.batch.batch.partner_name || '',
+            partner_name: currentData.batch && currentData.batch.batch ? currentData.batch.batch.partner_name || '' : '',
             serials: serialNumbers.map(serial => ({
               serial_number: serial,
-              style_number: selectedStyle
+              style_number: styleNumber,
+              variant: variant || null
             }))
           })
         });
@@ -2968,6 +2986,53 @@
       } catch (err) {
         showToast('Error: ' + err.message);
       }
+    }
+
+    // Add Style to Batch
+    async function showAddStyleToBatchModal(batchId) {
+      try {
+        // Fetch all styles
+        const res = await authFetch('/api/styles');
+        const data = await res.json();
+        const styles = data.styles || [];
+
+        // Build modal
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        modal.innerHTML = `
+          <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Add Style to ${batchId}</h2>
+            <select id="styleSelectForBatch" class="w-full border border-gray-300 rounded px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">-- Select a Style --</option>
+              ${styles.map(s => `<option value="${s.style_number}|${s.variant || ''}">${s.style_number}${s.variant ? '-' + s.variant : ''} - ${s.product_name || 'No name'}</option>`).join('')}
+            </select>
+            <div class="flex gap-2 justify-end">
+              <button type="button" class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300" onclick="this.closest('.fixed').remove()">Cancel</button>
+              <button type="button" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" onclick="proceedAddStyleToBatch('${batchId}')">Continue</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        document.getElementById('styleSelectForBatch').focus();
+      } catch (err) {
+        showToast('Error: ' + err.message);
+      }
+    }
+
+    async function proceedAddStyleToBatch(batchId) {
+      const selectEl = document.getElementById('styleSelectForBatch');
+      const selected = selectEl.value;
+
+      if (!selected) {
+        showToast('❌ Please select a style');
+        return;
+      }
+
+      const [styleNumber, variant] = selected.split('|');
+      document.querySelector('.fixed').remove();
+
+      // Now show the add serials form for this style+batch combo
+      showAddSerialsModal(batchId, styleNumber, variant || null);
     }
 
     // Delete Batch function
