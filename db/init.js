@@ -331,20 +331,20 @@ const seedTestData = async () => {
     db.run(`
       INSERT OR IGNORE INTO batches (batch_id, total_units, partner_name)
       VALUES (?, ?, ?)
-    `, ['114519-BATCH001', 100, 'Trimco Manufacturing']);
+    `, ['BATCH001', 100, 'Trimco Manufacturing']);
 
     // Insert test serials with SGTIN data
     const testSerials = [
-      { serial: '114519-001-AA', style: '114519', sgtin_num: '3014141701120001', sgtin_uri: 'https://nudiejeans.dpp.com/01/05707141145391/21/001AA', rfid: '12AB34CD56EF00' },
-      { serial: '114519-001-AB', style: '114519', sgtin_num: '3014141701120002', sgtin_uri: 'https://nudiejeans.dpp.com/01/05707141145391/21/001AB', rfid: '12AB34CD56EF01' },
-      { serial: '114519-001-AC', style: '114519', sgtin_num: '3014141701120003', sgtin_uri: 'https://nudiejeans.dpp.com/01/05707141145391/21/001AC', rfid: '12AB34CD56EF02' }
+      { serial: '001AA', style: '114519', sgtin_num: '3014141701120001', sgtin_uri: 'https://nudiejeans.dpp.com/01/05707141145391/21/001AA', rfid: '12AB34CD56EF00' },
+      { serial: '001AB', style: '114519', sgtin_num: '3014141701120002', sgtin_uri: 'https://nudiejeans.dpp.com/01/05707141145391/21/001AB', rfid: '12AB34CD56EF01' },
+      { serial: '001AC', style: '114519', sgtin_num: '3014141701120003', sgtin_uri: 'https://nudiejeans.dpp.com/01/05707141145391/21/001AC', rfid: '12AB34CD56EF02' }
     ];
 
     testSerials.forEach(s => {
       db.run(`
         INSERT OR IGNORE INTO serials (batch_id, style_number, serial_number, sgtin_numeric, sgtin_uri, rfid)
         VALUES (?, ?, ?, ?, ?, ?)
-      `, ['114519-BATCH001', s.style, s.serial, s.sgtin_num, s.sgtin_uri, s.rfid], function() {
+      `, ['BATCH001', s.style, s.serial, s.sgtin_num, s.sgtin_uri, s.rfid], function() {
         const serialId = this.lastID;
 
         // Add serial data (size, condition, location)
@@ -356,7 +356,7 @@ const seedTestData = async () => {
           [serialId, 'location', 'warehouse-stockholm', 'system']);
 
         // Add test event for first serial
-        if (s.serial === '114519-001-AA') {
+        if (s.serial === '001AA') {
           db.run(`INSERT OR IGNORE INTO events (serial_id, event_type, event_data) VALUES (?, ?, ?)`,
             [serialId, 'scanned', JSON.stringify({ location: 'Stockholm Store', timestamp: new Date().toISOString() })]);
         }
