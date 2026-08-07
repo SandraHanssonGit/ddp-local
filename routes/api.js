@@ -434,7 +434,7 @@ router.get('/search', (req, res) => {
 
   if (type === 'style') {
     query = `
-      SELECT 'style' as result_type, s.style_number, s.product_name, NULL as batch_id, NULL as serial_number
+      SELECT 'style' as result_type, s.style_number, s.variant, s.product_type, s.product_name, NULL as batch_id, NULL as serial_number
       FROM styles s
       WHERE s.style_number LIKE ? OR s.product_name LIKE ?
       LIMIT 20
@@ -460,15 +460,15 @@ router.get('/search', (req, res) => {
   } else {
     // Generic search across all
     query = `
-      SELECT 'style' as result_type, s.style_number, s.product_name, NULL as batch_id, NULL as serial_number
+      SELECT 'style' as result_type, s.style_number, s.variant, s.product_type, s.product_name, NULL as batch_id, NULL as serial_number
       FROM styles s
       WHERE s.style_number LIKE ? OR s.product_name LIKE ?
       UNION
-      SELECT 'batch' as result_type, NULL as style_number, NULL as product_name, b.batch_id, NULL as serial_number
+      SELECT 'batch' as result_type, NULL as style_number, NULL as variant, NULL as product_type, NULL as product_name, b.batch_id, NULL as serial_number
       FROM batches b
       WHERE b.batch_id LIKE ?
       UNION
-      SELECT 'serial' as result_type, s.style_number, NULL as product_name, b.batch_id, s.serial_number
+      SELECT 'serial' as result_type, s.style_number, NULL as variant, NULL as product_type, NULL as product_name, b.batch_id, s.serial_number
       FROM serials s
       LEFT JOIN batches b ON s.batch_id = b.batch_id
       WHERE s.serial_number LIKE ? OR s.sgtin_numeric LIKE ? OR s.sgtin_uri LIKE ?
