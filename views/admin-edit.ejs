@@ -845,9 +845,16 @@
         const result = await res.json();
 
         if (!result.results || result.results.length === 0) {
-          // Check if search query looks like a style number - offer to create new style
+          // Check if search query looks like a style number or style-variant
           if (/^\d+$/.test(q)) {
-            status.innerHTML = `No results found. <button class="text-blue-600 hover:underline font-semibold" onclick="showCreateStyleForm('${q}')">Create new style ${q}</button>`;
+            // Jeans: just style number (e.g., "114519")
+            status.innerHTML = `No results found. <button class="text-blue-600 hover:underline font-semibold" onclick="showCreateStyleForm('${q}', null)">Create new style ${q}</button>`;
+          } else if (/^\d+-[A-Z]\d+$/.test(q)) {
+            // Topp: style-variant format (e.g., "114319-B20")
+            const parts = q.split('-');
+            const styleNum = parts[0];
+            const variant = parts[1];
+            status.innerHTML = `No results found. <button class="text-blue-600 hover:underline font-semibold" onclick="showCreateStyleForm('${styleNum}', '${variant}')">Create new style ${q}</button>`;
           } else {
             status.innerHTML = `No results found`;
           }
@@ -1591,19 +1598,20 @@
       }
     }
 
-    async function showCreateStyleForm(styleNumber) {
+    async function showCreateStyleForm(styleNumber, variant = null) {
       document.getElementById('resultContainer').classList.remove('hidden');
       document.getElementById('styleSection').classList.remove('hidden');
       document.getElementById('batchSection').classList.add('hidden');
       document.getElementById('serialSection').classList.add('hidden');
 
-      document.getElementById('styleTitle').textContent = styleNumber;
+      const displayTitle = variant ? `${styleNumber}-${variant}` : styleNumber;
+      document.getElementById('styleTitle').textContent = displayTitle;
       document.getElementById('fetchNudieBtn').style.display = 'block';
       document.getElementById('productInfoView').innerHTML = '<p class="text-gray-500">New style - fill in details below</p>';
 
       // Show edit form with all fields
-      document.getElementById('productType').value = 'jeans';
-      document.getElementById('productVariant').value = '';
+      document.getElementById('productType').value = variant ? 'topp' : 'jeans';
+      document.getElementById('productVariant').value = variant || '';
       document.getElementById('productName').value = '';
       document.getElementById('productDescription').value = '';
       document.getElementById('productCare').value = '';
