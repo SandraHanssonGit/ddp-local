@@ -319,8 +319,13 @@ router.post('/styles/scrape-url', verifyToken, checkRole(['editor', 'admin', 'su
 });
 
 // Save product information (style-level)
-router.post('/styles/:style_number/product-info', validateStyleNumber, verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
+router.post('/styles/:style_number/product-info', verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { style_number } = req.params;
+
+  // Validate style_number
+  if (!style_number || typeof style_number !== 'string' || style_number.length === 0 || style_number.length > 50) {
+    return res.status(400).json({ error: 'Invalid style number' });
+  }
   const { product_type, variant, product_name, description, care_instructions, delivery_returns, size_material_composition } = req.body;
 
   db.run(`

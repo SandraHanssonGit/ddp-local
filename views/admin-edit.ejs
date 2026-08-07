@@ -2043,8 +2043,13 @@
     }
 
     async function saveProductInfo() {
-      const styleNumber = currentData.style?.style?.style_number || document.getElementById('styleTitle').textContent;
+      const styleNumber = currentData.style?.style?.style_number || document.getElementById('styleTitle')?.textContent?.trim();
       const isNewStyle = !currentData.style?.style?.style_number;
+
+      if (!styleNumber) {
+        showToast('Error: Style number not set');
+        return;
+      }
 
       const res = await authFetch(`/api/styles/${styleNumber}/product-info`, {
         method: 'POST',
