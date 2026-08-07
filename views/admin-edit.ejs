@@ -1698,7 +1698,9 @@
       document.getElementById('batchSection').classList.add('hidden');
       document.getElementById('serialSection').classList.add('hidden');
 
-      const displayTitle = variant ? `${styleNumber}-${variant}` : styleNumber;
+      // Only show variant in title if it's a real value (not null, undefined, or "null")
+      const hasVariant = variant && variant !== 'null' && variant !== 'undefined';
+      const displayTitle = hasVariant ? `${styleNumber}-${variant}` : styleNumber;
       document.getElementById('styleTitle').textContent = displayTitle;
       document.getElementById('fetchNudieBtn').style.display = 'block';
 
