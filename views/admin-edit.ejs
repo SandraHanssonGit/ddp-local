@@ -2222,9 +2222,18 @@
       if (res.ok) {
         showToast('✓ Style saved!');
         toggleEdit('product-info');
-        // For new styles, load data after a short delay to ensure DB is ready
+
+        // For new styles, load data and refresh search results
         if (isNewStyle) {
-          setTimeout(() => loadStyle(styleNumber), 500);
+          setTimeout(() => {
+            loadStyle(styleNumber);
+
+            // Refresh search results if search was active
+            const searchQuery = document.getElementById('searchQuery')?.value?.trim();
+            if (searchQuery) {
+              handleSearch({ preventDefault: () => {} });
+            }
+          }, 500);
         } else {
           await loadStyle(styleNumber);
         }
