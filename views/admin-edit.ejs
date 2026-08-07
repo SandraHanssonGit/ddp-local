@@ -1918,8 +1918,11 @@
         metadata[d.key] = d.value;
       });
 
+      // Build public URL using new format: /p/STYLE/BATCH/SERIAL
+      const publicUrl = serial.sgtin_uri || `${window.location.origin}/p/${data.style?.style_number || ''}/${data.batch?.batch_id || ''}/${serial.serial_number}`;
+
       document.getElementById('serialMetadataView').innerHTML = `
-        <div><strong>Public URL:</strong> <span class="font-mono text-xs break-all">${serial.sgtin_uri || `${window.location.origin}/p/${serial.serial_number}`}</span></div>
+        <div><strong>Public URL:</strong> <span class="font-mono text-xs break-all">${publicUrl}</span></div>
         <div><strong>Size:</strong> ${metadata.size || '-'}</div>
         <div><strong>Condition:</strong> ${metadata.condition || '-'}</div>
         <div><strong>Location:</strong> ${metadata.location || '-'}</div>
@@ -1932,7 +1935,7 @@
       if (serialSGTINNumeric) serialSGTINNumeric.value = serial.sgtin_numeric || '';
 
       const serialSGTINUri = document.getElementById('serialSGTINUri');
-      if (serialSGTINUri) serialSGTINUri.value = serial.sgtin_uri || `${window.location.origin}/p/${serial.serial_number}`;
+      if (serialSGTINUri) serialSGTINUri.value = serial.sgtin_uri || publicUrl;
 
       const serialRFID = document.getElementById('serialRFID');
       if (serialRFID) serialRFID.value = serial.rfid || '';
