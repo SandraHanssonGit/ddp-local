@@ -217,9 +217,20 @@
             <div id="productInfoEdit" class="hidden space-y-4 mt-4">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Product Name</label>
-                  <input type="text" id="productName" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+                  <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Product Type</label>
+                  <select id="productType" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+                    <option value="jeans">Jeans</option>
+                    <option value="topp">Topp</option>
+                  </select>
                 </div>
+                <div>
+                  <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Variant (e.g., B20)</label>
+                  <input type="text" id="productVariant" placeholder="B20, C02, etc." class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Product Name</label>
+                <input type="text" id="productName" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
               </div>
               <div>
                 <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Description</label>
@@ -1537,7 +1548,10 @@
 
       // Product info
       const style = data.style;
+      const variantBadge = style.variant ? `<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-semibold">${style.variant}</span>` : '';
       document.getElementById('productInfoView').innerHTML = `
+        <div><strong>Style #:</strong> ${style.style_number}</div>
+        <div><strong>Type:</strong> ${style.product_type || 'jeans'} ${variantBadge}</div>
         <div><strong>Name:</strong> ${style.product_name || '-'}</div>
         <div><strong>Description:</strong> ${style.description || '-'}</div>
         <div><strong>Care:</strong> ${style.care_instructions || '-'}</div>
@@ -1550,6 +1564,12 @@
       document.getElementById('productCare').value = style.care_instructions || '';
       document.getElementById('productDelivery').value = style.delivery_returns || '';
       document.getElementById('productMaterial').value = style.size_material_composition || '';
+      if (document.getElementById('productVariant')) {
+        document.getElementById('productVariant').value = style.variant || '';
+      }
+      if (document.getElementById('productType')) {
+        document.getElementById('productType').value = style.product_type || 'jeans';
+      }
 
       // Transparency
       if (data.transparency_data) {
@@ -1893,6 +1913,8 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          product_type: document.getElementById('productType')?.value || 'jeans',
+          variant: document.getElementById('productVariant')?.value || null,
           product_name: document.getElementById('productName').value,
           description: document.getElementById('productDescription').value,
           care_instructions: document.getElementById('productCare').value,

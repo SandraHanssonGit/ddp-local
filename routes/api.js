@@ -321,21 +321,22 @@ router.post('/styles/scrape-url', verifyToken, checkRole(['editor', 'admin', 'su
 // Save product information (style-level)
 router.post('/styles/:style_number/product-info', validateStyleNumber, verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { style_number } = req.params;
-  const { product_name, description, care_instructions, delivery_returns, size_material_composition } = req.body;
+  const { product_type, variant, product_name, description, care_instructions, delivery_returns, size_material_composition } = req.body;
 
   db.run(`
-    INSERT INTO styles (style_number, product_name, description, care_instructions, delivery_returns, size_material_composition)
-    VALUES (?, ?, ?, ?, ?, ?)
-    ON CONFLICT(style_number) DO UPDATE SET
+    INSERT INTO styles (style_number, variant, product_type, product_name, description, care_instructions, delivery_returns, size_material_composition)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(style_number, variant) DO UPDATE SET
+      product_type = excluded.product_type,
       product_name = excluded.product_name,
       description = excluded.description,
       care_instructions = excluded.care_instructions,
       delivery_returns = excluded.delivery_returns,
       size_material_composition = excluded.size_material_composition,
       updated_at = CURRENT_TIMESTAMP
-  `, [style_number, product_name, description, care_instructions, delivery_returns, size_material_composition], function(err) {
+  `, [style_number, variant || null, product_type || 'jeans', product_name, description, care_instructions, delivery_returns, size_material_composition], function(err) {
     if (err) return res.status(400).json({ error: err.message });
-    res.json({ success: true, style_number });
+    res.json({ success: true, style_number, variant });
   });
 });
 
