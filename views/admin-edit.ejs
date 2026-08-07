@@ -1001,16 +1001,28 @@
     }
 
     function copyPublicLink() {
-      const serialNumber = document.getElementById('serialTitle').textContent;
-      const publicLink = `${window.location.origin}/p/${serialNumber}`;
+      if (!currentData.serial) {
+        showToast('Serial data not loaded');
+        return;
+      }
+      const style = currentData.serial.style.style_number;
+      const batch = currentData.serial.batch.batch_id;
+      const serial = currentData.serial.serial.serial_number;
+      const publicLink = `${window.location.origin}/p/${style}/${batch}/${serial}`;
       navigator.clipboard.writeText(publicLink).then(() => {
         showToast('📋 Link copied!');
       });
     }
 
     function previewPublicPassport() {
-      const serialNumber = document.getElementById('serialTitle').textContent;
-      window.open(`/p/${serialNumber}`, '_blank');
+      if (!currentData.serial) {
+        showToast('Serial data not loaded');
+        return;
+      }
+      const style = currentData.serial.style.style_number;
+      const batch = currentData.serial.batch.batch_id;
+      const serial = currentData.serial.serial.serial_number;
+      window.open(`/p/${style}/${batch}/${serial}`, '_blank');
     }
 
     // Event listeners for edit/delete buttons
