@@ -1905,6 +1905,7 @@
       }
       if (document.getElementById('productType')) {
         document.getElementById('productType').value = style.product_type || 'jeans';
+        updateVariantRequirements(); // Update variant requirements based on product type
       }
 
       // Transparency
