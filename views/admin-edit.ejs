@@ -842,23 +842,42 @@
       status.textContent = 'Searching...';
 
       try {
-        const res = await authFetch(`/api/search?q=${encodeURIComponent(q)}`);
-        const result = await res.json();
+        // Handle different search patterns
+        const isExactStyleNum = /^\d+$/.test(q) && q.length >= 6;
+        const isStyleVariant = /^\d+-[A-Z]\d+$/.test(q);
+        const isPartialStyleNum = /^\d+$/.test(q) && q.length === 6;
+
+        let res, result;
+
+        if (isStyleVariant) {
+          // Search for exact style-variant (e.g., "114519-B20")
+          const [styleNum, variant] = q.split('-');
+          res = await authFetch(`/api/search?q=${encodeURIComponent(styleNum)}`);
+          result = await res.json();
+          // Filter to only variants matching the query
+          if (result.results) {
+            result.results = result.results.filter(r =>
+              r.result_type === 'style' && r.variant === variant
+            );
+          }
+        } else if (isPartialStyleNum) {
+          // Search for all variants of a style (e.g., "114519" shows all variants)
+          res = await authFetch(`/api/search?q=${encodeURIComponent(q)}`);
+          result = await res.json();
+          // Filter to only styles matching the partial number
+          if (result.results) {
+            result.results = result.results.filter(r =>
+              r.result_type === 'style' && r.style_number === q
+            );
+          }
+        } else {
+          // Normal search for anything
+          res = await authFetch(`/api/search?q=${encodeURIComponent(q)}`);
+          result = await res.json();
+        }
 
         if (!result.results || result.results.length === 0) {
-          // Check if search query looks like a style number or style-variant
-          if (/^\d+$/.test(q)) {
-            // Jeans: just style number (e.g., "114519")
-            status.innerHTML = `No results found. <button class="text-blue-600 hover:underline font-semibold" onclick="showCreateStyleForm('${q}', null)">Create new style ${q}</button>`;
-          } else if (/^\d+-[A-Z]\d+$/.test(q)) {
-            // Topp: style-variant format (e.g., "114319-B20")
-            const parts = q.split('-');
-            const styleNum = parts[0];
-            const variant = parts[1];
-            status.innerHTML = `No results found. <button class="text-blue-600 hover:underline font-semibold" onclick="showCreateStyleForm('${styleNum}', '${variant}')">Create new style ${q}</button>`;
-          } else {
-            status.innerHTML = `No results found`;
-          }
+          status.textContent = `No styles found for "${q}"`;
           document.getElementById('resultsListContainer').classList.add('hidden');
           document.getElementById('recentBatchesContainer').classList.remove('hidden');
           document.getElementById('resultContainer').classList.add('hidden');
