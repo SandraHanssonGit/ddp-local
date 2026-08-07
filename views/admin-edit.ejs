@@ -39,6 +39,9 @@
       <button id="tabDashboard" class="active px-6 py-4 font-semibold text-gray-900 border-b-2 border-gray-900">
         Dashboard
       </button>
+      <button id="tabScan" class="px-6 py-4 font-semibold text-gray-700">
+        Scan
+      </button>
       <button id="tabEdit" class="px-6 py-4 font-semibold text-gray-700">
         Design
       </button>
@@ -133,6 +136,72 @@
         </div>
       </div>
 
+    </div>
+
+    <!-- SCAN TAB -->
+    <div id="scanTab" class="hidden space-y-6">
+      <div class="bg-white rounded-lg shadow-md p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Scan Serial</h2>
+
+        <div class="space-y-6">
+          <!-- Style Selection -->
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Style</label>
+            <select id="scanStyle" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+              <option value="">-- Select Style --</option>
+            </select>
+          </div>
+
+          <!-- Batch Input -->
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Batch ID</label>
+            <input type="text" id="scanBatch" placeholder="e.g., 114519-BATCH001" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+          </div>
+
+          <!-- Serial Number Input -->
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Serial Number</label>
+            <input type="text" id="scanSerial" placeholder="e.g., 001AA" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900" autofocus>
+          </div>
+
+          <!-- Scan Button -->
+          <button onclick="performScan()" class="w-full bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 font-semibold">
+            ✓ Scan
+          </button>
+        </div>
+
+        <!-- Scan Result -->
+        <div id="scanResult" class="hidden mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Scan Result</h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Serial Info -->
+            <div class="bg-white rounded p-4">
+              <h4 class="text-sm font-semibold text-gray-700 mb-2 uppercase">Serial</h4>
+              <div class="text-sm space-y-1" id="resultSerialInfo"></div>
+            </div>
+
+            <!-- Batch Info -->
+            <div class="bg-white rounded p-4">
+              <h4 class="text-sm font-semibold text-gray-700 mb-2 uppercase">Batch</h4>
+              <div class="text-sm space-y-1" id="resultBatchInfo"></div>
+            </div>
+
+            <!-- Style Info -->
+            <div class="bg-white rounded p-4">
+              <h4 class="text-sm font-semibold text-gray-700 mb-2 uppercase">Style</h4>
+              <div class="text-sm space-y-1" id="resultStyleInfo"></div>
+            </div>
+          </div>
+
+          <div id="createdBadge" class="mt-4 text-sm px-3 py-2 bg-green-100 text-green-800 rounded-lg font-semibold text-center hidden">
+            ✓ New serial created
+          </div>
+          <div id="existsBadge" class="mt-4 text-sm px-3 py-2 bg-blue-100 text-blue-800 rounded-lg font-semibold text-center hidden">
+            Serial already exists
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- EDIT TAB -->
@@ -873,6 +942,10 @@
 
     // Setup tab buttons
     document.getElementById('tabDashboard').addEventListener('click', () => switchTab('dashboard'));
+    document.getElementById('tabScan').addEventListener('click', () => {
+      switchTab('scan');
+      loadStylesForScanning();
+    });
     document.getElementById('tabEdit').addEventListener('click', () => switchTab('edit'));
     const adminTabBtn = document.getElementById('tabAdmin');
     if (adminTabBtn) {
@@ -1375,16 +1448,19 @@
     function switchTab(tab) {
       // Hide/show tabs
       document.getElementById('dashboardTab').classList.toggle('hidden', tab !== 'dashboard');
+      document.getElementById('scanTab').classList.toggle('hidden', tab !== 'scan');
       document.getElementById('editTab').classList.toggle('hidden', tab !== 'edit');
       document.getElementById('adminTab').classList.toggle('hidden', tab !== 'admin');
 
       // Update button styles
-      ['dashboard', 'edit', 'admin'].forEach(t => {
+      ['dashboard', 'scan', 'edit', 'admin'].forEach(t => {
         const btn = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}`);
-        btn.classList.toggle('border-b-2', tab === t);
-        btn.classList.toggle('border-gray-900', tab === t);
-        btn.classList.toggle('text-gray-900', tab === t);
-        btn.classList.toggle('text-gray-700', tab !== t);
+        if (btn) {
+          btn.classList.toggle('border-b-2', tab === t);
+          btn.classList.toggle('border-gray-900', tab === t);
+          btn.classList.toggle('text-gray-900', tab === t);
+          btn.classList.toggle('text-gray-700', tab !== t);
+        }
       });
 
       // Load admin data when admin tab is opened
@@ -1400,6 +1476,12 @@
       // Load recent batches when design tab is opened
       if (tab === 'edit') {
         loadRecentBatches();
+      }
+
+      // Clear scan result when tab is opened
+      if (tab === 'scan') {
+        document.getElementById('scanResult').classList.add('hidden');
+        document.getElementById('scanSerial').focus();
       }
     }
 
@@ -2708,6 +2790,106 @@
         loadData('serial', '', '', target);
       }
     }
+
+    // Scanning functions
+    async function loadStylesForScanning() {
+      try {
+        const res = await fetch('/api/styles');
+        const styles = await res.json();
+        const select = document.getElementById('scanStyle');
+
+        select.innerHTML = '<option value="">-- Select Style --</option>';
+        styles.forEach(style => {
+          const option = document.createElement('option');
+          option.value = JSON.stringify({ style_number: style.style_number, variant: style.variant });
+          const label = style.variant ? `${style.style_number}-${style.variant}` : style.style_number;
+          option.textContent = `${label} - ${style.product_name || 'Unnamed'}`;
+          select.appendChild(option);
+        });
+      } catch (err) {
+        showToast('Error loading styles: ' + err.message);
+      }
+    }
+
+    async function performScan() {
+      const styleSelect = document.getElementById('scanStyle');
+      const batchInput = document.getElementById('scanBatch').value.trim();
+      const serialInput = document.getElementById('scanSerial').value.trim();
+
+      if (!styleSelect.value) {
+        showToast('Please select a style');
+        return;
+      }
+      if (!batchInput) {
+        showToast('Please enter batch ID');
+        return;
+      }
+      if (!serialInput) {
+        showToast('Please enter serial number');
+        return;
+      }
+
+      try {
+        const styleData = JSON.parse(styleSelect.value);
+        const res = await fetch('/api/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            style_number: styleData.style_number,
+            variant: styleData.variant || null,
+            batch_id: batchInput,
+            serial_number: serialInput
+          })
+        });
+
+        const result = await res.json();
+        if (!res.ok) {
+          showToast('Error: ' + result.error);
+          return;
+        }
+
+        // Show result
+        document.getElementById('resultSerialInfo').innerHTML = `
+          <div><strong>Serial:</strong> ${result.serial.serial_number}</div>
+          <div><strong>Created:</strong> ${result.serial.created_at}</div>
+        `;
+
+        document.getElementById('resultBatchInfo').innerHTML = `
+          <div><strong>Batch ID:</strong> ${result.batch.batch_id}</div>
+          <div><strong>Partner:</strong> ${result.batch.partner_name || '-'}</div>
+          <div><strong>Units:</strong> ${result.batch.total_units}</div>
+        `;
+
+        document.getElementById('resultStyleInfo').innerHTML = `
+          <div><strong>Style:</strong> ${result.style.style_number}</div>
+          ${result.style.variant ? `<div><strong>Variant:</strong> ${result.style.variant}</div>` : ''}
+          <div><strong>Name:</strong> ${result.style.product_name || '-'}</div>
+        `;
+
+        if (result.created) {
+          document.getElementById('createdBadge').classList.remove('hidden');
+          document.getElementById('existsBadge').classList.add('hidden');
+          showToast('✓ New serial created');
+        } else {
+          document.getElementById('createdBadge').classList.add('hidden');
+          document.getElementById('existsBadge').classList.remove('hidden');
+          showToast('✓ Serial already exists');
+        }
+
+        document.getElementById('scanResult').classList.remove('hidden');
+        document.getElementById('scanSerial').value = '';
+        document.getElementById('scanSerial').focus();
+      } catch (err) {
+        showToast('Error: ' + err.message);
+      }
+    }
+
+    // Allow Enter key to submit scan
+    document.getElementById('scanSerial')?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        performScan();
+      }
+    });
 
     // Run on load
     document.addEventListener('DOMContentLoaded', () => {});
