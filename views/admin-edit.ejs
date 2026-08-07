@@ -957,8 +957,8 @@
         const styles = sorted.filter(r => r.result_type === 'style');
         if (styles.length > 0 && isPartialStyleNum && !isStyleVariant) {
           // We found styles for this style_number - check what type they are
-          const hasTopp = styles.some(s => s.variant);
-          const hasJeans = styles.some(s => !s.variant);
+          const hasTopp = styles.some(s => (s.product_type || '').toLowerCase() === 'topp');
+          const hasJeans = styles.some(s => (s.product_type || '').toLowerCase() === 'jeans');
 
           if (hasTopp && !hasJeans) {
             // Only topps exist - offer to add new variant
