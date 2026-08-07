@@ -2180,6 +2180,31 @@
         return;
       }
 
+      // Check if this variant already exists (for new topps)
+      if (isNewStyle && selectedProductType === 'topp' && variantValue) {
+        const searchQuery = `${styleNumber}-${variantValue.toUpperCase()}`;
+        const searchRes = await authFetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
+        const searchData = await searchRes.json();
+
+        // Check if exact variant exists
+        const existingVariant = searchData.results?.find(r =>
+          r.result_type === 'style' &&
+          r.style_number === styleNumber &&
+          r.variant === variantValue.toUpperCase()
+        );
+
+        if (existingVariant) {
+          showToast('✏️ This variant already exists - opening in edit mode');
+          // Load the existing style in edit mode
+          await loadStyle(styleNumber);
+          // Scroll to product info section
+          setTimeout(() => {
+            document.querySelector('[id="productInfoView"]')?.scrollIntoView({ behavior: 'smooth' });
+          }, 300);
+          return;
+        }
+      }
+
       const res = await authFetch(`/api/styles/${styleNumber}/product-info`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
