@@ -2993,8 +2993,7 @@
       try {
         // Fetch all styles
         const res = await authFetch('/api/styles');
-        const data = await res.json();
-        const styles = data.styles || [];
+        const styles = await res.json();
 
         // Build modal
         const modal = document.createElement('div');
