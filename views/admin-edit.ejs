@@ -2875,23 +2875,22 @@
 
     // Add Serials functions
     async function showAddSerialsModal(batchId, styleNumber, variant) {
-      try {
-        console.log('showAddSerialsModal called, batchId:', batchId, 'styleNumber:', styleNumber, 'variant:', variant);
+      console.log('showAddSerialsModal called, batchId:', batchId, 'styleNumber:', styleNumber, 'variant:', variant);
 
-        // If batchId not provided, use from currentData
-        if (!batchId) {
-          if (!currentData.batch || !currentData.batch.batch) {
-            showToast('Please select a batch first');
-            return;
-          }
-          batchId = currentData.batch.batch.batch_id;
-        }
-
-        addSerialsForBatchId = batchId;
-        if (!addSerialsForBatchId) {
-          showToast('Batch ID not found');
+      // If batchId not provided, use from currentData
+      if (!batchId) {
+        if (!currentData.batch || !currentData.batch.batch) {
+          showToast('Please select a batch first');
           return;
         }
+        batchId = currentData.batch.batch.batch_id;
+      }
+
+      addSerialsForBatchId = batchId;
+      if (!addSerialsForBatchId) {
+        showToast('Batch ID not found');
+        return;
+      }
 
       // Load all available styles from the batch's existing serials
       const existingStyles = new Set();
