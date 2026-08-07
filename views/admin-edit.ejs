@@ -1713,21 +1713,40 @@
             ${errorMsg ? `<div class="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm mb-4">${errorMsg}</div>` : ''}
             <input type="text" id="variantInput" class="w-full border border-gray-300 rounded px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., B20, B21" />
             <div class="flex gap-2 justify-end">
-              <button class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300" onclick="this.closest('.fixed').remove(); window.variantPromptResolve(null)">Cancel</button>
-              <button class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" onclick="const val = document.getElementById('variantInput').value; this.closest('.fixed').remove(); window.variantPromptResolve(val)">OK</button>
+              <button type="button" class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300" id="cancelBtn">Cancel</button>
+              <button type="button" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" id="okBtn">OK</button>
             </div>
           </div>
         `;
         document.body.appendChild(dialog);
 
-        window.variantPromptResolve = resolve;
+        const input = dialog.querySelector('#variantInput');
+        const cancelBtn = dialog.querySelector('#cancelBtn');
+        const okBtn = dialog.querySelector('#okBtn');
 
-        document.getElementById('variantInput').focus();
-        document.getElementById('variantInput').addEventListener('keypress', (e) => {
+        input.focus();
+
+        cancelBtn.addEventListener('click', () => {
+          dialog.remove();
+          resolve(null);
+        });
+
+        okBtn.addEventListener('click', () => {
+          dialog.remove();
+          resolve(input.value);
+        });
+
+        input.addEventListener('keypress', (e) => {
           if (e.key === 'Enter') {
-            const val = document.getElementById('variantInput').value;
             dialog.remove();
-            resolve(val);
+            resolve(input.value);
+          }
+        });
+
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            dialog.remove();
+            resolve(null);
           }
         });
       });
