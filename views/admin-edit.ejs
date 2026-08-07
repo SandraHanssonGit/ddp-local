@@ -3043,16 +3043,13 @@
           return;
         }
 
-        const [styleNumber, variant] = selected.split('|');
-
-        // Remove the style select modal
+        // Just close the dialog - user can add serials later via Scan tab
         if (styleSelectModalElement) {
           styleSelectModalElement.remove();
           styleSelectModalElement = null;
         }
 
-        // Now show the add serials form for this style+batch combo
-        await showAddSerialsModal(batchId, styleNumber, variant || null);
+        showToast('✓ Style added to batch. Add serials via Scan tab.');
       } catch (err) {
         console.error('Error in proceedAddStyleToBatch:', err);
         showToast('Error: ' + err.message);
