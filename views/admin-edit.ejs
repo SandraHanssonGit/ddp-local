@@ -1703,8 +1703,8 @@
       }
     }
 
-    function addNewTopVariant(styleNumber) {
-      showCreateStyleForm(styleNumber, null, 'topp');
+    async function addNewTopVariant(styleNumber) {
+      await showCreateStyleForm(styleNumber, null, 'topp');
       document.getElementById('searchQuery').value = '';
     }
 
