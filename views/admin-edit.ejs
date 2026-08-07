@@ -948,7 +948,23 @@
         });
 
         document.getElementById('resultsListContainer').classList.remove('hidden');
-        status.textContent = `Found ${result.results.length} result(s)`;
+
+        // Check if we can add new variants
+        const styles = sorted.filter(r => r.result_type === 'style');
+        if (styles.length > 0 && isPartialStyleNum && !isStyleVariant) {
+          // We found styles for this style_number - check what type they are
+          const hasTopp = styles.some(s => s.variant);
+          const hasJeans = styles.some(s => !s.variant);
+
+          if (hasTopp && !hasJeans) {
+            // Only topps exist - offer to add new variant
+            const safeStyleNum = JSON.stringify(q);
+            status.innerHTML += `<div class="mt-3 text-sm"><button class="text-blue-600 hover:underline font-semibold" onclick='showCreateStyleForm(${safeStyleNum}, "", "topp"); document.getElementById("searchQuery").value="">➕ Add new variant for ${escapeHtml(q)}</button></div>`;
+          } else if (hasJeans && !hasTopp) {
+            // Only jeans exist - can't add topp
+            status.textContent += ` (Jeans - cannot add topps with this style number)`;
+          }
+        }
       } catch (err) {
         status.textContent = `Error: ${err.message}`;
         console.error('Search error:', err);
