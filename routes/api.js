@@ -605,9 +605,8 @@ router.get('/serials/:serial_number/full-data', (req, res) => {
     if (!serial) return res.status(404).json({ error: 'Serial not found' });
 
     db.get(`SELECT * FROM batches WHERE batch_id = ?`, [serial.batch_id], (err, batch) => {
-      const styleNumber = batch ? batch.style_number : null;
-
-      db.get(`SELECT * FROM styles WHERE style_number = ?`, [styleNumber], (err, style) => {
+      // style_number is on serials table now, not batches
+      db.get(`SELECT * FROM styles WHERE style_number = ?`, [serial.style_number], (err, style) => {
         db.all(`SELECT * FROM serial_data WHERE serial_id = ?`, [serial.id], (err, serialData) => {
           db.all(`SELECT * FROM events WHERE serial_id = ?`, [serial.id], (err, events) => {
             res.json({
