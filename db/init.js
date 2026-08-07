@@ -26,10 +26,14 @@ db.serialize(() => {
   `);
 
   // Styles table (style-level metadata)
+  // For jeans: style_number only, variant = NULL
+  // For topps: style_number + variant (e.g., 140929-B20)
   db.run(`
     CREATE TABLE IF NOT EXISTS styles (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      style_number TEXT UNIQUE NOT NULL,
+      style_number TEXT NOT NULL,
+      variant TEXT,
+      product_type TEXT DEFAULT 'jeans',
       product_name TEXT,
       description TEXT,
       care_instructions TEXT,
@@ -37,7 +41,8 @@ db.serialize(() => {
       size_material_composition TEXT,
       images TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(style_number, variant)
     )
   `);
 
@@ -250,12 +255,14 @@ const seedTestData = async () => {
     db.run(`INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)`,
       ['admin', hashedPassword2, 'admin']);
 
-    // Insert test style
+    // Insert test style (Jeans - no variant)
     db.run(`
-      INSERT OR IGNORE INTO styles (style_number, product_name, description, care_instructions, delivery_returns, size_material_composition)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT OR IGNORE INTO styles (style_number, variant, product_type, product_name, description, care_instructions, delivery_returns, size_material_composition)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       '114519',
+      null,
+      'jeans',
       'Lofty Lo',
       'A comfortable and durable low-rise jean with classic styling.',
       'Wash at 40°C with similar colors. Avoid bleach.',
