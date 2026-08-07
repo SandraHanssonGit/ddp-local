@@ -2126,26 +2126,37 @@
     async function saveProductInfo() {
       const styleNumber = currentData.style?.style?.style_number || document.getElementById('styleTitle')?.textContent?.trim();
       const isNewStyle = !currentData.style?.style?.style_number;
-      const selectedProductType = document.getElementById('productType')?.value?.trim().toLowerCase() || '';
-      const variantValue = document.getElementById('productVariant')?.value?.trim() || '';
+      const selectedProductType = (document.getElementById('productType')?.value || '').trim().toLowerCase();
+      const variantInput = document.getElementById('productVariant');
+      const variantValue = (variantInput?.value || '').trim();
 
       if (!styleNumber) {
-        showToast('Error: Style number not set');
+        showToast('❌ Style number not set');
         return;
       }
 
       if (!selectedProductType) {
-        showToast('Please select if this style is jeans or topp before saving');
+        showToast('❌ Please select Jeans or Topp');
         return;
       }
 
-      if (selectedProductType === 'topp' && !variantValue) {
-        showToast('Variant is required when creating a topp');
-        return;
+      // Strict validation: Topp MUST have variant
+      if (selectedProductType === 'topp') {
+        if (!variantValue || variantValue === 'null' || variantValue === 'undefined') {
+          showToast('❌ Variant is REQUIRED for Topp (e.g., B20, C01)');
+          variantInput?.focus();
+          return;
+        }
+        if (!/^[A-Za-z0-9-]+$/.test(variantValue)) {
+          showToast('❌ Variant: only letters, numbers, dashes allowed');
+          return;
+        }
       }
 
-      if (selectedProductType === 'topp' && !/^[A-Za-z0-9-]+$/.test(variantValue)) {
-        showToast('Variant must only contain letters, numbers or dashes');
+      // Strict validation: Jeans must NOT have variant
+      if (selectedProductType === 'jeans' && variantValue) {
+        showToast('❌ Jeans cannot have variants (should be empty)');
+        variantInput.value = '';
         return;
       }
 
