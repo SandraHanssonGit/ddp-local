@@ -483,6 +483,17 @@ router.get('/search', (req, res) => {
   });
 });
 
+// Get all variants for a style
+router.get('/styles/:style_number/variants', (req, res) => {
+  const { style_number } = req.params;
+
+  db.all(`SELECT DISTINCT variant FROM styles WHERE style_number = ?`, [style_number], (err, rows) => {
+    if (err) return res.status(400).json({ error: err.message });
+    const variants = rows ? rows.map(r => r.variant).filter(v => v !== null) : [];
+    res.json({ variants });
+  });
+});
+
 // Get full DPP data for a style
 router.get('/styles/:style_number/full-data', (req, res) => {
   const { style_number } = req.params;

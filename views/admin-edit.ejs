@@ -1704,33 +1704,83 @@
     }
 
     async function addNewTopVariant(styleNumber) {
-      await showCreateStyleForm(styleNumber, null, 'topp');
-      document.getElementById('searchQuery').value = '';
+      try {
+        // Fetch existing variants for this style
+        const res = await fetch(`/api/styles/${styleNumber}/variants`);
+        const data = await res.json();
+        const existingVariants = new Set(data.variants || []);
+
+        let validVariant = false;
+        let chosenVariant = null;
+
+        while (!validVariant) {
+          chosenVariant = prompt(`Enter variant name for ${styleNumber}:`);
+
+          if (chosenVariant === null) {
+            // User clicked cancel
+            return;
+          }
+
+          const trimmedVariant = chosenVariant.trim();
+
+          if (trimmedVariant === '') {
+            showToast('❌ Variant name cannot be empty.');
+            continue;
+          }
+
+          if (existingVariants.has(trimmedVariant)) {
+            showToast(`❌ Variant "${trimmedVariant}" already exists for style ${styleNumber}. Please choose another name.`);
+            continue;
+          }
+
+          validVariant = true;
+          chosenVariant = trimmedVariant;
+        }
+
+        // Variant is valid, open form
+        await showCreateStyleForm(styleNumber, chosenVariant, 'topp');
+        document.getElementById('searchQuery').value = '';
+      } catch (error) {
+        console.error('Error in addNewTopVariant:', error);
+        showToast('❌ Error checking variants. Please try again.');
+      }
     }
 
     async function showCreateStyleForm(styleNumber, variant = null, productType = '') {
       // For topps without a variant, ask user which variant to add
       if (productType === 'topp' && !variant) {
-        const promptVariant = prompt('Enter variant to add (e.g., B20, B21):', '');
-        if (!promptVariant) return; // User cancelled
+        try {
+          // Fetch existing variants for this style
+          const res = await fetch(`/api/styles/${styleNumber}/variants`);
+          const data = await res.json();
+          const existingVariants = new Set(data.variants || []);
 
-        // Check if this variant already exists
-        const searchQuery = `${styleNumber}-${promptVariant.toUpperCase()}`;
-        const searchRes = await authFetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
-        const searchData = await searchRes.json();
+          let validVariant = false;
 
-        const existingVariant = searchData.results?.find(r =>
-          r.result_type === 'style' &&
-          r.style_number === styleNumber &&
-          (r.variant || '').toUpperCase() === promptVariant.toUpperCase()
-        );
+          while (!validVariant) {
+            const promptVariant = prompt('Enter variant to add (e.g., B20, B21):', '');
+            if (!promptVariant) return; // User cancelled
 
-        if (existingVariant) {
-          showToast('❌ This variant already exists! Cannot overwrite it.');
+            const trimmedVariant = promptVariant.trim();
+
+            if (trimmedVariant === '') {
+              showToast('❌ Variant name cannot be empty.');
+              continue;
+            }
+
+            if (existingVariants.has(trimmedVariant)) {
+              showToast(`❌ Variant "${trimmedVariant}" already exists for style ${styleNumber}. Please choose another name.`);
+              continue;
+            }
+
+            validVariant = true;
+            variant = trimmedVariant;
+          }
+        } catch (error) {
+          console.error('Error checking variants:', error);
+          showToast('❌ Error checking variants. Please try again.');
           return;
         }
-
-        variant = promptVariant.toUpperCase();
       }
 
       document.getElementById('resultContainer').classList.remove('hidden');
