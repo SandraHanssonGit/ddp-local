@@ -2173,8 +2173,8 @@
         return;
       }
 
-      // Check if this variant already exists (for new topps)
-      if (isNewStyle && selectedProductType === 'topp' && variantValue) {
+      // Check if this variant already exists (for ALL topps, not just new ones)
+      if (selectedProductType === 'topp' && variantValue) {
         const searchQuery = `${styleNumber}-${variantValue.toUpperCase()}`;
         const searchRes = await authFetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
         const searchData = await searchRes.json();
@@ -2183,18 +2183,23 @@
         const existingVariant = searchData.results?.find(r =>
           r.result_type === 'style' &&
           r.style_number === styleNumber &&
-          r.variant === variantValue.toUpperCase()
+          (r.variant || '').toUpperCase() === variantValue.toUpperCase()
         );
 
         if (existingVariant) {
-          showToast('✏️ This variant already exists - opening in edit mode');
-          // Load the existing style in edit mode
-          await loadStyle(styleNumber);
-          // Scroll to product info section
-          setTimeout(() => {
-            document.querySelector('[id="productInfoView"]')?.scrollIntoView({ behavior: 'smooth' });
-          }, 300);
-          return;
+          if (isNewStyle) {
+            // For new styles, open the existing one in edit mode
+            showToast('✏️ This variant already exists - opening in edit mode');
+            await loadStyle(styleNumber);
+            setTimeout(() => {
+              document.querySelector('[id="productInfoView"]')?.scrollIntoView({ behavior: 'smooth' });
+            }, 300);
+            return;
+          } else if (currentData.style?.style?.variant !== variantValue.toUpperCase()) {
+            // For existing styles, prevent overwriting another variant
+            showToast('❌ This variant already exists! Cannot overwrite it.');
+            return;
+          }
         }
       }
 
