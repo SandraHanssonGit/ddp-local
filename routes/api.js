@@ -123,7 +123,7 @@ router.post('/serials/add', verifyToken, checkRole(['editor', 'admin', 'super_ad
   let inserted = 0;
   serials.forEach(serial_number => {
     db.run(
-      `INSERT INTO serials (batch_id, serial_number) VALUES (?, ?)`,
+      `INSERT INTO serials (batch_id, serial_number, variant) VALUES (?, ?, NULL)`,
       [batch_id, serial_number],
       function(err) {
         if (!err) {
@@ -182,14 +182,14 @@ router.post('/batch/import', verifyToken, checkRole(['editor', 'admin', 'super_a
       // Insert serials
       let inserted = 0;
       serials.forEach(serial => {
-        const { serial_number, style_number } = serial;
+        const { serial_number, style_number, variant } = serial;
         if (!style_number) {
           inserted++;
           return; // Skip if no style_number
         }
         db.run(
-          `INSERT INTO serials (batch_id, style_number, serial_number) VALUES (?, ?, ?)`,
-          [batch_id, style_number, serial_number],
+          `INSERT INTO serials (batch_id, style_number, variant, serial_number) VALUES (?, ?, ?, ?)`,
+          [batch_id, style_number, variant || null, serial_number],
           function(err) {
             if (!err) {
               // Auto-set condition to "new" for new serials
@@ -1319,8 +1319,8 @@ router.post('/scan', (req, res) => {
 
       // Check if serial already exists
       db.get(
-        `SELECT * FROM serials WHERE batch_id = ? AND serial_number = ? AND style_number = ?`,
-        [batch_id, serial_number, style_number],
+        `SELECT * FROM serials WHERE batch_id = ? AND serial_number = ? AND style_number = ? AND variant IS ?`,
+        [batch_id, serial_number, style_number, variant || null],
         (err, existingSerial) => {
           if (err) return res.status(400).json({ error: err.message });
 
@@ -1331,8 +1331,8 @@ router.post('/scan', (req, res) => {
 
           // Create new serial (lazy-load on first scan)
           db.run(
-            `INSERT INTO serials (batch_id, style_number, serial_number) VALUES (?, ?, ?)`,
-            [batch_id, style_number, serial_number],
+            `INSERT INTO serials (batch_id, style_number, variant, serial_number) VALUES (?, ?, ?, ?)`,
+            [batch_id, style_number, variant || null, serial_number],
             function(err) {
               if (err) return res.status(400).json({ error: err.message });
 

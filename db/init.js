@@ -130,6 +130,7 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       batch_id TEXT NOT NULL,
       style_number TEXT NOT NULL,
+      variant TEXT,
       serial_number TEXT UNIQUE NOT NULL,
       gtin TEXT,
       sgtin_numeric TEXT,
@@ -137,7 +138,8 @@ db.serialize(() => {
       rfid TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(batch_id) REFERENCES batches(batch_id),
-      FOREIGN KEY(style_number) REFERENCES styles(style_number)
+      FOREIGN KEY(style_number) REFERENCES styles(style_number),
+      UNIQUE(batch_id, style_number, variant)
     )
   `);
 
