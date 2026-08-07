@@ -2875,22 +2875,23 @@
 
     // Add Serials functions
     async function showAddSerialsModal(batchId, styleNumber, variant) {
-      console.log('showAddSerialsModal called, batchId:', batchId, 'styleNumber:', styleNumber, 'variant:', variant);
+      try {
+        console.log('showAddSerialsModal called, batchId:', batchId, 'styleNumber:', styleNumber, 'variant:', variant);
 
-      // If batchId not provided, use from currentData
-      if (!batchId) {
-        if (!currentData.batch || !currentData.batch.batch) {
-          showToast('Please select a batch first');
+        // If batchId not provided, use from currentData
+        if (!batchId) {
+          if (!currentData.batch || !currentData.batch.batch) {
+            showToast('Please select a batch first');
+            return;
+          }
+          batchId = currentData.batch.batch.batch_id;
+        }
+
+        addSerialsForBatchId = batchId;
+        if (!addSerialsForBatchId) {
+          showToast('Batch ID not found');
           return;
         }
-        batchId = currentData.batch.batch.batch_id;
-      }
-
-      addSerialsForBatchId = batchId;
-      if (!addSerialsForBatchId) {
-        showToast('Batch ID not found');
-        return;
-      }
 
       // Load all available styles from the batch's existing serials
       const existingStyles = new Set();
@@ -2924,13 +2925,13 @@
         } else if (existingStyles.size === 1) {
           styleSelect.value = Array.from(existingStyles)[0];
         }
+        document.getElementById('addSerialsForBatch').textContent = `Add serials to: ${addSerialsForBatchId}`;
+        document.getElementById('addSerialsInput').value = '';
+        document.getElementById('addSerialsModal').classList.remove('hidden');
       } catch (err) {
-        console.error('Error loading styles:', err);
+        console.error('Error in showAddSerialsModal:', err);
+        showToast('Error: ' + err.message);
       }
-
-      document.getElementById('addSerialsForBatch').textContent = `Add serials to: ${addSerialsForBatchId}`;
-      document.getElementById('addSerialsInput').value = '';
-      document.getElementById('addSerialsModal').classList.remove('hidden');
     }
 
     function closeAddSerialsModal() {
@@ -3033,24 +3034,29 @@
     }
 
     async function proceedAddStyleToBatch(batchId) {
-      const selectEl = document.getElementById('styleSelectForBatch');
-      const selected = selectEl.value;
+      try {
+        const selectEl = document.getElementById('styleSelectForBatch');
+        const selected = selectEl.value;
 
-      if (!selected) {
-        showToast('❌ Please select a style');
-        return;
+        if (!selected) {
+          showToast('❌ Please select a style');
+          return;
+        }
+
+        const [styleNumber, variant] = selected.split('|');
+
+        // Remove the style select modal
+        if (styleSelectModalElement) {
+          styleSelectModalElement.remove();
+          styleSelectModalElement = null;
+        }
+
+        // Now show the add serials form for this style+batch combo
+        await showAddSerialsModal(batchId, styleNumber, variant || null);
+      } catch (err) {
+        console.error('Error in proceedAddStyleToBatch:', err);
+        showToast('Error: ' + err.message);
       }
-
-      const [styleNumber, variant] = selected.split('|');
-
-      // Remove the style select modal
-      if (styleSelectModalElement) {
-        styleSelectModalElement.remove();
-        styleSelectModalElement = null;
-      }
-
-      // Now show the add serials form for this style+batch combo
-      showAddSerialsModal(batchId, styleNumber, variant || null);
     }
 
     // Delete Batch function
