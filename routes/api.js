@@ -1263,4 +1263,84 @@ router.post('/track-public-view', (req, res) => {
   );
 });
 
+// Scan endpoint - lazy-load serials on first scan
+router.post('/scan', (req, res) => {
+  const { style_number, variant, batch_id, serial_number } = req.body;
+
+  // Validate required fields
+  if (!style_number || !batch_id || !serial_number) {
+    return res.status(400).json({ error: 'Missing required fields: style_number, batch_id, serial_number' });
+  }
+
+  // Verify style exists
+  db.get(`SELECT * FROM styles WHERE style_number = ? AND variant IS ?`, [style_number, variant || null], (err, style) => {
+    if (err) return res.status(400).json({ error: err.message });
+    if (!style) {
+      return res.status(404).json({ error: `Style ${style_number}${variant ? '-' + variant : ''} not found` });
+    }
+
+    // Verify batch exists
+    db.get(`SELECT * FROM batches WHERE batch_id = ?`, [batch_id], (err, batch) => {
+      if (err) return res.status(400).json({ error: err.message });
+      if (!batch) {
+        return res.status(404).json({ error: `Batch ${batch_id} not found` });
+      }
+
+      // Check if serial already exists
+      db.get(
+        `SELECT * FROM serials WHERE batch_id = ? AND serial_number = ? AND style_number = ?`,
+        [batch_id, serial_number, style_number],
+        (err, existingSerial) => {
+          if (err) return res.status(400).json({ error: err.message });
+
+          if (existingSerial) {
+            // Serial already exists - return it
+            return returnSerialData(existingSerial.id, res);
+          }
+
+          // Create new serial (lazy-load on first scan)
+          db.run(
+            `INSERT INTO serials (batch_id, style_number, serial_number) VALUES (?, ?, ?)`,
+            [batch_id, style_number, serial_number],
+            function(err) {
+              if (err) return res.status(400).json({ error: err.message });
+
+              // Add event for scan
+              db.run(
+                `INSERT INTO events (serial_id, event_type, event_data) VALUES (?, ?, ?)`,
+                [this.lastID, 'scanned', JSON.stringify({ action: 'first_scan', timestamp: new Date().toISOString() })],
+                (err) => {
+                  if (err) console.error('Error adding scan event:', err);
+                  returnSerialData(this.lastID, res, true);
+                }
+              );
+            }
+          );
+        }
+      );
+    });
+  });
+
+  function returnSerialData(serialId, res, isNew = false) {
+    db.get(`SELECT * FROM serials WHERE id = ?`, [serialId], (err, serial) => {
+      if (err) return res.status(400).json({ error: err.message });
+
+      db.get(`SELECT * FROM styles WHERE style_number = ? AND variant IS ?`, [serial.style_number, serial.variant || null], (err, style) => {
+        if (err) return res.status(400).json({ error: err.message });
+
+        db.get(`SELECT * FROM batches WHERE batch_id = ?`, [serial.batch_id], (err, batch) => {
+          if (err) return res.status(400).json({ error: err.message });
+
+          res.json({
+            created: isNew,
+            serial: serial,
+            style: style,
+            batch: batch
+          });
+        });
+      });
+    });
+  }
+});
+
 module.exports = router;
