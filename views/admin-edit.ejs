@@ -934,10 +934,10 @@
             : `Serial: ${r.serial_number} (Style: ${r.style_number})`;
 
           const isTopp = r.result_type === 'style' && (r.product_type || '').toLowerCase() === 'topp';
-          const addVariantBtn = isTopp ? `<button class="ml-2 px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700" onclick="event.stopPropagation(); showCreateStyleForm('${r.style_number}', '', 'topp'); document.getElementById('searchQuery').value=''">➕ Add variant</button>` : '';
+          const addVariantBtn = isTopp ? `<button class="ml-2 px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 add-variant-btn" data-style-number="${r.style_number}">➕ Add variant</button>` : '';
 
           return `<div class="w-full p-3 bg-gray-50 rounded border border-gray-200 flex items-center justify-between hover:bg-blue-50">
-            <button class="flex-1 text-left" data-result-index="${idx}">
+            <button class="flex-1 text-left result-btn" data-result-index="${idx}">
               <p class="font-semibold">${displayName}</p>
               <p class="text-xs text-gray-500">Type: ${r.result_type}</p>
             </button>
@@ -945,11 +945,21 @@
           </div>`;
         }).join('');
 
-        // Add click handlers to results
-        resultsList.querySelectorAll('button:not([class*="bg-blue"])').forEach((btn, idx) => {
+        // Add click handlers to main results
+        resultsList.querySelectorAll('button.result-btn').forEach((btn, idx) => {
           btn.addEventListener('click', () => {
             const r = sorted[idx];
             loadData(r.result_type, r.style_number || '', r.batch_id || '', r.serial_number || '');
+          });
+        });
+
+        // Add click handlers to "Add variant" buttons
+        resultsList.querySelectorAll('button.add-variant-btn').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const styleNumber = btn.dataset.styleNumber;
+            showCreateStyleForm(styleNumber, null, 'topp');
+            document.getElementById('searchQuery').value = '';
           });
         });
 
