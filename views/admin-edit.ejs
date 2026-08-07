@@ -877,7 +877,15 @@
         }
 
         if (!result.results || result.results.length === 0) {
-          status.textContent = `No styles found for "${q}"`;
+          // Offer to create new style
+          if (isStyleVariant) {
+            const [styleNum, variant] = q.split('-');
+            status.innerHTML = `No style found. <button class="text-blue-600 hover:underline font-semibold" onclick="showCreateStyleForm('${styleNum}', '${variant}'); document.getElementById('searchQuery').value=''">Create new ${q}</button>`;
+          } else if (isExactStyleNum || isPartialStyleNum) {
+            status.innerHTML = `No style found. <button class="text-blue-600 hover:underline font-semibold" onclick="showCreateStyleForm('${q}', null); document.getElementById('searchQuery').value=''">Create new style ${q}</button>`;
+          } else {
+            status.textContent = `No results found for "${q}"`;
+          }
           document.getElementById('resultsListContainer').classList.add('hidden');
           document.getElementById('recentBatchesContainer').classList.remove('hidden');
           document.getElementById('resultContainer').classList.add('hidden');
@@ -2036,6 +2044,8 @@
 
     async function saveProductInfo() {
       const styleNumber = currentData.style?.style?.style_number || document.getElementById('styleTitle').textContent;
+      const isNewStyle = !currentData.style?.style?.style_number;
+
       const res = await authFetch(`/api/styles/${styleNumber}/product-info`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2051,9 +2061,14 @@
       });
       const result = await res.json();
       if (res.ok) {
-        showToast('Saved!');
+        showToast('✓ Style saved!');
         toggleEdit('product-info');
-        await loadStyle(styleNumber);
+        // For new styles, load data after a short delay to ensure DB is ready
+        if (isNewStyle) {
+          setTimeout(() => loadStyle(styleNumber), 500);
+        } else {
+          await loadStyle(styleNumber);
+        }
       } else {
         showToast('Error: ' + result.error);
       }
