@@ -3043,13 +3043,16 @@
           return;
         }
 
-        // Just close the dialog - user can add serials later via Scan tab
+        // Close the dialog
         if (styleSelectModalElement) {
           styleSelectModalElement.remove();
           styleSelectModalElement = null;
         }
 
-        showToast('✓ Style added to batch. Add serials via Scan tab.');
+        showToast('✓ Style added to batch!');
+
+        // Reload batch to show new style
+        await loadBatch(batchId);
       } catch (err) {
         console.error('Error in proceedAddStyleToBatch:', err);
         showToast('Error: ' + err.message);
