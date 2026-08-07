@@ -421,15 +421,15 @@ router.get('/search', (req, res) => {
     params = [searchTerm, searchTerm];
   } else if (type === 'batch') {
     query = `
-      SELECT 'batch' as result_type, b.style_number, NULL as product_name, b.batch_id, NULL as serial_number
+      SELECT 'batch' as result_type, NULL as style_number, NULL as product_name, b.batch_id, NULL as serial_number
       FROM batches b
-      WHERE b.batch_id LIKE ? OR b.style_number LIKE ?
+      WHERE b.batch_id LIKE ?
       LIMIT 20
     `;
-    params = [searchTerm, searchTerm];
+    params = [searchTerm];
   } else if (type === 'sgtin') {
     query = `
-      SELECT 'serial' as result_type, b.style_number, NULL as product_name, b.batch_id, s.serial_number
+      SELECT 'serial' as result_type, s.style_number, NULL as product_name, b.batch_id, s.serial_number
       FROM serials s
       LEFT JOIN batches b ON s.batch_id = b.batch_id
       WHERE s.sgtin_numeric LIKE ? OR s.sgtin_uri LIKE ? OR s.serial_number LIKE ?
@@ -443,17 +443,17 @@ router.get('/search', (req, res) => {
       FROM styles s
       WHERE s.style_number LIKE ? OR s.product_name LIKE ?
       UNION
-      SELECT 'batch' as result_type, b.style_number, NULL as product_name, b.batch_id, NULL as serial_number
+      SELECT 'batch' as result_type, NULL as style_number, NULL as product_name, b.batch_id, NULL as serial_number
       FROM batches b
-      WHERE b.batch_id LIKE ? OR b.style_number LIKE ?
+      WHERE b.batch_id LIKE ?
       UNION
-      SELECT 'serial' as result_type, b.style_number, NULL as product_name, b.batch_id, s.serial_number
+      SELECT 'serial' as result_type, s.style_number, NULL as product_name, b.batch_id, s.serial_number
       FROM serials s
       LEFT JOIN batches b ON s.batch_id = b.batch_id
       WHERE s.serial_number LIKE ? OR s.sgtin_numeric LIKE ? OR s.sgtin_uri LIKE ?
       LIMIT 30
     `;
-    params = [searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm];
+    params = [searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm];
   }
 
   db.all(query, params, (err, rows) => {

@@ -806,10 +806,10 @@
         const resultsList = document.getElementById('resultsList');
         resultsList.innerHTML = sorted.map((r, idx) => {
           const displayName = r.result_type === 'style'
-            ? `${r.style_number} - ${r.product_name || 'No name'}`
+            ? `${r.style_number}${r.variant ? '-' + r.variant : ''} - ${r.product_name || 'No name'}`
             : r.result_type === 'batch'
-            ? `Batch: ${r.batch_id} (Style: ${r.style_number})`
-            : `Serial: ${r.serial_number} (Batch: ${r.batch_id})`;
+            ? `Batch: ${r.batch_id}`
+            : `Serial: ${r.serial_number} (Style: ${r.style_number})`;
 
           return `<button class="w-full text-left p-3 bg-gray-50 rounded hover:bg-blue-50 border border-gray-200" data-result-index="${idx}">
             <p class="font-semibold">${displayName}</p>
