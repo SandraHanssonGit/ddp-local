@@ -327,6 +327,17 @@ router.post('/styles/:style_number/product-info', verifyToken, checkRole(['edito
     return res.status(400).json({ error: 'Invalid style number' });
   }
   const { product_type, variant, product_name, description, care_instructions, delivery_returns, size_material_composition } = req.body;
+  const normalizedProductType = String(product_type || 'jeans').trim().toLowerCase();
+  const trimmedVariant = typeof variant === 'string' ? variant.trim() : '';
+  const normalizedVariant = normalizedProductType === 'topp' ? trimmedVariant.toUpperCase() : null;
+
+  if (normalizedProductType === 'topp' && !normalizedVariant) {
+    return res.status(400).json({ error: 'Variant is required when product type is topp' });
+  }
+
+  if (normalizedProductType === 'topp' && !/^[A-Z0-9-]+$/.test(normalizedVariant)) {
+    return res.status(400).json({ error: 'Variant must only contain letters, numbers or dashes' });
+  }
 
   db.run(`
     INSERT INTO styles (style_number, variant, product_type, product_name, description, care_instructions, delivery_returns, size_material_composition)
@@ -339,9 +350,14 @@ router.post('/styles/:style_number/product-info', verifyToken, checkRole(['edito
       delivery_returns = excluded.delivery_returns,
       size_material_composition = excluded.size_material_composition,
       updated_at = CURRENT_TIMESTAMP
-  `, [style_number, variant || null, product_type || 'jeans', product_name, description, care_instructions, delivery_returns, size_material_composition], function(err) {
-    if (err) return res.status(400).json({ error: err.message });
-    res.json({ success: true, style_number, variant });
+  `, [style_number, normalizedVariant, normalizedProductType, product_name, description, care_instructions, delivery_returns, size_material_composition], function(err) {
+    if (err) {
+      if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+        return res.status(409).json({ error: 'This variant already exists for this style' });
+      }
+      return res.status(400).json({ error: err.message });
+    }
+    res.json({ success: true, style_number, variant: normalizedVariant });
   });
 });
 

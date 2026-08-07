@@ -289,13 +289,15 @@
                 <div>
                   <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Product Type</label>
                   <select id="productType" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+                    <option value="">Select product type</option>
                     <option value="jeans">Jeans</option>
                     <option value="topp">Topp</option>
                   </select>
                 </div>
                 <div>
-                  <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Variant (e.g., B20)</label>
-                  <input type="text" id="productVariant" placeholder="B20, C02, etc." class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+                  <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Variant</label>
+                  <input type="text" id="productVariant" placeholder="Required for topps (e.g. B20)" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+                  <p class="text-xs text-gray-500 mt-2">Use a variant for topps. Jeans can be left empty.</p>
                 </div>
               </div>
               <div>
@@ -826,6 +828,15 @@
       loadDashboard();
     });
 
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     // Search handler function
     async function handleSearch(e) {
       e.preventDefault();
@@ -843,9 +854,10 @@
 
       try {
         // Handle different search patterns
-        const isExactStyleNum = /^\d+$/.test(q) && q.length >= 6;
-        const isStyleVariant = /^\d+-[A-Z]\d+$/.test(q);
-        const isPartialStyleNum = /^\d+$/.test(q) && q.length === 6;
+        const isNumeric = /^\d+$/.test(q);
+        const isExactStyleNum = isNumeric && q.length >= 4;
+        const isStyleVariant = /^\d+-[A-Z0-9-]+$/.test(q);
+        const isPartialStyleNum = isNumeric && q.length >= 4;
 
         let res, result;
 
@@ -857,17 +869,20 @@
           // Filter to only variants matching the query
           if (result.results) {
             result.results = result.results.filter(r =>
-              r.result_type === 'style' && r.variant === variant
+              r.result_type === 'style' && (r.variant || '').toUpperCase() === variant.toUpperCase()
             );
           }
         } else if (isPartialStyleNum) {
-          // Search for all variants of a style (e.g., "114519" shows all variants)
+          // Search for styles that start with the numeric query, including exact style numbers like 123456
           res = await authFetch(`/api/search?q=${encodeURIComponent(q)}`);
           result = await res.json();
-          // Filter to only styles matching the partial number
+          // Filter to only styles matching the numeric query
           if (result.results) {
             result.results = result.results.filter(r =>
-              r.result_type === 'style' && r.style_number === q
+              r.result_type === 'style' && (
+                r.style_number === q ||
+                String(r.style_number || '').startsWith(q)
+              )
             );
           }
         } else {
@@ -880,9 +895,12 @@
           // Offer to create new style
           if (isStyleVariant) {
             const [styleNum, variant] = q.split('-');
-            status.innerHTML = `No style found. <button class="text-blue-600 hover:underline font-semibold" onclick="showCreateStyleForm('${styleNum}', '${variant}'); document.getElementById('searchQuery').value=''">Create new ${q}</button>`;
+            const safeStyleNum = JSON.stringify(styleNum);
+            const safeVariant = JSON.stringify(variant);
+            status.innerHTML = `No style found. <div class="inline-flex items-center gap-2 flex-wrap mt-2"><select id="createStyleTypeSelect" class="border border-gray-300 rounded px-3 py-2 text-sm"><option value="">Select type</option><option value="jeans">Jeans</option><option value="topp">Topp</option></select><button class="text-blue-600 hover:underline font-semibold" onclick='showCreateStyleForm(${safeStyleNum}, ${safeVariant}, document.getElementById("createStyleTypeSelect").value); document.getElementById("searchQuery").value=""'>Create new ${escapeHtml(q)}</button></div>`;
           } else if (isExactStyleNum || isPartialStyleNum) {
-            status.innerHTML = `No style found. <button class="text-blue-600 hover:underline font-semibold" onclick="showCreateStyleForm('${q}', null); document.getElementById('searchQuery').value=''">Create new style ${q}</button>`;
+            const safeStyleNum = JSON.stringify(q);
+            status.innerHTML = `No style found. <div class="inline-flex items-center gap-2 flex-wrap mt-2"><select id="createStyleTypeSelect" class="border border-gray-300 rounded px-3 py-2 text-sm"><option value="">Select type</option><option value="jeans">Jeans</option><option value="topp">Topp</option></select><button class="text-blue-600 hover:underline font-semibold" onclick='showCreateStyleForm(${safeStyleNum}, null, document.getElementById("createStyleTypeSelect").value); document.getElementById("searchQuery").value=""'>Create new style ${escapeHtml(q)}</button></div>`;
           } else {
             status.textContent = `No results found for "${q}"`;
           }
@@ -1538,10 +1556,30 @@
     newStyleForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const styleNumber = document.getElementById('newStyleNumber').value;
+      const productType = document.getElementById('newProductType')?.value?.trim().toLowerCase() || '';
+      const variantValue = document.getElementById('newProductVariant')?.value?.trim() || '';
+
+      if (!productType) {
+        alert('Please select if this style is jeans or topp');
+        return;
+      }
+
+      if (productType === 'topp' && !variantValue) {
+        alert('Variant is required when creating a topp');
+        return;
+      }
+
+      if (productType === 'topp' && !/^[A-Za-z0-9-]+$/.test(variantValue)) {
+        alert('Variant must only contain letters, numbers or dashes');
+        return;
+      }
+
       const res = await authFetch(`/api/styles/${styleNumber}/product-info`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          product_type: productType,
+          variant: productType === 'topp' ? variantValue.toUpperCase() : null,
           product_name: document.getElementById('newProductName').value,
           description: document.getElementById('newDescription').value,
           care_instructions: document.getElementById('newCare').value,
@@ -1638,7 +1676,7 @@
       }
     }
 
-    async function showCreateStyleForm(styleNumber, variant = null) {
+    async function showCreateStyleForm(styleNumber, variant = null, productType = '') {
       document.getElementById('resultContainer').classList.remove('hidden');
       document.getElementById('styleSection').classList.remove('hidden');
       document.getElementById('batchSection').classList.add('hidden');
@@ -1647,11 +1685,17 @@
       const displayTitle = variant ? `${styleNumber}-${variant}` : styleNumber;
       document.getElementById('styleTitle').textContent = displayTitle;
       document.getElementById('fetchNudieBtn').style.display = 'block';
-      document.getElementById('productInfoView').innerHTML = '<p class="text-gray-500">New style - fill in details below</p>';
+
+      // Determine type: jeans if no variant, topp if variant provided
+      const finalProductType = variant ? 'topp' : (productType || 'jeans');
+      const typeLabel = finalProductType === 'topp' ? 'Topp' : 'Jeans';
+      document.getElementById('productInfoView').innerHTML = `<p class="text-gray-500">New ${typeLabel} - fill in details below</p>`;
 
       // Show edit form with all fields
-      document.getElementById('productType').value = variant ? 'topp' : 'jeans';
+      document.getElementById('productType').value = finalProductType;
+      document.getElementById('productType').disabled = true; // Lock type for new styles
       document.getElementById('productVariant').value = variant || '';
+      updateVariantRequirements();
       document.getElementById('productName').value = '';
       document.getElementById('productDescription').value = '';
       document.getElementById('productCare').value = '';
@@ -1661,6 +1705,7 @@
 
       // Set style number for saving
       document.getElementById('styleNumber').dataset.styleNumber = styleNumber;
+      document.getElementById('styleNumber').dataset.variant = variant || '';
     }
 
     async function loadStyle(styleNumber) {
@@ -2042,12 +2087,47 @@
       if (editEl) editEl.classList.toggle('hidden');
     }
 
+    function updateVariantRequirements() {
+      const productType = document.getElementById('productType')?.value?.trim().toLowerCase() || '';
+      const variantInput = document.getElementById('productVariant');
+      const variantLabel = document.querySelector('#productInfoEdit label[for="productVariant"]');
+
+      if (!variantInput) return;
+
+      const isTopp = productType === 'topp';
+      variantInput.required = isTopp;
+      variantInput.placeholder = isTopp ? 'Required for topps (e.g. B20)' : 'Optional for jeans';
+
+      if (variantLabel) {
+        variantLabel.textContent = isTopp ? 'Variant (required for topps)' : 'Variant';
+      }
+    }
+
+    document.getElementById('productType')?.addEventListener('change', updateVariantRequirements);
+
     async function saveProductInfo() {
       const styleNumber = currentData.style?.style?.style_number || document.getElementById('styleTitle')?.textContent?.trim();
       const isNewStyle = !currentData.style?.style?.style_number;
+      const selectedProductType = document.getElementById('productType')?.value?.trim().toLowerCase() || '';
+      const variantValue = document.getElementById('productVariant')?.value?.trim() || '';
 
       if (!styleNumber) {
         showToast('Error: Style number not set');
+        return;
+      }
+
+      if (!selectedProductType) {
+        showToast('Please select if this style is jeans or topp before saving');
+        return;
+      }
+
+      if (selectedProductType === 'topp' && !variantValue) {
+        showToast('Variant is required when creating a topp');
+        return;
+      }
+
+      if (selectedProductType === 'topp' && !/^[A-Za-z0-9-]+$/.test(variantValue)) {
+        showToast('Variant must only contain letters, numbers or dashes');
         return;
       }
 
@@ -2055,8 +2135,8 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          product_type: document.getElementById('productType')?.value || 'jeans',
-          variant: document.getElementById('productVariant')?.value || null,
+          product_type: selectedProductType,
+          variant: selectedProductType === 'topp' ? variantValue.toUpperCase() : null,
           product_name: document.getElementById('productName').value,
           description: document.getElementById('productDescription').value,
           care_instructions: document.getElementById('productCare').value,
