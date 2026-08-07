@@ -1706,6 +1706,30 @@
     }
 
     async function showCreateStyleForm(styleNumber, variant = null, productType = '') {
+      // For topps without a variant, ask user which variant to add
+      if (productType === 'topp' && !variant) {
+        const promptVariant = prompt('Enter variant to add (e.g., B20, B21):', '');
+        if (!promptVariant) return; // User cancelled
+
+        // Check if this variant already exists
+        const searchQuery = `${styleNumber}-${promptVariant.toUpperCase()}`;
+        const searchRes = await authFetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
+        const searchData = await searchRes.json();
+
+        const existingVariant = searchData.results?.find(r =>
+          r.result_type === 'style' &&
+          r.style_number === styleNumber &&
+          (r.variant || '').toUpperCase() === promptVariant.toUpperCase()
+        );
+
+        if (existingVariant) {
+          showToast('❌ This variant already exists! Cannot overwrite it.');
+          return;
+        }
+
+        variant = promptVariant.toUpperCase();
+      }
+
       document.getElementById('resultContainer').classList.remove('hidden');
       document.getElementById('styleSection').classList.remove('hidden');
       document.getElementById('batchSection').classList.add('hidden');
@@ -1726,6 +1750,7 @@
       document.getElementById('productType').value = finalProductType;
       document.getElementById('productType').disabled = true; // Lock type for new styles
       document.getElementById('productVariant').value = variant || '';
+      document.getElementById('productVariant').disabled = !!variant; // Lock variant if provided
       updateVariantRequirements();
       document.getElementById('productName').value = '';
       document.getElementById('productDescription').value = '';
