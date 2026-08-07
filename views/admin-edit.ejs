@@ -2249,7 +2249,7 @@
     document.getElementById('productType')?.addEventListener('change', updateVariantRequirements);
 
     async function saveProductInfo() {
-      const styleNumber = currentData.style?.style?.style_number || document.getElementById('styleTitle')?.textContent?.trim();
+      const styleNumber = currentData.style?.style?.style_number || document.getElementById('styleNumber')?.dataset?.styleNumber;
       const isNewStyle = !currentData.style?.style?.style_number;
       const selectedProductType = (document.getElementById('productType')?.value || '').trim().toLowerCase();
       const variantInput = document.getElementById('productVariant');
