@@ -2291,10 +2291,10 @@
         return;
       }
 
-      // Strict validation: Topp MUST have variant
+      // Strict validation: Tops MUST have variant
       if (selectedProductType === 'topp') {
         if (!variantValue || variantValue === 'null' || variantValue === 'undefined') {
-          showToast('❌ Variant is REQUIRED for Topp (e.g., B20, C01)');
+          showToast('❌ Variant is REQUIRED for Tops (e.g., B20, C01)');
           variantInput?.focus();
           return;
         }
