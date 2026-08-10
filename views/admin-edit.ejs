@@ -841,7 +841,7 @@
     function createStyleFromSearch(styleNum, variant, isVariant) {
       const typeVal = document.getElementById('createStyleTypeSelect').value;
       if (!typeVal) {
-        showToast('❌ Please select Jeans or Topp');
+        showToast('❌ Please select Jeans or Tops');
         return;
       }
       const finalVariant = isVariant ? variant : null;
@@ -1846,7 +1846,7 @@
       document.getElementById('productType').disabled = true; // Lock type for new styles
       const variantValue = (variant && variant !== 'null' && variant !== 'undefined') ? variant : '';
       document.getElementById('productVariant').value = variantValue;
-      // Disable variant for Jeans (always), or lock it if Topp has variant provided
+      // Disable variant for Jeans (always), or lock it if Tops has variant provided
       document.getElementById('productVariant').disabled = (finalProductType === 'jeans') || !!variantValue;
       updateVariantRequirements();
       document.getElementById('productName').value = '';
@@ -2268,7 +2268,7 @@
       variantInput.placeholder = isTopp ? 'Required for Tops (e.g. B20)' : 'Not used for jeans';
 
       if (variantLabel) {
-        variantLabel.textContent = isTopp ? 'Variant (required for topps)' : 'Variant (Tops only)';
+        variantLabel.textContent = isTopp ? 'Variant (required for Tops)' : 'Variant (Tops only)';
       }
     }
 
@@ -2287,7 +2287,7 @@
       }
 
       if (!selectedProductType) {
-        showToast('❌ Please select Jeans or Topp');
+        showToast('❌ Please select Jeans or Tops');
         return;
       }
 
