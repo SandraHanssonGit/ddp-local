@@ -291,7 +291,7 @@
                   <select id="productType" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
                     <option value="">Select product type</option>
                     <option value="jeans">Jeans</option>
-                    <option value="topp">Topp</option>
+                    <option value="topp">Tops</option>
                   </select>
                 </div>
                 <div>
@@ -907,9 +907,9 @@
           // Offer to create new style
           if (isStyleVariant) {
             const [styleNum, variant] = q.split('-');
-            status.innerHTML = `No style found. <div class="inline-flex items-center gap-2 flex-wrap mt-2"><select id="createStyleTypeSelect" class="border border-gray-300 rounded px-3 py-2 text-sm"><option value="">Select type</option><option value="jeans">Jeans</option><option value="topp">Topp</option></select><button class="text-blue-600 hover:underline font-semibold cursor-pointer" onclick="createStyleFromSearch('${styleNum}', '${variant}', true)">Create new ${escapeHtml(q)}</button></div>`;
+            status.innerHTML = `No style found. <div class="inline-flex items-center gap-2 flex-wrap mt-2"><select id="createStyleTypeSelect" class="border border-gray-300 rounded px-3 py-2 text-sm"><option value="">Select type</option><option value="jeans">Jeans</option><option value="topp">Tops</option></select><button class="text-blue-600 hover:underline font-semibold cursor-pointer" onclick="createStyleFromSearch('${styleNum}', '${variant}', true)">Create new ${escapeHtml(q)}</button></div>`;
           } else if (isExactStyleNum || isPartialStyleNum) {
-            status.innerHTML = `No style found. <div class="inline-flex items-center gap-2 flex-wrap mt-2"><select id="createStyleTypeSelect" class="border border-gray-300 rounded px-3 py-2 text-sm"><option value="">Select type</option><option value="jeans">Jeans</option><option value="topp">Topp</option></select><button class="text-blue-600 hover:underline font-semibold cursor-pointer" onclick="createStyleFromSearch('${q}', null, false)">Create new style ${escapeHtml(q)}</button></div>`;
+            status.innerHTML = `No style found. <div class="inline-flex items-center gap-2 flex-wrap mt-2"><select id="createStyleTypeSelect" class="border border-gray-300 rounded px-3 py-2 text-sm"><option value="">Select type</option><option value="jeans">Jeans</option><option value="topp">Tops</option></select><button class="text-blue-600 hover:underline font-semibold cursor-pointer" onclick="createStyleFromSearch('${q}', null, false)">Create new style ${escapeHtml(q)}</button></div>`;
           } else {
             status.textContent = `No results found for "${q}"`;
           }
@@ -1838,7 +1838,7 @@
 
       // Use product type chosen by user, or infer from variant if creating from variant search
       const finalProductType = productType || (variant ? 'topp' : 'jeans');
-      const typeLabel = finalProductType === 'topp' ? 'Topp' : 'Jeans';
+      const typeLabel = finalProductType === 'topp' ? 'Tops' : 'Jeans';
       document.getElementById('productInfoView').innerHTML = `<p class="text-gray-500">New ${typeLabel} - fill in details below</p>`;
 
       // Show edit form with all fields
@@ -1854,7 +1854,10 @@
       document.getElementById('productCare').value = '';
       document.getElementById('productDelivery').value = '';
       document.getElementById('productMaterial').value = '';
-      toggleEdit('product-info');
+
+      // Open edit form automatically for new styles
+      document.getElementById('productInfoView').classList.add('hidden');
+      document.getElementById('productInfoEdit').classList.remove('hidden');
 
       // Set style number for saving
       document.getElementById('styleNumber').dataset.styleNumber = styleNumber;
