@@ -70,46 +70,52 @@ db.serialize(() => {
     )
   `);
 
-  // Transparency data (DPP - per style)
+  // Transparency data (DPP - per style+variant)
   db.run(`
     CREATE TABLE IF NOT EXISTS transparency_data (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      style_number TEXT UNIQUE NOT NULL,
+      style_number TEXT NOT NULL,
+      variant TEXT,
       suppliers_chain TEXT,
       certifications TEXT,
       environmental_data TEXT,
       social_data TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY(style_number) REFERENCES styles(style_number)
+      FOREIGN KEY(style_number) REFERENCES styles(style_number),
+      UNIQUE(style_number, variant)
     )
   `);
 
-  // Nudie values (repair, trade-in, etc - per style)
+  // Nudie values (repair, trade-in, etc - per style+variant)
   db.run(`
     CREATE TABLE IF NOT EXISTS nudie_values (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      style_number TEXT UNIQUE NOT NULL,
+      style_number TEXT NOT NULL,
+      variant TEXT,
       repair_info TEXT,
       trade_in_info TEXT,
       partner_links TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY(style_number) REFERENCES styles(style_number)
+      FOREIGN KEY(style_number) REFERENCES styles(style_number),
+      UNIQUE(style_number, variant)
     )
   `);
 
-  // Storytelling (per style)
+  // Storytelling (per style+variant)
   db.run(`
     CREATE TABLE IF NOT EXISTS storytelling (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      style_number TEXT UNIQUE NOT NULL,
+      style_number TEXT NOT NULL,
+      variant TEXT,
       summary TEXT,
       content TEXT,
       links TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY(style_number) REFERENCES styles(style_number)
+      FOREIGN KEY(style_number) REFERENCES styles(style_number),
+      UNIQUE(style_number, variant)
     )
   `);
 

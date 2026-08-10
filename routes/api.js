@@ -364,58 +364,58 @@ router.post('/styles/:style_number/product-info', verifyToken, checkRole(['edito
 // Save transparency data
 router.post('/styles/:style_number/transparency', validateStyleNumber, verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { style_number } = req.params;
-  const { suppliers_chain, certifications, environmental_data, social_data } = req.body;
+  const { variant, suppliers_chain, certifications, environmental_data, social_data } = req.body;
 
   db.run(`
-    INSERT INTO transparency_data (style_number, suppliers_chain, certifications, environmental_data, social_data)
-    VALUES (?, ?, ?, ?, ?)
-    ON CONFLICT(style_number) DO UPDATE SET
+    INSERT INTO transparency_data (style_number, variant, suppliers_chain, certifications, environmental_data, social_data)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(style_number, variant) DO UPDATE SET
       suppliers_chain = excluded.suppliers_chain,
       certifications = excluded.certifications,
       environmental_data = excluded.environmental_data,
       social_data = excluded.social_data,
       updated_at = CURRENT_TIMESTAMP
-  `, [style_number, JSON.stringify(suppliers_chain), JSON.stringify(certifications), JSON.stringify(environmental_data), JSON.stringify(social_data)], function(err) {
+  `, [style_number, variant || null, JSON.stringify(suppliers_chain), JSON.stringify(certifications), JSON.stringify(environmental_data), JSON.stringify(social_data)], function(err) {
     if (err) return res.status(400).json({ error: err.message });
-    res.json({ success: true, style_number });
+    res.json({ success: true, style_number, variant: variant || null });
   });
 });
 
 // Save Nudie values
 router.post('/styles/:style_number/nudie-values', validateStyleNumber, verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { style_number } = req.params;
-  const { repair_info, trade_in_info, partner_links } = req.body;
+  const { variant, repair_info, trade_in_info, partner_links } = req.body;
 
   db.run(`
-    INSERT INTO nudie_values (style_number, repair_info, trade_in_info, partner_links)
-    VALUES (?, ?, ?, ?)
-    ON CONFLICT(style_number) DO UPDATE SET
+    INSERT INTO nudie_values (style_number, variant, repair_info, trade_in_info, partner_links)
+    VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT(style_number, variant) DO UPDATE SET
       repair_info = excluded.repair_info,
       trade_in_info = excluded.trade_in_info,
       partner_links = excluded.partner_links,
       updated_at = CURRENT_TIMESTAMP
-  `, [style_number, repair_info, trade_in_info, JSON.stringify(partner_links)], function(err) {
+  `, [style_number, variant || null, repair_info, trade_in_info, JSON.stringify(partner_links)], function(err) {
     if (err) return res.status(400).json({ error: err.message });
-    res.json({ success: true, style_number });
+    res.json({ success: true, style_number, variant: variant || null });
   });
 });
 
 // Save storytelling
 router.post('/styles/:style_number/storytelling', validateStyleNumber, verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { style_number } = req.params;
-  const { summary, content, links } = req.body;
+  const { variant, summary, content, links } = req.body;
 
   db.run(`
-    INSERT INTO storytelling (style_number, summary, content, links)
-    VALUES (?, ?, ?, ?)
-    ON CONFLICT(style_number) DO UPDATE SET
+    INSERT INTO storytelling (style_number, variant, summary, content, links)
+    VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT(style_number, variant) DO UPDATE SET
       summary = excluded.summary,
       content = excluded.content,
       links = excluded.links,
       updated_at = CURRENT_TIMESTAMP
-  `, [style_number, summary, content, JSON.stringify(links)], function(err) {
+  `, [style_number, variant || null, summary, content, JSON.stringify(links)], function(err) {
     if (err) return res.status(400).json({ error: err.message });
-    res.json({ success: true, style_number });
+    res.json({ success: true, style_number, variant: variant || null });
   });
 });
 
@@ -494,18 +494,19 @@ router.get('/styles/:style_number/variants', (req, res) => {
   });
 });
 
-// Get full DPP data for a style
+// Get full DPP data for a style (with variant support)
 router.get('/styles/:style_number/full-data', (req, res) => {
   const { style_number } = req.params;
+  const { variant } = req.query;
 
-  db.get(`SELECT * FROM styles WHERE style_number = ?`, [style_number], (err, style) => {
+  db.get(`SELECT * FROM styles WHERE style_number = ? AND variant = ?`, [style_number, variant || null], (err, style) => {
     if (err) return res.status(400).json({ error: err.message });
     if (!style) return res.status(404).json({ error: 'Style not found' });
 
-    db.all(`SELECT * FROM transparency_data WHERE style_number = ?`, [style_number], (err, transparency) => {
-      db.all(`SELECT * FROM nudie_values WHERE style_number = ?`, [style_number], (err, nudieValues) => {
-        db.all(`SELECT * FROM storytelling WHERE style_number = ?`, [style_number], (err, storytelling) => {
-          db.all(`SELECT DISTINCT b.*, (SELECT COUNT(*) FROM serials WHERE batch_id = b.batch_id AND style_number = ?) as serial_count FROM batches b INNER JOIN serials s ON b.batch_id = s.batch_id WHERE s.style_number = ?`, [style_number, style_number], (err, batches) => {
+    db.all(`SELECT * FROM transparency_data WHERE style_number = ? AND variant = ?`, [style_number, variant || null], (err, transparency) => {
+      db.all(`SELECT * FROM nudie_values WHERE style_number = ? AND variant = ?`, [style_number, variant || null], (err, nudieValues) => {
+        db.all(`SELECT * FROM storytelling WHERE style_number = ? AND variant = ?`, [style_number, variant || null], (err, storytelling) => {
+          db.all(`SELECT DISTINCT b.*, (SELECT COUNT(*) FROM serials WHERE batch_id = b.batch_id AND style_number = ? AND variant = ?) as serial_count FROM batches b INNER JOIN serials s ON b.batch_id = s.batch_id WHERE s.style_number = ? AND s.variant = ?`, [style_number, variant || null, style_number, variant || null], (err, batches) => {
             let transData = null;
             if (transparency && transparency.length > 0) {
               const trans = transparency[0];

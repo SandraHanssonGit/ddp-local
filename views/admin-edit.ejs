@@ -942,7 +942,7 @@
             ? `Batch: ${r.batch_id}`
             : `Serial: ${r.serial_number} (Style: ${r.style_number})`;
 
-          return `<button class="w-full text-left p-3 bg-gray-50 rounded hover:bg-blue-50 border border-gray-200 result-btn cursor-pointer" onclick="loadData('${r.result_type}', '${r.style_number || ''}', '${r.batch_id || ''}', '${r.serial_number || ''}')">
+          return `<button class="w-full text-left p-3 bg-gray-50 rounded hover:bg-blue-50 border border-gray-200 result-btn cursor-pointer" onclick="loadData('${r.result_type}', '${r.style_number || ''}', '${r.batch_id || ''}', '${r.serial_number || ''}', '${r.variant || ''}')">
             <p class="font-semibold">${displayName}</p>
             <p class="text-xs text-gray-500">Type: ${r.result_type}</p>
           </button>`;
@@ -1675,7 +1675,7 @@
     });
 
 
-    function loadData(type, styleNumber, batchId, serialNumber) {
+    function loadData(type, styleNumber, batchId, serialNumber, variant = null) {
       // Switch to Design tab
       switchTab('edit');
       // Show result container and hide recent batches
@@ -1683,7 +1683,7 @@
       document.getElementById('recentBatchesContainer').classList.add('hidden');
 
       if (type === 'style') {
-        loadStyle(styleNumber);
+        loadStyle(styleNumber, variant);
       } else if (type === 'batch') {
         loadBatch(batchId);
       } else if (type === 'serial') {
@@ -1858,17 +1858,19 @@
       document.getElementById('styleNumber').dataset.variant = variant || '';
     }
 
-    async function loadStyle(styleNumber) {
+    async function loadStyle(styleNumber, variant = null) {
       document.getElementById('styleSection').classList.remove('hidden');
       document.getElementById('batchSection').classList.add('hidden');
       document.getElementById('serialSection').classList.add('hidden');
       document.getElementById('fetchNudieBtn').style.display = 'none';
 
-      const res = await authFetch(`/api/styles/${styleNumber}/full-data`);
+      const variantParam = variant ? `?variant=${encodeURIComponent(variant)}` : '';
+      const res = await authFetch(`/api/styles/${styleNumber}/full-data${variantParam}`);
       const data = await res.json();
       currentData.style = data;
 
-      document.getElementById('styleTitle').textContent = styleNumber;
+      const displayTitle = data.style.variant ? `${styleNumber}-${data.style.variant}` : styleNumber;
+      document.getElementById('styleTitle').textContent = displayTitle;
 
       // Load style images
       await loadStyleImages(styleNumber);
@@ -2366,10 +2368,12 @@
     async function saveTransparency() {
       try {
         const styleNumber = currentData.style.style.style_number;
+        const variant = currentData.style.style.variant || null;
         const res = await authFetch(`/api/styles/${styleNumber}/transparency`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            variant: variant,
             suppliers_chain: JSON.parse(document.getElementById('transparencySuppliers').value || '{}'),
             certifications: JSON.parse(document.getElementById('transparencyCerts').value || '{}'),
             environmental_data: JSON.parse(document.getElementById('transparencyEnv').value || '{}'),
@@ -2391,10 +2395,12 @@
 
     async function saveNudieValues() {
       const styleNumber = currentData.style.style.style_number;
+      const variant = currentData.style.style.variant || null;
       const res = await authFetch(`/api/styles/${styleNumber}/nudie-values`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          variant: variant,
           repair_info: document.getElementById('nudieRepair').value
         })
       });
@@ -2411,10 +2417,12 @@
     async function saveStorytelling() {
       try {
         const styleNumber = currentData.style.style.style_number;
+        const variant = currentData.style.style.variant || null;
         const res = await authFetch(`/api/styles/${styleNumber}/storytelling`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            variant: variant,
             summary: document.getElementById('storytellinSummary').value,
             content: document.getElementById('storytellingContent').value,
             links: JSON.parse(document.getElementById('storytellingLinks').value || '[]')
