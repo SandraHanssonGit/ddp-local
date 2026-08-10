@@ -218,30 +218,25 @@
       <div id="searchStatus" class="mt-4 text-sm text-gray-600"></div>
     </div>
 
-    <!-- RECENT BATCHES (DEFAULT) -->
-    <div id="recentBatchesContainer" class="bg-white rounded-lg shadow-md p-8 mb-8">
-      <h2 class="text-2xl font-bold text-gray-900 mb-6">Recent Batches</h2>
+    <!-- DEFAULT VIEW: Recent Items Grid (always visible, hides when form opens) -->
+    <div id="recentBatchesContainer" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2"></div>
+      <div class="lg:col-span-1 space-y-6">
+        <!-- Recent Batches -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Batches</h3>
+          <div id="defaultRecentBatches" class="space-y-2 text-sm">
+            <div class="text-gray-500">Loading...</div>
+          </div>
+        </div>
 
-      <!-- DESKTOP TABLE VIEW -->
-      <div class="hidden md:block overflow-x-auto">
-        <table class="w-full border-collapse text-sm">
-          <thead>
-            <tr class="border-b border-gray-300">
-              <th class="text-left py-2 px-3 font-bold text-gray-900">Batch ID</th>
-              <th class="text-left py-2 px-3 font-bold text-gray-900">Style</th>
-              <th class="text-left py-2 px-3 font-bold text-gray-900">Serials</th>
-              <th class="text-left py-2 px-3 font-bold text-gray-900">Partner</th>
-            </tr>
-          </thead>
-          <tbody id="recentBatchesTable">
-            <tr><td colspan="4" class="px-3 py-2 text-center text-gray-500">Loading...</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- MOBILE CARD VIEW -->
-      <div id="recentBatchesCards" class="md:hidden space-y-3">
-        <!-- Cards will be rendered here -->
+        <!-- Recent Styles -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Styles</h3>
+          <div id="defaultRecentStyles" class="space-y-2 text-sm">
+            <div class="text-gray-500">Loading...</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1989,18 +1984,17 @@
       try {
         const res = await fetch('/api/recent/batches');
         const data = await res.json();
-        const container = document.getElementById('sidebarRecentBatches');
-
-        if (data.batches && data.batches.length > 0) {
-          container.innerHTML = data.batches.map(b => `
+        const html = data.batches && data.batches.length > 0
+          ? data.batches.map(b => `
             <button onclick="loadData('batch', '', '${b.batch_id}')" class="w-full text-left p-2 bg-gray-50 rounded hover:bg-blue-50 border border-gray-200 cursor-pointer">
               <div class="font-semibold text-gray-900">${b.batch_id}</div>
               <div class="text-xs text-gray-500">${b.serial_count} serials</div>
             </button>
-          `).join('');
-        } else {
-          container.innerHTML = '<div class="text-gray-500">No batches yet</div>';
-        }
+          `).join('')
+          : '<div class="text-gray-500">No batches yet</div>';
+
+        document.getElementById('sidebarRecentBatches').innerHTML = html;
+        document.getElementById('defaultRecentBatches').innerHTML = html;
       } catch (err) {
         console.error('Error loading recent batches:', err);
       }
@@ -2010,18 +2004,17 @@
       try {
         const res = await fetch('/api/recent/styles');
         const data = await res.json();
-        const container = document.getElementById('sidebarRecentStyles');
-
-        if (data.styles && data.styles.length > 0) {
-          container.innerHTML = data.styles.map(s => `
+        const html = data.styles && data.styles.length > 0
+          ? data.styles.map(s => `
             <button onclick="loadData('style', '${s.style_number}', '', '', '${s.variant || ''}')" class="w-full text-left p-2 bg-gray-50 rounded hover:bg-blue-50 border border-gray-200 cursor-pointer">
               <div class="font-semibold text-gray-900">${s.style_number}${s.variant ? '-' + s.variant : ''}</div>
               <div class="text-xs text-gray-500">${s.product_type === 'topp' ? 'Tops' : 'Jeans'}</div>
             </button>
-          `).join('');
-        } else {
-          container.innerHTML = '<div class="text-gray-500">No styles yet</div>';
-        }
+          `).join('')
+          : '<div class="text-gray-500">No styles yet</div>';
+
+        document.getElementById('sidebarRecentStyles').innerHTML = html;
+        document.getElementById('defaultRecentStyles').innerHTML = html;
       } catch (err) {
         console.error('Error loading recent styles:', err);
       }
