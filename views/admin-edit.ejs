@@ -942,7 +942,8 @@
             ? `Batch: ${r.batch_id}`
             : `Serial: ${r.serial_number} (Style: ${r.style_number})`;
 
-          return `<button class="w-full text-left p-3 bg-gray-50 rounded hover:bg-blue-50 border border-gray-200 result-btn cursor-pointer" onclick="loadData('${r.result_type}', '${r.style_number || ''}', '${r.batch_id || ''}', '${r.serial_number || ''}', '${r.variant || ''}')">
+          const variantParam = r.variant ? `, '${r.variant}'` : '';
+          return `<button class="w-full text-left p-3 bg-gray-50 rounded hover:bg-blue-50 border border-gray-200 result-btn cursor-pointer" onclick="loadData('${r.result_type}', '${r.style_number || ''}', '${r.batch_id || ''}', '${r.serial_number || ''}'${variantParam})">
             <p class="font-semibold">${displayName}</p>
             <p class="text-xs text-gray-500">Type: ${r.result_type}</p>
           </button>`;

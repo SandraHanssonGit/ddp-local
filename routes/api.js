@@ -498,15 +498,20 @@ router.get('/styles/:style_number/variants', (req, res) => {
 router.get('/styles/:style_number/full-data', (req, res) => {
   const { style_number } = req.params;
   const { variant } = req.query;
+  const normalizedVariant = variant && variant !== '' ? variant : null;
 
-  db.get(`SELECT * FROM styles WHERE style_number = ? AND variant = ?`, [style_number, variant || null], (err, style) => {
+  const whereVariant = normalizedVariant ? 'AND variant = ?' : 'AND variant IS NULL';
+  const variantParam = normalizedVariant || null;
+
+  db.get(`SELECT * FROM styles WHERE style_number = ? ${whereVariant}`, [style_number, ...(normalizedVariant ? [normalizedVariant] : [])], (err, style) => {
     if (err) return res.status(400).json({ error: err.message });
     if (!style) return res.status(404).json({ error: 'Style not found' });
 
-    db.all(`SELECT * FROM transparency_data WHERE style_number = ? AND variant = ?`, [style_number, variant || null], (err, transparency) => {
-      db.all(`SELECT * FROM nudie_values WHERE style_number = ? AND variant = ?`, [style_number, variant || null], (err, nudieValues) => {
-        db.all(`SELECT * FROM storytelling WHERE style_number = ? AND variant = ?`, [style_number, variant || null], (err, storytelling) => {
-          db.all(`SELECT DISTINCT b.*, (SELECT COUNT(*) FROM serials WHERE batch_id = b.batch_id AND style_number = ? AND variant = ?) as serial_count FROM batches b INNER JOIN serials s ON b.batch_id = s.batch_id WHERE s.style_number = ? AND s.variant = ?`, [style_number, variant || null, style_number, variant || null], (err, batches) => {
+    db.all(`SELECT * FROM transparency_data WHERE style_number = ? ${whereVariant}`, [style_number, ...(normalizedVariant ? [normalizedVariant] : [])], (err, transparency) => {
+      db.all(`SELECT * FROM nudie_values WHERE style_number = ? ${whereVariant}`, [style_number, ...(normalizedVariant ? [normalizedVariant] : [])], (err, nudieValues) => {
+        db.all(`SELECT * FROM storytelling WHERE style_number = ? ${whereVariant}`, [style_number, ...(normalizedVariant ? [normalizedVariant] : [])], (err, storytelling) => {
+          const whereVariantBatch = normalizedVariant ? 'AND s.variant = ?' : 'AND s.variant IS NULL';
+          db.all(`SELECT DISTINCT b.*, (SELECT COUNT(*) FROM serials WHERE batch_id = b.batch_id AND style_number = ? ${whereVariantBatch}) as serial_count FROM batches b INNER JOIN serials s ON b.batch_id = s.batch_id WHERE s.style_number = ? ${whereVariantBatch}`, [style_number, ...(normalizedVariant ? [normalizedVariant] : []), style_number, ...(normalizedVariant ? [normalizedVariant] : [])], (err, batches) => {
             let transData = null;
             if (transparency && transparency.length > 0) {
               const trans = transparency[0];
