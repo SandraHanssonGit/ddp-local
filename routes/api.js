@@ -1376,4 +1376,33 @@ router.post('/scan', (req, res) => {
   }
 });
 
+// Get recent batches (5 latest)
+router.get('/recent/batches', (req, res) => {
+  db.all(`
+    SELECT batch_id, partner_name, created_at,
+           (SELECT COUNT(*) FROM serials WHERE batch_id = batches.batch_id AND deleted_at IS NULL) as serial_count
+    FROM batches
+    WHERE deleted_at IS NULL
+    ORDER BY created_at DESC
+    LIMIT 5
+  `, (err, batches) => {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ batches: batches || [] });
+  });
+});
+
+// Get recent styles (5 latest)
+router.get('/recent/styles', (req, res) => {
+  db.all(`
+    SELECT DISTINCT style_number, variant, product_type, product_name, created_at
+    FROM styles
+    WHERE deleted_at IS NULL
+    ORDER BY created_at DESC
+    LIMIT 5
+  `, (err, styles) => {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ styles: styles || [] });
+  });
+});
+
 module.exports = router;
