@@ -1829,9 +1829,9 @@
       document.getElementById('batchSection').classList.add('hidden');
       document.getElementById('serialSection').classList.add('hidden');
 
-      // Only show variant in title if it's a real value (not null, undefined, or "null")
-      const hasVariant = variant && variant !== 'null' && variant !== 'undefined';
-      const displayTitle = hasVariant ? `${styleNumber}-${variant}` : styleNumber;
+      // Only show variant in title if it's a real value (not null, undefined, or "null" string)
+      const cleanVariant = (variant && variant !== 'null' && variant !== 'undefined') ? variant : null;
+      const displayTitle = cleanVariant ? `${styleNumber}-${cleanVariant}` : styleNumber;
       document.getElementById('styleTitle').textContent = displayTitle;
       document.getElementById('fetchNudieBtn').style.display = 'block';
 
@@ -1843,8 +1843,9 @@
       // Show edit form with all fields
       document.getElementById('productType').value = finalProductType;
       document.getElementById('productType').disabled = true; // Lock type for new styles
-      document.getElementById('productVariant').value = variant || '';
-      document.getElementById('productVariant').disabled = !!variant; // Lock variant if provided
+      const variantValue = (variant && variant !== 'null' && variant !== 'undefined') ? variant : '';
+      document.getElementById('productVariant').value = variantValue;
+      document.getElementById('productVariant').disabled = !!variantValue; // Lock variant if provided
       updateVariantRequirements();
       document.getElementById('productName').value = '';
       document.getElementById('productDescription').value = '';
@@ -1894,7 +1895,8 @@
       document.getElementById('productDelivery').value = style.delivery_returns || '';
       document.getElementById('productMaterial').value = style.size_material_composition || '';
       if (document.getElementById('productVariant')) {
-        document.getElementById('productVariant').value = style.variant || '';
+        const variantVal = (style.variant && style.variant !== 'null') ? style.variant : '';
+        document.getElementById('productVariant').value = variantVal;
       }
       if (document.getElementById('productType')) {
         document.getElementById('productType').value = style.product_type || 'jeans';
