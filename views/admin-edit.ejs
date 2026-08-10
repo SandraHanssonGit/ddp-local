@@ -1835,8 +1835,8 @@
       document.getElementById('styleTitle').textContent = displayTitle;
       document.getElementById('fetchNudieBtn').style.display = 'block';
 
-      // Determine type: jeans if no variant, topp if variant provided
-      const finalProductType = variant ? 'topp' : (productType || 'jeans');
+      // Use product type chosen by user, or infer from variant if creating from variant search
+      const finalProductType = productType || (variant ? 'topp' : 'jeans');
       const typeLabel = finalProductType === 'topp' ? 'Topp' : 'Jeans';
       document.getElementById('productInfoView').innerHTML = `<p class="text-gray-500">New ${typeLabel} - fill in details below</p>`;
 
