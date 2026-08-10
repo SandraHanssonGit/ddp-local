@@ -296,8 +296,8 @@
                 </div>
                 <div>
                   <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Variant</label>
-                  <input type="text" id="productVariant" placeholder="Required for topps (e.g. B20)" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
-                  <p class="text-xs text-gray-500 mt-2">Required for topps only. Jeans cannot have variants.</p>
+                  <input type="text" id="productVariant" placeholder="Required for Tops (e.g. B20)" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+                  <p class="text-xs text-gray-500 mt-2">Required for Tops only. Jeans cannot have variants.</p>
                 </div>
               </div>
               <div>
@@ -962,7 +962,7 @@
           const hasJeans = styles.some(s => (s.product_type || '').toLowerCase() === 'jeans');
 
           if (hasTopp && !hasJeans) {
-            // Only topps exist - offer to add new variant
+            // Only Tops exist - offer to add new variant
             status.innerHTML += `<div class="mt-3 text-sm"><button class="text-blue-600 hover:underline font-semibold" onclick="addNewTopVariant('${q}')">➕ Add new variant for ${escapeHtml(q)}</button></div>`;
           }
           // If only jeans exist - no action needed, just show the results
@@ -1786,7 +1786,7 @@
     }
 
     async function showCreateStyleForm(styleNumber, variant = null, productType = '') {
-      // For topps without a variant, ask user which variant to add
+      // For Tops without a variant, ask user which variant to add
       if (productType === 'topp' && !variant) {
         try {
           // Fetch existing variants for this style
@@ -2260,10 +2260,10 @@
 
       const isTopp = productType === 'topp';
       variantInput.required = isTopp;
-      variantInput.placeholder = isTopp ? 'Required for topps (e.g. B20)' : 'Not used for jeans';
+      variantInput.placeholder = isTopp ? 'Required for Tops (e.g. B20)' : 'Not used for jeans';
 
       if (variantLabel) {
-        variantLabel.textContent = isTopp ? 'Variant (required for topps)' : 'Variant (topps only)';
+        variantLabel.textContent = isTopp ? 'Variant (required for topps)' : 'Variant (Tops only)';
       }
     }
 
@@ -2306,7 +2306,7 @@
         return;
       }
 
-      // Check if this variant already exists (for ALL topps, not just new ones)
+      // Check if this variant already exists (for ALL Tops, not just new ones)
       if (selectedProductType === 'topp' && variantValue) {
         const searchQuery = `${styleNumber}-${variantValue.toUpperCase()}`;
         const searchRes = await authFetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
