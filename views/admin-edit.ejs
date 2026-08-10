@@ -297,7 +297,7 @@
                 <div>
                   <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Variant</label>
                   <input type="text" id="productVariant" placeholder="Required for topps (e.g. B20)" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
-                  <p class="text-xs text-gray-500 mt-2">Use a variant for topps. Jeans can be left empty.</p>
+                  <p class="text-xs text-gray-500 mt-2">Required for topps only. Jeans cannot have variants.</p>
                 </div>
               </div>
               <div>
@@ -2260,10 +2260,10 @@
 
       const isTopp = productType === 'topp';
       variantInput.required = isTopp;
-      variantInput.placeholder = isTopp ? 'Required for topps (e.g. B20)' : 'Optional for jeans';
+      variantInput.placeholder = isTopp ? 'Required for topps (e.g. B20)' : 'Not used for jeans';
 
       if (variantLabel) {
-        variantLabel.textContent = isTopp ? 'Variant (required for topps)' : 'Variant';
+        variantLabel.textContent = isTopp ? 'Variant (required for topps)' : 'Variant (jeans only)';
       }
     }
 
