@@ -1845,7 +1845,8 @@
       document.getElementById('productType').disabled = true; // Lock type for new styles
       const variantValue = (variant && variant !== 'null' && variant !== 'undefined') ? variant : '';
       document.getElementById('productVariant').value = variantValue;
-      document.getElementById('productVariant').disabled = !!variantValue; // Lock variant if provided
+      // Disable variant for Jeans (always), or lock it if Topp has variant provided
+      document.getElementById('productVariant').disabled = (finalProductType === 'jeans') || !!variantValue;
       updateVariantRequirements();
       document.getElementById('productName').value = '';
       document.getElementById('productDescription').value = '';
@@ -1897,6 +1898,9 @@
       if (document.getElementById('productVariant')) {
         const variantVal = (style.variant && style.variant !== 'null') ? style.variant : '';
         document.getElementById('productVariant').value = variantVal;
+        // Disable variant for Jeans, lock it if Topp has variant
+        const productType = style.product_type || 'jeans';
+        document.getElementById('productVariant').disabled = (productType === 'jeans') || !!variantVal;
       }
       if (document.getElementById('productType')) {
         document.getElementById('productType').value = style.product_type || 'jeans';
