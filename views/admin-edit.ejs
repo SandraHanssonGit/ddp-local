@@ -3182,8 +3182,8 @@
         if (saveRes.ok) {
           showToast('✓ Batch details saved!');
           document.getElementById('batchDetailsModal').remove();
-          // Now open add serials dialog for the new style
-          showAddSerialsModal(batchId, styleNumber, variant || null);
+          // Reload batch to show updates
+          await loadBatch(batchId);
         } else {
           showToast('Error saving batch details');
         }
