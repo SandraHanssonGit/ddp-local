@@ -663,7 +663,7 @@
           <input type="text" id="copyBatchNewId" placeholder="e.g., 114519-BATCH002" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
         </div>
         <div class="flex gap-2">
-          <button onclick="closeCopyBatchModal()" class="flex-1 bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
+          <button onclick="closeCopyBatchModal()" class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
             Cancel
           </button>
           <button onclick="performCopyBatch()" class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
@@ -680,7 +680,7 @@
       <h2 class="text-2xl font-semibold text-gray-900 mb-4">Delete Event</h2>
       <p class="text-sm text-gray-600 mb-6">Are you sure you want to delete this event? This action cannot be undone.</p>
       <div class="flex gap-2">
-        <button onclick="closeDeleteEventModal()" class="flex-1 bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
+        <button onclick="closeDeleteEventModal()" class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
           Cancel
         </button>
         <button id="confirmDeleteEventBtn" class="flex-1 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
@@ -707,7 +707,7 @@
           <textarea id="addSerialsInput" rows="5" placeholder="114519-001-AA, 114519-001-AB, 114519-001-AC..." class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900 text-sm font-mono"></textarea>
         </div>
         <div class="flex gap-2">
-          <button onclick="closeAddSerialsModal()" class="flex-1 bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
+          <button onclick="closeAddSerialsModal()" class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
             Cancel
           </button>
           <button onclick="performAddSerials()" class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
@@ -729,7 +729,7 @@
           <p class="text-xs text-gray-500 mt-2">Paste the product URL from nudiejeans.com</p>
         </div>
         <div class="flex gap-2">
-          <button onclick="closeFetchNudieModal()" class="flex-1 bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
+          <button onclick="closeFetchNudieModal()" class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
             Cancel
           </button>
           <button onclick="performFetchNudie()" class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
@@ -769,7 +769,7 @@
           <textarea id="newBatchSerials" rows="3" placeholder="114519-001-AA, 114519-001-AB, 114519-001-AC..." class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900 text-sm"></textarea>
         </div>
         <div class="flex gap-2">
-          <button onclick="closeNewBatchModal()" class="flex-1 bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
+          <button onclick="closeNewBatchModal()" class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
             Cancel
           </button>
           <button onclick="performNewBatch()" class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
@@ -1727,8 +1727,8 @@
             ${errorMsg ? `<div class="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm mb-4">${errorMsg}</div>` : ''}
             <input type="text" id="variantInput" class="w-full border border-gray-300 rounded px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., B20, B21" />
             <div class="flex gap-2 justify-end">
-              <button type="button" class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300" id="cancelBtn">Cancel</button>
-              <button type="button" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" id="okBtn">OK</button>
+              <button type="button" class="px-4 py-2 text-white bg-gray-900 rounded hover:bg-gray-800" id="cancelBtn">Cancel</button>
+              <button type="button" class="px-4 py-2 bg-gray-900 text-white rounded hover:bg-gray-800" id="okBtn">OK</button>
             </div>
           </div>
         `;
@@ -3082,8 +3082,8 @@
               ${styles.map(s => `<option value="${s.style_number}|${s.variant || ''}">${s.style_number}${s.variant ? '-' + s.variant : ''} - ${s.product_name || 'No name'}</option>`).join('')}
             </select>
             <div class="flex gap-2 justify-end">
-              <button type="button" class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300" onclick="document.getElementById('styleSelectModal').remove(); styleSelectModalElement = null;">Cancel</button>
-              <button type="button" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" onclick="proceedAddStyleToBatch('${batchId}')">Continue</button>
+              <button type="button" class="px-4 py-2 text-white bg-gray-900 rounded hover:bg-gray-800" onclick="document.getElementById('styleSelectModal').remove(); styleSelectModalElement = null;">Cancel</button>
+              <button type="button" class="px-4 py-2 bg-gray-900 text-white rounded hover:bg-gray-800" onclick="proceedAddStyleToBatch('${batchId}')">Continue</button>
             </div>
           </div>
         `;
