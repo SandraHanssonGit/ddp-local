@@ -615,7 +615,7 @@ router.get('/batches/:batch_id/style-composition', (req, res) => {
 });
 
 // Get full DPP data for a batch (with all serials)
-// Get batch with metadata
+// Get batch with metadata and style data
 router.get('/batches/:batch_id', (req, res) => {
   const { batch_id } = req.params;
 
@@ -624,7 +624,9 @@ router.get('/batches/:batch_id', (req, res) => {
     if (!batch) return res.status(404).json({ error: 'Batch not found' });
 
     db.all(`SELECT * FROM batch_data WHERE batch_id = ?`, [batch_id], (err, batch_data) => {
-      res.json({ batch, batch_data: batch_data || [] });
+      db.all(`SELECT style_number, variant, composition FROM batch_style_data WHERE batch_id = ?`, [batch_id], (err, batch_style_data) => {
+        res.json({ batch, batch_data: batch_data || [], batch_style_data: batch_style_data || [] });
+      });
     });
   });
 });

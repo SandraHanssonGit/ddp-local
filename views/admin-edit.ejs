@@ -2092,6 +2092,22 @@
         serialsByStyle[key].serials.push(s);
       });
 
+      // Also include styles from batch_style_data that may not have serials yet
+      if (data.batch_style_data && data.batch_style_data.length > 0) {
+        data.batch_style_data.forEach(bsd => {
+          const key = `${bsd.style_number}${bsd.variant ? '-' + bsd.variant : ''}`;
+          if (!serialsByStyle[key]) {
+            // Style exists in batch_style_data but has no serials yet
+            serialsByStyle[key] = {
+              style_number: bsd.style_number,
+              variant: bsd.variant,
+              serials: [],
+              composition: bsd.composition
+            };
+          }
+        });
+      }
+
       const stylesList = Object.values(serialsByStyle).map(item => {
         const styleKey = `${item.style_number}${item.variant ? '-' + item.variant : ''}`;
         const serialsTable = `
