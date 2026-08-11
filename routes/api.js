@@ -589,17 +589,25 @@ router.post('/batch/metadata', verifyToken, checkRole(['editor', 'admin', 'super
   });
 });
 
-// Save batch style composition (overstöra style-level composition för denna batch)
+// Save batch style composition (delete old, insert new to avoid NULL UNIQUE issues)
 router.post('/batches/:batch_id/style-composition', verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { batch_id } = req.params;
   const { style_number, variant, composition } = req.body;
 
+  // Delete old record with same batch_id, style_number, variant
   db.run(`
-    INSERT OR REPLACE INTO batch_style_data (batch_id, style_number, variant, composition, updated_at)
-    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-  `, [batch_id, style_number, variant || null, composition], (err) => {
+    DELETE FROM batch_style_data
+    WHERE batch_id = ? AND style_number = ? AND (variant = ? OR (variant IS NULL AND ? IS NULL))
+  `, [batch_id, style_number, variant || null, variant || null], (err) => {
     if (err) return res.status(400).json({ error: err.message });
-    res.json({ success: true });
+
+    // Insert new record
+    db.run(`
+      INSERT INTO batch_style_data (batch_id, style_number, variant, composition, created_at, updated_at)
+      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `, [batch_id, style_number, variant || null, composition], (err) => {
+      if (err) return res.status(400).json({ error: err.message });
+      res.json({ success: true });
   });
 });
 
