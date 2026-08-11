@@ -47,14 +47,16 @@ db.serialize(() => {
   `);
 
   // Style images (separate table for easier management)
+  // Supports variant for topps (e.g., style_number='101011', variant='B25')
   db.run(`
     CREATE TABLE IF NOT EXISTS style_images (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       style_number TEXT NOT NULL,
+      variant TEXT,
       image_data LONGTEXT,
       image_name TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY(style_number) REFERENCES styles(style_number)
+      UNIQUE(style_number, variant)
     )
   `);
 

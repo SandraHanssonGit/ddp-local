@@ -671,26 +671,31 @@ router.get('/serials/:serial_number/full-data', (req, res) => {
   });
 });
 
-// Get style images
+// Get style images (with variant support)
 router.get('/styles/:style_number/images', (req, res) => {
   const { style_number } = req.params;
-  db.all(`SELECT id, image_name, image_data FROM style_images WHERE style_number = ? ORDER BY created_at DESC`, [style_number], (err, rows) => {
+  const { variant } = req.query;
+
+  const variantClause = variant ? 'AND variant = ?' : 'AND variant IS NULL';
+  const params = variant ? [style_number, variant] : [style_number];
+
+  db.all(`SELECT id, image_name, image_data, variant FROM style_images WHERE style_number = ? ${variantClause} ORDER BY created_at DESC`, params, (err, rows) => {
     if (err) return res.status(400).json({ error: err.message });
     res.json(rows || []);
   });
 });
 
-// Upload style image
+// Upload style image (with variant support)
 router.post('/styles/:style_number/image', validateStyleNumber, validateImageUpload, verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { style_number } = req.params;
-  const { image_data, image_name } = req.body;
+  const { image_data, image_name, variant } = req.body;
 
   if (!image_data) {
     return res.status(400).json({ error: 'image_data required' });
   }
 
-  db.run(`INSERT INTO style_images (style_number, image_data, image_name) VALUES (?, ?, ?)`,
-    [style_number, image_data, image_name], function(err) {
+  db.run(`INSERT INTO style_images (style_number, variant, image_data, image_name) VALUES (?, ?, ?, ?)`,
+    [style_number, variant || null, image_data, image_name], function(err) {
       if (err) return res.status(400).json({ error: err.message });
       res.json({ success: true, id: this.lastID });
     });
