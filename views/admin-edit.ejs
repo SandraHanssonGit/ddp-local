@@ -1079,6 +1079,11 @@
     const currentData = {};
     let styleSelectModalElement = null;
 
+    function toggleStyleDetails(styleKey) {
+      const el = document.getElementById(`serials-${styleKey}`);
+      if (el) el.classList.toggle('hidden');
+    }
+
     function showToast(message = 'Saved!') {
       const toast = document.getElementById('toastNotification');
       const msg = document.getElementById('toastMessage');
@@ -2085,26 +2090,39 @@
         if (mfg) mfgDetails = mfg.value;
       }
 
-      // Group serials by style
+      // Group serials by style+variant
       const serialsByStyle = {};
       data.serials.forEach(s => {
-        if (!serialsByStyle[s.style_number]) {
-          serialsByStyle[s.style_number] = [];
+        const key = `${s.style_number}${s.variant ? '-' + s.variant : ''}`;
+        if (!serialsByStyle[key]) {
+          serialsByStyle[key] = { style_number: s.style_number, variant: s.variant, serials: [] };
         }
-        serialsByStyle[s.style_number].push(s);
+        serialsByStyle[key].serials.push(s);
       });
-      const stylesHtml = Object.keys(serialsByStyle)
-        .sort()
-        .map(style => `${style} (${serialsByStyle[style].length})`)
-        .join(' | ');
+
+      const stylesList = Object.values(serialsByStyle).map(item => {
+        const styleKey = `${item.style_number}${item.variant ? '-' + item.variant : ''}`;
+        const serialsHtml = item.serials.map(s => `<div class="text-sm text-gray-600 ml-4">• ${s.serial_number}</div>`).join('');
+        return `
+          <div class="bg-gray-50 rounded p-3 mb-2 cursor-pointer hover:bg-gray-100" onclick="toggleStyleDetails('${styleKey}')">
+            <div class="font-semibold text-gray-900">${styleKey} <span class="text-gray-600 text-sm">(${item.serials.length} serials)</span></div>
+            <div id="serials-${styleKey}" class="hidden mt-2">${serialsHtml}</div>
+          </div>
+        `;
+      }).join('');
 
       document.getElementById('batchInfo').innerHTML = `
         <div id="batchMetadataView">
           <div><strong>Batch ID:</strong> ${batch.batch_id}</div>
-          <div><strong>Styles:</strong> ${stylesHtml || '-'}</div>
           <div><strong>Total Units:</strong> ${data.serials.length}</div>
           <div><strong>Production Date:</strong> ${prodDate}</div>
           <div><strong>Manufacturing Details:</strong> ${mfgDetails.replace(/\n/g, '<br>')}</div>
+
+          <div class="mt-6 border-t pt-4">
+            <h3 class="font-semibold text-gray-900 mb-3">Styles in Batch</h3>
+            ${stylesList || '<div class="text-gray-500">No styles yet</div>'}
+          </div>
+
           <div class="mt-4 flex gap-2">
             <button onclick="toggleEdit('batch-metadata')" class="edit-button bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
               Edit Batch Details
