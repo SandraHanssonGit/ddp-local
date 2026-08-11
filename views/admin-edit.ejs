@@ -1076,7 +1076,9 @@
 
     async function saveStyleCompositionInline(batchId, styleNumber, variant, styleKeyId) {
       try {
+        console.log('saveStyleCompositionInline called:', {batchId, styleNumber, variant, styleKeyId});
         const composition = document.getElementById(`composition-${styleKeyId}`).value;
+        console.log('Composition value:', composition);
 
         const res = await authFetch(`/api/batches/${batchId}/style-composition`, {
           method: 'POST',
@@ -1088,14 +1090,19 @@
           })
         });
 
+        console.log('Response status:', res.status, 'ok:', res.ok);
+        const resData = await res.json();
+        console.log('Response data:', resData);
+
         if (res.ok) {
           showToast('✓ Composition saved!');
           toggleStyleEdit(styleKeyId);
           await loadBatch(batchId);
         } else {
-          showToast('Error saving composition');
+          showToast('Error saving composition: ' + (resData.error || 'Unknown error'));
         }
       } catch (err) {
+        console.error('Error in saveStyleCompositionInline:', err);
         showToast('Error: ' + err.message);
       }
     }
