@@ -1039,8 +1039,8 @@
     const currentData = {};
     let styleSelectModalElement = null;
 
-    function toggleStyleDetails(styleKey) {
-      const el = document.getElementById(`serials-${styleKey}`);
+    function toggleStyleDetails(styleKeyId) {
+      const el = document.getElementById(`serials-${styleKeyId}`);
       if (el) el.classList.toggle('hidden');
     }
 
@@ -1050,9 +1050,16 @@
     }
 
     function filterSerialsList(styleKeyId, searchText) {
-      const table = document.querySelector(`#serials-${styleKeyId} table tbody`);
-      if (!table) return;
-      const rows = table.querySelectorAll('tr');
+      const container = document.getElementById(`serials-${styleKeyId}`);
+      if (!container) {
+        console.warn(`Container not found: serials-${styleKeyId}`);
+        return;
+      }
+      const rows = container.querySelectorAll('tbody tr');
+      if (rows.length === 0) {
+        console.warn(`No serial rows found in container`);
+        return;
+      }
       rows.forEach(row => {
         const serialNum = row.querySelector('td')?.textContent || '';
         const matches = serialNum.toLowerCase().includes(searchText.toLowerCase());
