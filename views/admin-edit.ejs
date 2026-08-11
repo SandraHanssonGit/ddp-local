@@ -2263,6 +2263,7 @@
       batchEditDiv = document.createElement('div');
       batchEditDiv.id = 'batchMetadataEdit';
       batchEditDiv.className = 'hidden mt-4 bg-blue-50 border border-blue-200 rounded-lg p-6';
+      batchEditDiv.style.display = 'none'; // Explicit style for better visibility toggle
       batchEditDiv.innerHTML = `
         <h3 class="font-semibold text-gray-900 mb-4">Edit Batch Details</h3>
         <div class="space-y-4">
@@ -2467,14 +2468,16 @@
       console.log('Found elements:', { viewEl: !!viewEl, editEl: !!editEl });
 
       if (viewEl) {
-        console.log('Before toggle - viewEl hidden:', viewEl.classList.contains('hidden'));
+        const isHidden = viewEl.classList.contains('hidden');
+        console.log('Toggling viewEl - was hidden:', isHidden, '→', !isHidden);
         viewEl.classList.toggle('hidden');
-        console.log('After toggle - viewEl hidden:', viewEl.classList.contains('hidden'));
+        viewEl.style.display = isHidden ? 'block' : 'none';
       }
       if (editEl) {
-        console.log('Before toggle - editEl hidden:', editEl.classList.contains('hidden'));
+        const isHidden = editEl.classList.contains('hidden');
+        console.log('Toggling editEl - was hidden:', isHidden, '→', !isHidden);
         editEl.classList.toggle('hidden');
-        console.log('After toggle - editEl hidden:', editEl.classList.contains('hidden'));
+        editEl.style.display = isHidden ? 'block' : 'none';
       }
     }
 
