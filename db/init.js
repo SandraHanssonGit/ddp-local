@@ -373,8 +373,13 @@ const seedTestData = async () => {
   });
 };
 
-// Run seed on startup
-seedTestData().catch(err => console.error('Seed error:', err));
+// Run seed on startup ONLY if database is empty (no styles exist)
+db.get('SELECT COUNT(*) as count FROM styles', (err, result) => {
+  if (err) console.error('Seed check error:', err);
+  else if (!result || result.count === 0) {
+    seedTestData().catch(err => console.error('Seed error:', err));
+  }
+});
 
 // Helper functions
 const queries = {
