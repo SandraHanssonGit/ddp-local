@@ -2109,8 +2109,8 @@
                 <div class="font-semibold text-gray-900">${styleKey}</div>
                 <div class="text-sm text-gray-600">${item.serials.length} serials</div>
               </div>
-              <button onclick="event.stopPropagation(); showAddSerialsForStyle('${batch.batch_id}', '${item.style_number}', '${item.variant || ''}')" class="text-xs bg-gray-900 text-white px-3 py-1 rounded hover:bg-gray-800 ml-4">
-                + Add
+              <button onclick="event.stopPropagation(); openStyleCompositionModal('${batch.batch_id}', '${item.style_number}', '${item.variant || ''}', '${item.composition || ''}')" class="text-xs bg-gray-900 text-white px-3 py-1 rounded hover:bg-gray-800 ml-4">
+                Edit
               </button>
             </div>
             <div id="serials-${styleKey}" class="hidden bg-white border-t border-gray-200 overflow-x-auto">
