@@ -2468,16 +2468,16 @@
       console.log('Found elements:', { viewEl: !!viewEl, editEl: !!editEl });
 
       if (viewEl) {
-        const isHidden = viewEl.classList.contains('hidden');
-        console.log('Toggling viewEl - was hidden:', isHidden, '→', !isHidden);
-        viewEl.classList.toggle('hidden');
-        viewEl.style.display = isHidden ? 'block' : 'none';
+        const isCurrentlyHidden = viewEl.style.display === 'none';
+        console.log('Toggling viewEl - currently hidden:', isCurrentlyHidden);
+        viewEl.style.display = isCurrentlyHidden ? 'block' : 'none';
+        viewEl.classList.remove('hidden'); // Remove hidden class since we use display
       }
       if (editEl) {
-        const isHidden = editEl.classList.contains('hidden');
-        console.log('Toggling editEl - was hidden:', isHidden, '→', !isHidden);
-        editEl.classList.toggle('hidden');
-        editEl.style.display = isHidden ? 'block' : 'none';
+        const isCurrentlyHidden = editEl.style.display === 'none';
+        console.log('Toggling editEl - currently hidden:', isCurrentlyHidden);
+        editEl.style.display = isCurrentlyHidden ? 'block' : 'none';
+        editEl.classList.remove('hidden'); // Remove hidden class since we use display
       }
     }
 
