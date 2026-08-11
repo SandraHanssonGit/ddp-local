@@ -1044,14 +1044,25 @@
       if (el) el.classList.toggle('hidden');
     }
 
-    function toggleStyleEdit(styleKey) {
-      const el = document.getElementById(`edit-${styleKey}`);
+    function toggleStyleEdit(styleKeyId) {
+      const el = document.getElementById(`edit-${styleKeyId}`);
       if (el) el.classList.toggle('hidden');
     }
 
-    async function saveStyleCompositionInline(batchId, styleNumber, variant, styleKey) {
+    function filterSerialsList(styleKeyId, searchText) {
+      const table = document.querySelector(`#serials-${styleKeyId} table tbody`);
+      if (!table) return;
+      const rows = table.querySelectorAll('tr');
+      rows.forEach(row => {
+        const serialNum = row.querySelector('td')?.textContent || '';
+        const matches = serialNum.toLowerCase().includes(searchText.toLowerCase());
+        row.style.display = matches ? '' : 'none';
+      });
+    }
+
+    async function saveStyleCompositionInline(batchId, styleNumber, variant, styleKeyId) {
       try {
-        const composition = document.getElementById(`composition-${styleKey}`).value;
+        const composition = document.getElementById(`composition-${styleKeyId}`).value;
 
         const res = await authFetch(`/api/batches/${batchId}/style-composition`, {
           method: 'POST',
@@ -1065,7 +1076,7 @@
 
         if (res.ok) {
           showToast('✓ Composition saved!');
-          toggleStyleEdit(styleKey);
+          toggleStyleEdit(styleKeyId);
           await loadBatch(batchId);
         } else {
           showToast('Error saving composition');
@@ -2111,6 +2122,7 @@
 
       const stylesList = Object.values(serialsByStyle).map(item => {
         const styleKey = `${item.style_number}${item.variant ? '-' + item.variant : ''}`;
+        const styleKeyId = styleKey.replace(/[^\w]/g, '_'); // Safe for HTML id attributes
         const serialsTable = `
           <table class="w-full text-sm border-collapse">
             <thead>
@@ -2136,36 +2148,36 @@
         return `
           <div class="border border-gray-200 rounded mb-2 overflow-hidden">
             <div class="flex items-center justify-between bg-gray-50 p-4">
-              <div class="flex-1 cursor-pointer hover:bg-gray-100 rounded px-2 py-1" onclick="toggleStyleDetails('${styleKey}')">
+              <div class="flex-1 cursor-pointer hover:bg-gray-100 rounded px-2 py-1" onclick="toggleStyleDetails('${styleKeyId}')">
                 <div class="font-semibold text-gray-900">${styleKey}</div>
                 <div class="text-sm text-gray-600">${item.serials.length} serials</div>
               </div>
-              <button onclick="event.stopPropagation(); toggleStyleEdit('${styleKey}')" class="text-xs bg-gray-900 text-white px-3 py-1 rounded hover:bg-gray-800 ml-2">
+              <button onclick="event.stopPropagation(); toggleStyleEdit('${styleKeyId}')" class="text-xs bg-gray-900 text-white px-3 py-1 rounded hover:bg-gray-800">
                 Edit
               </button>
-              <button onclick="event.stopPropagation(); showAddSerialsForStyle('${batch.batch_id}', '${item.style_number}', '${item.variant || ''}')" class="text-xs bg-gray-700 text-white px-3 py-1 rounded hover:bg-gray-600 ml-2">
-                + Serial
-              </button>
             </div>
-            <div id="edit-${styleKey}" class="hidden bg-blue-50 border-t border-gray-200 p-4">
+            <div id="edit-${styleKeyId}" class="hidden bg-blue-50 border-t border-gray-200 p-4">
               <div class="space-y-3">
                 <div>
                   <label class="block text-sm font-bold text-gray-700 mb-1">Composition (for this batch)</label>
-                  <textarea id="composition-${styleKey}" rows="2" placeholder="e.g., 95% Cotton, 5% Elastane" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">${item.composition || ''}</textarea>
+                  <textarea id="composition-${styleKeyId}" rows="2" placeholder="e.g., 95% Cotton, 5% Elastane" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">${item.composition || ''}</textarea>
                 </div>
                 <div class="flex gap-2">
-                  <button onclick="saveStyleCompositionInline('${batch.batch_id}', '${item.style_number}', '${item.variant || ''}', '${styleKey}')" class="text-xs bg-gray-900 text-white px-3 py-1 rounded hover:bg-gray-800">
+                  <button onclick="saveStyleCompositionInline('${batch.batch_id}', '${item.style_number}', '${item.variant || ''}', '${styleKeyId}')" class="text-xs bg-gray-900 text-white px-3 py-1 rounded hover:bg-gray-800">
                     ✓ Save
                   </button>
-                  <button onclick="toggleStyleEdit('${styleKey}')" class="text-xs bg-gray-300 text-gray-900 px-3 py-1 rounded hover:bg-gray-400">
+                  <button onclick="toggleStyleEdit('${styleKeyId}')" class="text-xs bg-gray-300 text-gray-900 px-3 py-1 rounded hover:bg-gray-400">
                     Cancel
                   </button>
                 </div>
               </div>
             </div>
-            <div id="serials-${styleKey}" class="hidden bg-white border-t border-gray-200 overflow-x-auto">
-              <div class="p-4">
-                ${item.serials.length > 0 ? serialsTable : '<div class="text-gray-500 text-sm">No serials</div>'}
+            <div id="serials-${styleKeyId}" class="hidden bg-white border-t border-gray-200 p-4">
+              <div class="mb-3">
+                <input type="text" placeholder="Search serials..." class="w-full border border-gray-300 rounded px-3 py-2 text-sm" onkeyup="filterSerialsList('${styleKeyId}', this.value)">
+              </div>
+              <div class="max-h-64 overflow-y-auto">
+                ${item.serials.length > 0 ? serialsTable : '<div class="text-gray-500 text-sm p-2">No serials</div>'}
               </div>
             </div>
           </div>
