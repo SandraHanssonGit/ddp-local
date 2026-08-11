@@ -432,36 +432,6 @@
 
         <div id="batchInfo" class="bg-gray-50 rounded-lg p-6 space-y-2"></div>
 
-        <!-- Serials Table -->
-        <div class="border-t pt-6 mt-6">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-semibold text-gray-900">Serials (<span id="serialsCount">0</span>)</h3>
-            <div class="flex gap-2">
-              <button onclick="showAddSerialsModal()" class="edit-button bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
-                Add Serials
-              </button>
-              <input type="text" id="serialsSearchInput" placeholder="Search serials..." class="border border-gray-300 rounded px-4 py-2 w-64" oninput="filterSerials()">
-            </div>
-          </div>
-
-          <div class="overflow-x-auto">
-            <table class="w-full border-collapse text-sm">
-              <thead>
-                <tr class="bg-gray-100 border-b border-gray-300">
-                  <th class="px-4 py-2 text-left font-bold cursor-pointer hover:bg-gray-200" onclick="sortSerials('serial_number')">Serial Number <span class="text-gray-900">▼</span></th>
-                  <th class="px-4 py-2 text-left font-bold cursor-pointer hover:bg-gray-200" onclick="sortSerials('condition')">Condition <span class="text-gray-900">▼</span></th>
-                  <th class="px-4 py-2 text-left font-bold cursor-pointer hover:bg-gray-200" onclick="sortSerials('size')">Size <span class="text-gray-900">▼</span></th>
-                  <th class="px-4 py-2 text-left font-bold">Owner</th>
-                </tr>
-              </thead>
-              <tbody id="serialsTableBody">
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Pagination -->
-          <div id="serialsPagination" class="flex gap-2 justify-center mt-4"></div>
-        </div>
       </div>
 
       <!-- SERIAL VIEW -->
@@ -2122,8 +2092,8 @@
             </thead>
             <tbody>
               ${item.serials.map(s => `
-                <tr class="border-b hover:bg-gray-50">
-                  <td class="px-3 py-2">${s.serial_number}</td>
+                <tr class="border-b hover:bg-blue-50 cursor-pointer" onclick="loadData('serial', '${item.style_number}', '${batch.batch_id}', '${s.serial_number}')">
+                  <td class="px-3 py-2 text-blue-600 font-medium">${s.serial_number}</td>
                   <td class="px-3 py-2">${s.condition || '-'}</td>
                   <td class="px-3 py-2">${s.size || '-'}</td>
                   <td class="px-3 py-2">-</td>
