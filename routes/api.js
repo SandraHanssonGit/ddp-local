@@ -565,21 +565,27 @@ router.get('/styles/:style_number/full-data', (req, res) => {
   });
 });
 
-// Save batch metadata
+// Save batch metadata (delete old, insert new)
 router.post('/batch/metadata', verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { batch_id, production_date, manufacturing_details } = req.body;
 
-  db.run(`
-    INSERT INTO batch_data (batch_id, key, value) VALUES (?, ?, ?)
-  `, [batch_id, 'production_date', production_date], (err) => {
+  // Delete old values for this batch
+  db.run(`DELETE FROM batch_data WHERE batch_id = ? AND key IN ('production_date', 'manufacturing_details')`, [batch_id], (err) => {
     if (err) return res.status(400).json({ error: err.message });
-  });
 
-  db.run(`
-    INSERT INTO batch_data (batch_id, key, value) VALUES (?, ?, ?)
-  `, [batch_id, 'manufacturing_details', manufacturing_details], (err) => {
-    if (err) return res.status(400).json({ error: err.message });
-    res.json({ success: true });
+    // Insert new values
+    db.run(`
+      INSERT INTO batch_data (batch_id, key, value) VALUES (?, ?, ?)
+    `, [batch_id, 'production_date', production_date], (err) => {
+      if (err) return res.status(400).json({ error: err.message });
+    });
+
+    db.run(`
+      INSERT INTO batch_data (batch_id, key, value) VALUES (?, ?, ?)
+    `, [batch_id, 'manufacturing_details', manufacturing_details], (err) => {
+      if (err) return res.status(400).json({ error: err.message });
+      res.json({ success: true });
+    });
   });
 });
 
