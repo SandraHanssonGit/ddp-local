@@ -2466,8 +2466,16 @@
       const editEl = document.getElementById(editId);
       console.log('Found elements:', { viewEl: !!viewEl, editEl: !!editEl });
 
-      if (viewEl) viewEl.classList.toggle('hidden');
-      if (editEl) editEl.classList.toggle('hidden');
+      if (viewEl) {
+        console.log('Before toggle - viewEl hidden:', viewEl.classList.contains('hidden'));
+        viewEl.classList.toggle('hidden');
+        console.log('After toggle - viewEl hidden:', viewEl.classList.contains('hidden'));
+      }
+      if (editEl) {
+        console.log('Before toggle - editEl hidden:', editEl.classList.contains('hidden'));
+        editEl.classList.toggle('hidden');
+        console.log('After toggle - editEl hidden:', editEl.classList.contains('hidden'));
+      }
     }
 
     function updateVariantRequirements() {
