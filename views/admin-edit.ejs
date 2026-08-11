@@ -2456,12 +2456,15 @@
     }
 
     function toggleEdit(section) {
+      console.log('toggleEdit called with section:', section);
       // Convert kebab-case to camelCase
       const camelCase = section.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
       const viewId = `${camelCase}View`;
       const editId = `${camelCase}Edit`;
+      console.log('Looking for:', viewId, 'and', editId);
       const viewEl = document.getElementById(viewId);
       const editEl = document.getElementById(editId);
+      console.log('Found elements:', { viewEl: !!viewEl, editEl: !!editEl });
 
       if (viewEl) viewEl.classList.toggle('hidden');
       if (editEl) editEl.classList.toggle('hidden');
@@ -2664,8 +2667,10 @@
     }
 
     async function saveBatchMetadata(batchId) {
+      console.log('saveBatchMetadata called with batchId:', batchId);
       const productionDate = document.getElementById('editBatchProductionDate').value;
       const manufacturingDetails = document.getElementById('editBatchManufacturing').value;
+      console.log('Values:', { productionDate, manufacturingDetails });
 
       const res = await authFetch('/api/batch/metadata', {
         method: 'POST',
@@ -2677,12 +2682,16 @@
         })
       });
 
+      console.log('Response status:', res.status, 'ok:', res.ok);
+      const resData = await res.json();
+      console.log('Response data:', resData);
+
       if (res.ok) {
         showToast('Batch details saved!');
         toggleEdit('batch-metadata');
         await loadBatch(batchId);
       } else {
-        showToast('Error saving batch details');
+        showToast('Error saving batch details: ' + (resData.error || 'Unknown'));
       }
     }
 
