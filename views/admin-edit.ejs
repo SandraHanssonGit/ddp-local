@@ -2465,6 +2465,7 @@
       if (res.ok) {
         showToast('✓ Batch details saved!');
         hideBatchDetailsEdit();
+        // Reload batch to show updated values
         await loadBatch(batchId);
       } else {
         showToast('Error saving batch details');
