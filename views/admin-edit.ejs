@@ -2094,9 +2094,30 @@
 
       const stylesList = Object.values(serialsByStyle).map(item => {
         const styleKey = `${item.style_number}${item.variant ? '-' + item.variant : ''}`;
-        const serialsHtml = item.serials.map(s => `<div class="text-sm text-gray-600 py-1">• ${s.serial_number}</div>`).join('');
+        const serialsTable = `
+          <table class="w-full text-sm border-collapse">
+            <thead>
+              <tr class="bg-gray-100 border-b">
+                <th class="px-3 py-2 text-left font-semibold">Serial Number</th>
+                <th class="px-3 py-2 text-left font-semibold">Condition</th>
+                <th class="px-3 py-2 text-left font-semibold">Size</th>
+                <th class="px-3 py-2 text-left font-semibold">Owner</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${item.serials.map(s => `
+                <tr class="border-b hover:bg-gray-50">
+                  <td class="px-3 py-2">${s.serial_number}</td>
+                  <td class="px-3 py-2">${s.condition || '-'}</td>
+                  <td class="px-3 py-2">${s.size || '-'}</td>
+                  <td class="px-3 py-2">-</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
         return `
-          <div class="border border-gray-200 rounded mb-2">
+          <div class="border border-gray-200 rounded mb-2 overflow-hidden">
             <div class="flex items-center justify-between bg-gray-50 p-4 hover:bg-gray-100 cursor-pointer" onclick="toggleStyleDetails('${styleKey}')">
               <div class="flex-1">
                 <div class="font-semibold text-gray-900">${styleKey}</div>
@@ -2106,8 +2127,10 @@
                 + Add
               </button>
             </div>
-            <div id="serials-${styleKey}" class="hidden bg-white px-4 py-3 border-t border-gray-200">
-              ${serialsHtml || '<div class="text-gray-500 text-sm">No serials</div>'}
+            <div id="serials-${styleKey}" class="hidden bg-white border-t border-gray-200 overflow-x-auto">
+              <div class="p-4">
+                ${item.serials.length > 0 ? serialsTable : '<div class="text-gray-500 text-sm">No serials</div>'}
+              </div>
             </div>
           </div>
         `;
