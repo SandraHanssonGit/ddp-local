@@ -565,26 +565,45 @@ router.get('/styles/:style_number/full-data', (req, res) => {
   });
 });
 
-// Save batch metadata (delete old, insert new)
+// Save batch metadata (use transaction to avoid race conditions)
 router.post('/batch/metadata', verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { batch_id, production_date, manufacturing_details } = req.body;
 
-  // Delete old values for this batch
-  db.run(`DELETE FROM batch_data WHERE batch_id = ? AND key IN ('production_date', 'manufacturing_details')`, [batch_id], (err) => {
-    if (err) return res.status(400).json({ error: err.message });
-
-    // Insert new values
-    db.run(`
-      INSERT INTO batch_data (batch_id, key, value) VALUES (?, ?, ?)
-    `, [batch_id, 'production_date', production_date], (err) => {
+  // Use transaction for atomic operation
+  db.serialize(() => {
+    db.run('BEGIN TRANSACTION', (err) => {
       if (err) return res.status(400).json({ error: err.message });
-    });
 
-    db.run(`
-      INSERT INTO batch_data (batch_id, key, value) VALUES (?, ?, ?)
-    `, [batch_id, 'manufacturing_details', manufacturing_details], (err) => {
-      if (err) return res.status(400).json({ error: err.message });
-      res.json({ success: true });
+      // Delete old values for this batch
+      db.run(`DELETE FROM batch_data WHERE batch_id = ? AND key IN ('production_date', 'manufacturing_details')`, [batch_id], (err) => {
+        if (err) {
+          db.run('ROLLBACK');
+          return res.status(400).json({ error: err.message });
+        }
+
+        // Insert new values
+        db.run(`INSERT INTO batch_data (batch_id, key, value) VALUES (?, ?, ?)`,
+          [batch_id, 'production_date', production_date], (err) => {
+          if (err) {
+            db.run('ROLLBACK');
+            return res.status(400).json({ error: err.message });
+          }
+        });
+
+        db.run(`INSERT INTO batch_data (batch_id, key, value) VALUES (?, ?, ?)`,
+          [batch_id, 'manufacturing_details', manufacturing_details], (err) => {
+          if (err) {
+            db.run('ROLLBACK');
+            return res.status(400).json({ error: err.message });
+          }
+
+          // Commit transaction
+          db.run('COMMIT', (err) => {
+            if (err) return res.status(400).json({ error: err.message });
+            res.json({ success: true });
+          });
+        });
+      });
     });
   });
 });
@@ -597,20 +616,39 @@ router.post('/batches/:batch_id/style-composition', verifyToken, checkRole(['edi
   // Normalize variant: "" or false or undefined becomes NULL
   variant = (variant && variant.trim()) ? variant.trim() : null;
 
-  // Delete old record with same batch_id, style_number, variant
-  db.run(`
-    DELETE FROM batch_style_data
-    WHERE batch_id = ? AND style_number = ? AND (variant = ? OR (variant IS NULL AND ? IS NULL))
-  `, [batch_id, style_number, variant, variant], (err) => {
-    if (err) return res.status(400).json({ error: err.message });
-
-    // Insert new record
-    db.run(`
-      INSERT INTO batch_style_data (batch_id, style_number, variant, composition, created_at, updated_at)
-      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-    `, [batch_id, style_number, variant, composition], (err) => {
+  // Use transaction for atomic operation
+  db.serialize(() => {
+    db.run('BEGIN TRANSACTION', (err) => {
       if (err) return res.status(400).json({ error: err.message });
-      res.json({ success: true });
+
+      // Delete old record with same batch_id, style_number, variant
+      db.run(`
+        DELETE FROM batch_style_data
+        WHERE batch_id = ? AND style_number = ? AND (variant = ? OR (variant IS NULL AND ? IS NULL))
+      `, [batch_id, style_number, variant, variant], (err) => {
+        if (err) {
+          db.run('ROLLBACK');
+          return res.status(400).json({ error: err.message });
+        }
+
+        // Insert new record
+        db.run(`
+          INSERT INTO batch_style_data (batch_id, style_number, variant, composition, created_at, updated_at)
+          VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `, [batch_id, style_number, variant, composition], (err) => {
+          if (err) {
+            db.run('ROLLBACK');
+            return res.status(400).json({ error: err.message });
+          }
+
+          // Commit transaction
+          db.run('COMMIT', (err) => {
+            if (err) return res.status(400).json({ error: err.message });
+            res.json({ success: true });
+          });
+        });
+      });
+    });
   });
 });
 
