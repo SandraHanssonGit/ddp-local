@@ -584,6 +584,20 @@ router.post('/batch/metadata', verifyToken, checkRole(['editor', 'admin', 'super
 });
 
 // Get full DPP data for a batch (with all serials)
+// Get batch with metadata
+router.get('/batches/:batch_id', (req, res) => {
+  const { batch_id } = req.params;
+
+  db.get(`SELECT * FROM batches WHERE batch_id = ?`, [batch_id], (err, batch) => {
+    if (err) return res.status(400).json({ error: err.message });
+    if (!batch) return res.status(404).json({ error: 'Batch not found' });
+
+    db.all(`SELECT * FROM batch_data WHERE batch_id = ?`, [batch_id], (err, batch_data) => {
+      res.json({ batch, batch_data: batch_data || [] });
+    });
+  });
+});
+
 router.get('/batches/:batch_id/full-data', (req, res) => {
   const { batch_id } = req.params;
 
