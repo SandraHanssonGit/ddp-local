@@ -3082,22 +3082,13 @@
               ${styles.map(s => `<option value="${s.style_number}|${s.variant || ''}">${s.style_number}${s.variant ? '-' + s.variant : ''} - ${s.product_name || 'No name'}</option>`).join('')}
             </select>
             <div class="flex gap-2 justify-end">
-              <button type="button" class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300" id="styleModalCancelBtn">Cancel</button>
-              <button type="button" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" id="styleModalContinueBtn">Continue</button>
+              <button type="button" class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300" onclick="document.getElementById('styleSelectModal').remove(); styleSelectModalElement = null;">Cancel</button>
+              <button type="button" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" onclick="proceedAddStyleToBatch('${batchId}')">Continue</button>
             </div>
           </div>
         `;
         document.body.appendChild(modal);
         styleSelectModalElement = modal;
-
-        document.getElementById('styleModalCancelBtn').addEventListener('click', () => {
-          modal.remove();
-          styleSelectModalElement = null;
-        });
-
-        document.getElementById('styleModalContinueBtn').addEventListener('click', () => {
-          proceedAddStyleToBatch(batchId);
-        });
 
         document.getElementById('styleSelectForBatch').focus();
       } catch (err) {
