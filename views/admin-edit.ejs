@@ -990,12 +990,12 @@
     }
 
     // Setup tab buttons
-    document.getElementById('tabDashboard').addEventListener('click', () => switchTab('dashboard'));
-    document.getElementById('tabScan').addEventListener('click', () => {
+    document.getElementById('tabDashboard')?.addEventListener('click', () => switchTab('dashboard'));
+    document.getElementById('tabScan')?.addEventListener('click', () => {
       switchTab('scan');
       loadStylesForScanning();
     });
-    document.getElementById('tabEdit').addEventListener('click', () => {
+    document.getElementById('tabEdit')?.addEventListener('click', () => {
       switchTab('edit');
       loadRecentBatches();
       loadRecentStyles();
@@ -1715,7 +1715,7 @@
     }
 
     // IMPORT SUPPLIER DATA form
-    document.getElementById('importSupplierForm').addEventListener('submit', async (e) => {
+    document.getElementById('importSupplierForm')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const res = await authFetch('/api/serials/import-supplier-data', {
         method: 'POST',
