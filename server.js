@@ -24,6 +24,7 @@ app.use(helmet.contentSecurityPolicy({
     defaultSrc: ["'self'"],
     styleSrc: ["'self'", "https://cdn.tailwindcss.com", "'unsafe-inline'"],
     scriptSrc: ["'self'", "https://cdn.tailwindcss.com", "'unsafe-inline'"],
+    scriptSrcAttr: ["'unsafe-inline'"],
     imgSrc: ["'self'", "data:"],
     connectSrc: ["'self'"]
   }
