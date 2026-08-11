@@ -1077,6 +1077,7 @@
     }
 
     const currentData = {};
+    let styleSelectModalElement = null;
 
     function showToast(message = 'Saved!') {
       const toast = document.getElementById('toastNotification');
@@ -3062,8 +3063,6 @@
     }
 
     // Add Style to Batch
-    let styleSelectModalElement = null;
-
     async function showAddStyleToBatchModal(batchId) {
       try {
         // Fetch all styles
