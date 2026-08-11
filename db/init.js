@@ -263,20 +263,24 @@ const seedTestData = async () => {
     db.run(`INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)`,
       ['admin', hashedPassword2, 'admin']);
 
-    // Insert test style (Jeans - no variant)
-    db.run(`
-      INSERT OR IGNORE INTO styles (style_number, variant, product_type, product_name, description, care_instructions, delivery_returns, size_material_composition)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      '114519',
-      null,
-      'jeans',
-      'Lofty Lo',
-      'A comfortable and durable low-rise jean with classic styling.',
-      'Wash at 40°C with similar colors. Avoid bleach.',
-      'Free shipping on orders over 500 SEK. 30-day returns.',
-      '95% Organic Cotton, 5% Elastane'
-    ]);
+    // Check if test data already exists before inserting
+    db.get('SELECT COUNT(*) as count FROM styles WHERE style_number = ?', ['114519'], (err, result) => {
+      if (err || !result || result.count > 0) return; // Data already exists
+
+      // Insert test style (Jeans - no variant)
+      db.run(`
+        INSERT INTO styles (style_number, variant, product_type, product_name, description, care_instructions, delivery_returns, size_material_composition)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        '114519',
+        null,
+        'jeans',
+        'Lofty Lo',
+        'A comfortable and durable low-rise jean with classic styling.',
+        'Wash at 40°C with similar colors. Avoid bleach.',
+        'Free shipping on orders over 500 SEK. 30-day returns.',
+        '95% Organic Cotton, 5% Elastane'
+      ]);
 
     // Insert test transparency data
     db.run(`
