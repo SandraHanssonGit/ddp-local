@@ -1044,6 +1044,37 @@
       if (el) el.classList.toggle('hidden');
     }
 
+    function toggleStyleEdit(styleKey) {
+      const el = document.getElementById(`edit-${styleKey}`);
+      if (el) el.classList.toggle('hidden');
+    }
+
+    async function saveStyleCompositionInline(batchId, styleNumber, variant, styleKey) {
+      try {
+        const composition = document.getElementById(`composition-${styleKey}`).value;
+
+        const res = await authFetch(`/api/batches/${batchId}/style-composition`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            style_number: styleNumber,
+            variant: variant || null,
+            composition: composition
+          })
+        });
+
+        if (res.ok) {
+          showToast('✓ Composition saved!');
+          toggleStyleEdit(styleKey);
+          await loadBatch(batchId);
+        } else {
+          showToast('Error saving composition');
+        }
+      } catch (err) {
+        showToast('Error: ' + err.message);
+      }
+    }
+
     function showAddSerialsForStyle(batchId, styleNumber, variant) {
       showAddSerialsModal(batchId, styleNumber, variant || null);
     }
@@ -2104,14 +2135,33 @@
         `;
         return `
           <div class="border border-gray-200 rounded mb-2 overflow-hidden">
-            <div class="flex items-center justify-between bg-gray-50 p-4 hover:bg-gray-100 cursor-pointer" onclick="toggleStyleDetails('${styleKey}')">
-              <div class="flex-1">
+            <div class="flex items-center justify-between bg-gray-50 p-4">
+              <div class="flex-1 cursor-pointer hover:bg-gray-100 rounded px-2 py-1" onclick="toggleStyleDetails('${styleKey}')">
                 <div class="font-semibold text-gray-900">${styleKey}</div>
                 <div class="text-sm text-gray-600">${item.serials.length} serials</div>
               </div>
-              <button onclick="event.stopPropagation(); openStyleCompositionModal('${batch.batch_id}', '${item.style_number}', '${item.variant || ''}', '${item.composition || ''}')" class="text-xs bg-gray-900 text-white px-3 py-1 rounded hover:bg-gray-800 ml-4">
+              <button onclick="event.stopPropagation(); toggleStyleEdit('${styleKey}')" class="text-xs bg-gray-900 text-white px-3 py-1 rounded hover:bg-gray-800 ml-2">
                 Edit
               </button>
+              <button onclick="event.stopPropagation(); showAddSerialsForStyle('${batch.batch_id}', '${item.style_number}', '${item.variant || ''}')" class="text-xs bg-gray-700 text-white px-3 py-1 rounded hover:bg-gray-600 ml-2">
+                + Serial
+              </button>
+            </div>
+            <div id="edit-${styleKey}" class="hidden bg-blue-50 border-t border-gray-200 p-4">
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1">Composition (for this batch)</label>
+                  <textarea id="composition-${styleKey}" rows="2" placeholder="e.g., 95% Cotton, 5% Elastane" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">${item.composition || ''}</textarea>
+                </div>
+                <div class="flex gap-2">
+                  <button onclick="saveStyleCompositionInline('${batch.batch_id}', '${item.style_number}', '${item.variant || ''}', '${styleKey}')" class="text-xs bg-gray-900 text-white px-3 py-1 rounded hover:bg-gray-800">
+                    ✓ Save
+                  </button>
+                  <button onclick="toggleStyleEdit('${styleKey}')" class="text-xs bg-gray-300 text-gray-900 px-3 py-1 rounded hover:bg-gray-400">
+                    Cancel
+                  </button>
+                </div>
+              </div>
             </div>
             <div id="serials-${styleKey}" class="hidden bg-white border-t border-gray-200 overflow-x-auto">
               <div class="p-4">
