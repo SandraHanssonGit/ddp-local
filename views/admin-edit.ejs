@@ -3226,13 +3226,22 @@
         const prodDateData = data.batch_data?.find(d => d.key === 'production_date');
         const mfgData = data.batch_data?.find(d => d.key === 'manufacturing_details');
 
+        // Check if batch already has metadata (existing batch)
+        const hasExistingMetadata = prodDateData || mfgData;
+
         // Fetch existing composition for this style
         let compositionValue = '';
         const compRes = await authFetch(`/api/batches/${batchId}/style-composition?style_number=${styleNumber}${variant ? '&variant=' + encodeURIComponent(variant) : ''}`);
         const compData = await compRes.json();
         if (compData.composition) compositionValue = compData.composition;
 
-        // Create modal
+        // If batch already has metadata, skip to style-composition dialog
+        if (hasExistingMetadata) {
+          openStyleCompositionModal(batchId, styleNumber, variant, compositionValue);
+          return;
+        }
+
+        // Create modal for batch details (new batch)
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
         modal.id = 'batchDetailsModal';
@@ -3244,25 +3253,70 @@
             </div>
             <div>
               <label class="block text-sm font-bold text-gray-700 mb-1">Production Date</label>
-              <input type="date" id="batchDetailsProdDate" value="${prodDateData?.value || ''}" class="w-full border border-gray-300 rounded px-3 py-2">
+              <input type="date" id="batchDetailsProdDate" value="" class="w-full border border-gray-300 rounded px-3 py-2">
             </div>
             <div>
               <label class="block text-sm font-bold text-gray-700 mb-1">Manufacturing Details</label>
-              <textarea id="batchDetailsMfg" rows="2" class="w-full border border-gray-300 rounded px-3 py-2">${mfgData?.value || ''}</textarea>
-            </div>
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">Composition (for this batch)</label>
-              <textarea id="batchDetailsComposition" rows="2" placeholder="e.g., 95% Cotton, 5% Elastane" class="w-full border border-gray-300 rounded px-3 py-2">${compositionValue}</textarea>
+              <textarea id="batchDetailsMfg" rows="2" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
             </div>
             <div class="flex gap-2 justify-end">
               <button type="button" class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300" onclick="document.getElementById('batchDetailsModal').remove();">Cancel</button>
-              <button type="button" class="px-4 py-2 bg-gray-900 text-white rounded hover:bg-gray-800" onclick="saveBatchDetailsAndContinue('${batchId}', '${styleNumber}', '${variant || ''}')">Save & Continue</button>
+              <button type="button" class="px-4 py-2 bg-gray-900 text-white rounded hover:bg-gray-800" onclick="saveBatchDetailsAndContinue('${batchId}', '${styleNumber}', '${variant || ''}')">Continue</button>
             </div>
           </div>
         `;
         document.body.appendChild(modal);
       } catch (err) {
         console.error('Error in openBatchDetailsModal:', err);
+        showToast('Error: ' + err.message);
+      }
+    }
+
+    function openStyleCompositionModal(batchId, styleNumber, variant, compositionValue) {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+      modal.id = 'styleCompositionModal';
+      modal.innerHTML = `
+        <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4 space-y-4">
+          <h2 class="text-lg font-semibold text-gray-900">${batchId} - Style Composition</h2>
+          <div class="bg-blue-50 p-3 rounded text-sm text-gray-700">
+            Style: <strong>${styleNumber}${variant ? '-' + variant : ''}</strong>
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">Composition (for this batch)</label>
+            <textarea id="styleCompositionInput" rows="3" placeholder="e.g., 95% Cotton, 5% Elastane" class="w-full border border-gray-300 rounded px-3 py-2">${compositionValue}</textarea>
+          </div>
+          <div class="flex gap-2 justify-end">
+            <button type="button" class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300" onclick="document.getElementById('styleCompositionModal').remove();">Cancel</button>
+            <button type="button" class="px-4 py-2 bg-gray-900 text-white rounded hover:bg-gray-800" onclick="saveStyleComposition('${batchId}', '${styleNumber}', '${variant || ''}')">Save</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    async function saveStyleComposition(batchId, styleNumber, variant) {
+      try {
+        const composition = document.getElementById('styleCompositionInput').value;
+
+        const res = await authFetch(`/api/batches/${batchId}/style-composition`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            style_number: styleNumber,
+            variant: variant || null,
+            composition: composition
+          })
+        });
+
+        if (res.ok) {
+          showToast('✓ Composition saved!');
+          document.getElementById('styleCompositionModal').remove();
+          await loadBatch(batchId);
+        } else {
+          showToast('Error saving composition');
+        }
+      } catch (err) {
         showToast('Error: ' + err.message);
       }
     }
