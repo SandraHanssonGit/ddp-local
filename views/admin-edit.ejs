@@ -467,15 +467,21 @@
         <div class="border-t pt-6">
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-bold text-gray-900">Serial Metadata</h3>
-            <button onclick="toggleEdit('serial-metadata')" class="edit-button bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
-              ✏️ Edit
+            <button onclick="toggleSerialMetadataEdit()" class="edit-button bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+              Edit
             </button>
           </div>
           <div id="serialMetadataView" class="bg-gray-50 rounded-lg p-6 grid grid-cols-2 gap-6"></div>
           <div id="serialMetadataEdit" class="hidden space-y-4 mt-4 bg-gray-50 rounded-lg p-6">
-            <div>
-              <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">SGTIN (Numeric) - Read only</label>
-              <input type="text" id="serialSGTINNumeric" placeholder="301414170001200ABC" class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-sm bg-gray-100" readonly>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">SGTIN (Numeric)</label>
+                <input type="text" id="serialSGTINNumeric" placeholder="301414170001200ABC" class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-sm focus:outline-none focus:border-gray-900">
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">RFID</label>
+                <input type="text" id="serialRFID" placeholder="12AB34CD56EF01" class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-sm focus:outline-none focus:border-gray-900">
+              </div>
             </div>
             <div>
               <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Public URL (QR Code Link)</label>
@@ -520,7 +526,7 @@
           <div id="eventsTimeline" class="space-y-3 mb-6"></div>
 
           <div class="bg-gray-50 rounded-lg p-6">
-            <h4 class="font-bold text-gray-900 mb-4">➕ Add New Event</h4>
+            <h4 class="font-bold text-gray-900 mb-4">Event</h4>
             <div class="space-y-4">
               <select id="eventType" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
                 <option value="">-- Select Event Type --</option>
@@ -767,43 +773,6 @@
 
       // Setup delegated click handler for onclick attributes
       // This handles inline onclick="functionName()" calls
-      document.addEventListener('click', (e) => {
-        const target = e.target.closest('[onclick]');
-        if (!target) return;
-
-        const onclick = target.getAttribute('onclick');
-        if (!onclick) return;
-
-        try {
-          // Simple function call parser: handles "functionName()" and "functionName('arg')"
-          const match = onclick.match(/(\w+)\((.*)\)/);
-          if (match) {
-            const funcName = match[1];
-            const argsStr = match[2];
-
-            if (typeof window[funcName] === 'function') {
-              if (argsStr.trim()) {
-                // Parse arguments (handles quoted strings)
-                const args = argsStr.split(',').map(arg => {
-                  arg = arg.trim();
-                  if (arg.startsWith("'") && arg.endsWith("'")) {
-                    return arg.slice(1, -1);
-                  } else if (arg.startsWith('"') && arg.endsWith('"')) {
-                    return arg.slice(1, -1);
-                  }
-                  return arg;
-                });
-                window[funcName](...args);
-              } else {
-                window[funcName]();
-              }
-            }
-          }
-        } catch (err) {
-          console.error('onclick error:', err, onclick);
-        }
-      });
-
       // Load dashboard on initial page load
       loadDashboard();
     });
@@ -1056,6 +1025,29 @@
       }
     }
 
+    function toggleSerialMetadataEdit() {
+      const editEl = document.getElementById('serialMetadataEdit');
+      const viewEl = document.getElementById('serialMetadataView');
+      if (editEl) {
+        editEl.classList.toggle('hidden');
+      }
+      if (viewEl) {
+        viewEl.classList.toggle('hidden');
+      }
+    }
+
+    function toggleEdit(sectionId) {
+      // Convert kebab-case to camelCase (e.g., 'product-info' -> 'productInfo')
+      const camelId = sectionId.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+      const viewId = camelId + 'View';
+      const editId = camelId + 'Edit';
+      const viewEl = document.getElementById(viewId);
+      const editEl = document.getElementById(editId);
+
+      if (viewEl) viewEl.classList.toggle('hidden');
+      if (editEl) editEl.classList.toggle('hidden');
+    }
+
     function filterSerialsList(styleKeyId, searchText) {
       const container = document.getElementById(`serials-${styleKeyId}`);
       if (!container) {
@@ -1096,8 +1088,8 @@
 
         if (res.ok) {
           showToast('✓ Composition saved!');
-          toggleStyleEdit(styleKeyId);
           await loadBatch(batchId);
+          // Form is already filled with fresh data from loadBatch
         } else {
           showToast('Error saving composition: ' + (resData.error || 'Unknown error'));
         }
@@ -1965,7 +1957,13 @@
         document.getElementById('productVariant').disabled = (productType === 'jeans') || !!variantVal;
       }
       if (document.getElementById('productType')) {
-        document.getElementById('productType').value = style.product_type || 'jeans';
+        // Normalize product_type: "Jeans"/"Tops" (from DB) -> "jeans"/"topp" (dropdown values)
+        let normalizedType = 'jeans';
+        if (style.product_type) {
+          const lowerType = style.product_type.toLowerCase();
+          normalizedType = (lowerType === 'tops' || lowerType === 'topp') ? 'topp' : 'jeans';
+        }
+        document.getElementById('productType').value = normalizedType;
         document.getElementById('productType').disabled = true; // Lock type - cannot be changed after creation
         updateVariantRequirements(); // Update variant requirements based on product type
       }
@@ -2042,12 +2040,15 @@
         const res = await fetch('/api/recent/styles');
         const data = await res.json();
         const html = data.styles && data.styles.length > 0
-          ? data.styles.map(s => `
+          ? data.styles.map(s => {
+            const typeDisplay = (s.product_type && (s.product_type.toLowerCase() === 'tops' || s.product_type.toLowerCase() === 'topp')) ? 'Tops' : 'Jeans';
+            return `
             <button onclick="loadData('style', '${s.style_number}', '', '', '${s.variant || ''}')" class="w-full text-left p-2 bg-gray-50 rounded hover:bg-blue-50 border border-gray-200 cursor-pointer">
               <div class="font-semibold text-gray-900">${s.style_number}${s.variant ? '-' + s.variant : ''}</div>
-              <div class="text-xs text-gray-500">${s.product_type === 'topp' ? 'Tops' : 'Jeans'}</div>
+              <div class="text-xs text-gray-500">${typeDisplay}</div>
             </button>
-          `).join('')
+          `;
+          }).join('')
           : '<div class="text-gray-500">No styles yet</div>';
 
         document.getElementById('sidebarRecentStyles').innerHTML = html;
@@ -2125,7 +2126,7 @@
         serialsByStyle[key].serials.push(s);
       });
 
-      // Also include styles from batch_style_data that may not have serials yet
+      // Merge composition data from batch_style_data (for ALL styles, not just ones without serials)
       if (data.batch_style_data && data.batch_style_data.length > 0) {
         data.batch_style_data.forEach(bsd => {
           const key = `${bsd.style_number}${bsd.variant ? '-' + bsd.variant : ''}`;
@@ -2137,6 +2138,11 @@
               serials: [],
               composition: bsd.composition
             };
+          } else {
+            // Always merge composition from batch_style_data if it exists
+            if (bsd.composition) {
+              serialsByStyle[key].composition = bsd.composition;
+            }
           }
         });
       }
@@ -2700,6 +2706,8 @@
     async function saveSerialMetadata() {
       const serialNumber = currentData.serial.serial.serial_number;
       const fields = [
+        { key: 'sgtin_numeric', value: document.getElementById('serialSGTINNumeric').value },
+        { key: 'rfid', value: document.getElementById('serialRFID').value },
         { key: 'size', value: document.getElementById('serialSize').value },
         { key: 'condition', value: document.getElementById('serialCondition').value },
         { key: 'location', value: document.getElementById('serialLocation').value },
@@ -2720,7 +2728,7 @@
         });
       }
       showToast('Saved!');
-      toggleEdit('serial-metadata');
+      toggleSerialMetadataEdit();
       await loadSerial(serialNumber);
     }
 
@@ -3221,9 +3229,29 @@
     // Add Style to Batch
     async function showAddStyleToBatchModal(batchId) {
       try {
+        console.log('showAddStyleToBatchModal called for:', batchId);
+        console.trace('Stack trace');
+
+        // Close any existing modal first
+        if (styleSelectModalElement) {
+          console.log('Closing existing modal');
+          styleSelectModalElement.remove();
+          styleSelectModalElement = null;
+        }
+
         // Fetch all styles
         const res = await authFetch('/api/styles');
+        if (!res.ok) {
+          showToast('Error fetching styles');
+          return;
+        }
         const styles = await res.json();
+        console.log('Fetched styles:', styles);
+
+        if (!styles || styles.length === 0) {
+          showToast('No styles available');
+          return;
+        }
 
         // Build modal
         const modal = document.createElement('div');
@@ -3232,7 +3260,7 @@
         modal.innerHTML = `
           <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Add Style to ${batchId}</h2>
-            <select id="styleSelectForBatch" class="w-full border border-gray-300 rounded px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <select id="styleSelectForBatch" class="w-full border border-gray-300 rounded px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="console.log('Select changed to:', this.value)">
               <option value="">-- Select a Style --</option>
               ${styles.map(s => `<option value="${s.style_number}|${s.variant || ''}">${s.style_number}${s.variant ? '-' + s.variant : ''} - ${s.product_name || 'No name'}</option>`).join('')}
             </select>
@@ -3247,6 +3275,7 @@
 
         document.getElementById('styleSelectForBatch').focus();
       } catch (err) {
+        console.error('Error in showAddStyleToBatchModal:', err);
         showToast('Error: ' + err.message);
       }
     }
@@ -3254,15 +3283,55 @@
     async function proceedAddStyleToBatch(batchId) {
       try {
         const selectEl = document.getElementById('styleSelectForBatch');
+        if (!selectEl) {
+          console.error('Select element not found');
+          showToast('Error: Select element not found');
+          return;
+        }
         const selected = selectEl.value;
+        console.log('Selected value from select:', selected);
+        console.log('Select element options:', selectEl.options.length);
+        for (let i = 0; i < selectEl.options.length; i++) {
+          console.log(`  Option ${i}: value="${selectEl.options[i].value}" text="${selectEl.options[i].text}"`);
+        }
 
         if (!selected) {
+          console.log('Selected is empty, showing error');
           showToast('❌ Please select a style');
           return;
         }
 
         // Parse style_number and variant from selected value
-        const [styleNumber, variant] = selected.split('|');
+        const parts = selected.split('|');
+        const styleNumber = parts[0];
+        const variant = parts[1] || null;
+        console.log('Parsed style:', styleNumber, 'variant:', variant);
+
+        // Check if style already exists in batch
+        const batchRes = await authFetch(`/api/batches/${batchId}/full-data`);
+        if (!batchRes.ok) {
+          showToast('Error fetching batch data');
+          return;
+        }
+        const batchData = await batchRes.json();
+        console.log('Batch data:', batchData);
+
+        const styleKey = `${styleNumber}${variant ? '-' + variant : ''}`;
+        // Check in batch_style_data (styles at batch level)
+        const styleExists = batchData.batch_style_data && batchData.batch_style_data.some(bsd => {
+          const key = `${bsd.style_number}${bsd.variant ? '-' + bsd.variant : ''}`;
+          return key === styleKey;
+        });
+
+        if (styleExists) {
+          showToast('❌ This style is already in the batch');
+          // Close the style select modal
+          if (styleSelectModalElement) {
+            styleSelectModalElement.remove();
+            styleSelectModalElement = null;
+          }
+          return;
+        }
 
         // Close the style select modal
         if (styleSelectModalElement) {
@@ -3271,7 +3340,7 @@
         }
 
         // Open batch details form for editing (first step)
-        openBatchDetailsModal(batchId, styleNumber, variant || null);
+        openBatchDetailsModal(batchId, styleNumber, variant);
       } catch (err) {
         console.error('Error in proceedAddStyleToBatch:', err);
         showToast('Error: ' + err.message);
@@ -3638,6 +3707,25 @@
 
       try {
         const styleData = JSON.parse(styleSelect.value);
+
+        // Check if style exists in batch
+        const batchRes = await fetch(`/api/batches/${batchInput}/full-data`);
+        if (!batchRes.ok) {
+          showToast('Batch not found');
+          return;
+        }
+        const batchData = await batchRes.json();
+
+        const styleKey = `${styleData.style_number}${styleData.variant ? '-' + styleData.variant : ''}`;
+        const styleInBatch = batchData.batch_style_data && batchData.batch_style_data.some(bsd => {
+          const key = `${bsd.style_number}${bsd.variant ? '-' + bsd.variant : ''}`;
+          return key === styleKey;
+        });
+
+        if (!styleInBatch) {
+          showToast('❌ This style is not in this batch');
+          return;
+        }
         const res = await fetch('/api/scan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

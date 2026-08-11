@@ -327,15 +327,15 @@ router.post('/styles/:style_number/product-info', verifyToken, checkRole(['edito
     return res.status(400).json({ error: 'Invalid style number' });
   }
   const { product_type, variant, product_name, description, care_instructions, delivery_returns, size_material_composition } = req.body;
-  const normalizedProductType = String(product_type || 'jeans').trim().toLowerCase();
+  const normalizedProductType = String(product_type || 'Jeans').trim();
   const trimmedVariant = typeof variant === 'string' ? variant.trim() : '';
-  const normalizedVariant = normalizedProductType === 'topp' ? trimmedVariant.toUpperCase() : null;
+  const normalizedVariant = normalizedProductType === 'Tops' ? trimmedVariant.toUpperCase() : null;
 
-  if (normalizedProductType === 'topp' && !normalizedVariant) {
-    return res.status(400).json({ error: 'Variant is required when product type is topp' });
+  if (normalizedProductType === 'Tops' && !normalizedVariant) {
+    return res.status(400).json({ error: 'Variant is required when product type is Tops' });
   }
 
-  if (normalizedProductType === 'topp' && !/^[A-Z0-9-]+$/.test(normalizedVariant)) {
+  if (normalizedProductType === 'Tops' && !/^[A-Z0-9-]+$/.test(normalizedVariant)) {
     return res.status(400).json({ error: 'Variant must only contain letters, numbers or dashes' });
   }
 
@@ -569,40 +569,32 @@ router.get('/styles/:style_number/full-data', (req, res) => {
 router.post('/batch/metadata', verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { batch_id, production_date, manufacturing_details } = req.body;
 
-  // Use transaction for atomic operation
   db.serialize(() => {
     db.run('BEGIN TRANSACTION', (err) => {
       if (err) return res.status(400).json({ error: err.message });
 
-      // Delete old values for this batch
       db.run(`DELETE FROM batch_data WHERE batch_id = ? AND key IN ('production_date', 'manufacturing_details')`, [batch_id], (err) => {
         if (err) {
           db.run('ROLLBACK');
           return res.status(400).json({ error: err.message });
         }
 
-        // Insert new values
-        db.run(`INSERT INTO batch_data (batch_id, key, value) VALUES (?, ?, ?)`,
-          [batch_id, 'production_date', production_date], (err) => {
-          if (err) {
-            db.run('ROLLBACK');
-            return res.status(400).json({ error: err.message });
-          }
-        });
+        // Insert both values in one statement to ensure atomicity
+        db.run(
+          `INSERT INTO batch_data (batch_id, key, value) VALUES (?, ?, ?), (?, ?, ?)`,
+          [batch_id, 'production_date', production_date, batch_id, 'manufacturing_details', manufacturing_details],
+          (err) => {
+            if (err) {
+              db.run('ROLLBACK');
+              return res.status(400).json({ error: err.message });
+            }
 
-        db.run(`INSERT INTO batch_data (batch_id, key, value) VALUES (?, ?, ?)`,
-          [batch_id, 'manufacturing_details', manufacturing_details], (err) => {
-          if (err) {
-            db.run('ROLLBACK');
-            return res.status(400).json({ error: err.message });
+            db.run('COMMIT', (err) => {
+              if (err) return res.status(400).json({ error: err.message });
+              res.json({ success: true });
+            });
           }
-
-          // Commit transaction
-          db.run('COMMIT', (err) => {
-            if (err) return res.status(400).json({ error: err.message });
-            res.json({ success: true });
-          });
-        });
+        );
       });
     });
   });
@@ -722,13 +714,19 @@ router.get('/batches/:batch_id/full-data', (req, res) => {
             db.all(`
               SELECT style_number, variant, composition FROM batch_style_data WHERE batch_id = ?
             `, [batch_id], (err, batchStyleData) => {
-              res.json({
-                batch: batch,
-                style: style || null,
-                transparency_data: transData,
-                serials: serials || [],
-                serial_data: allSerialData || [],
-                batch_style_data: batchStyleData || []
+              // Get batch_data (production_date, manufacturing_details)
+              db.all(`
+                SELECT * FROM batch_data WHERE batch_id = ?
+              `, [batch_id], (err, batchData) => {
+                res.json({
+                  batch: batch,
+                  batch_data: batchData || [],
+                  style: style || null,
+                  transparency_data: transData,
+                  serials: serials || [],
+                  serial_data: allSerialData || [],
+                  batch_style_data: batchStyleData || []
+                });
               });
             });
           });
@@ -1449,7 +1447,12 @@ router.post('/scan', (req, res) => {
             `INSERT INTO serials (batch_id, style_number, variant, serial_number) VALUES (?, ?, ?, ?)`,
             [batch_id, style_number, variant || null, serial_number],
             function(err) {
-              if (err) return res.status(400).json({ error: err.message });
+              if (err) {
+                if (err.message.includes('UNIQUE constraint failed: serials.serial_number')) {
+                  return res.status(409).json({ error: `❌ Serial ${serial_number} already exists` });
+                }
+                return res.status(400).json({ error: err.message });
+              }
 
               // Add event for scan
               db.run(

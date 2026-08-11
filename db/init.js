@@ -46,6 +46,9 @@ db.serialize(() => {
     )
   `);
 
+  // Ensure UNIQUE constraint exists (for existing databases)
+  db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_styles_unique ON styles(style_number, variant)`);
+
   // Style images (separate table for easier management)
   // Supports variant for topps (e.g., style_number='101011', variant='B25')
   db.run(`
@@ -146,8 +149,7 @@ db.serialize(() => {
       rfid TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(batch_id) REFERENCES batches(batch_id),
-      FOREIGN KEY(style_number) REFERENCES styles(style_number),
-      UNIQUE(batch_id, style_number, variant)
+      FOREIGN KEY(style_number) REFERENCES styles(style_number)
     )
   `);
 
