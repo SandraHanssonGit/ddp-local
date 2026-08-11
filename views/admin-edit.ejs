@@ -430,16 +430,6 @@
       <div id="batchSection" class="hidden bg-white rounded-lg shadow-md p-8">
         <h2 class="text-3xl font-semibold text-gray-900 mb-8">Batch: <span id="batchTitle"></span></h2>
 
-        <!-- Batch Images -->
-        <div class="bg-gray-50 p-6 rounded mb-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Batch Images</h3>
-          <div id="batchImages" class="flex gap-4 mb-4 flex-wrap"></div>
-          <input type="file" id="batchImageUpload" accept="image/*" class="border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900 w-full">
-          <button onclick="uploadBatchImage()" class="mt-2 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
-            Upload Image
-          </button>
-        </div>
-
         <div id="batchInfo" class="bg-gray-50 rounded-lg p-6 space-y-2"></div>
 
         <!-- Serials Table -->
@@ -2075,8 +2065,6 @@
       currentData.batch = data;
 
       document.getElementById('batchTitle').textContent = batchId;
-
-      await loadBatchImages(batchId);
 
       const batch = data.batch;
 
