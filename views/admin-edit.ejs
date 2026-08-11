@@ -1045,8 +1045,15 @@
     }
 
     function toggleStyleEdit(styleKeyId) {
+      console.log('toggleStyleEdit called with:', styleKeyId);
       const el = document.getElementById(`edit-${styleKeyId}`);
-      if (el) el.classList.toggle('hidden');
+      console.log('Element found:', el);
+      if (el) {
+        el.classList.toggle('hidden');
+        console.log('Toggled hidden class');
+      } else {
+        console.error(`Element edit-${styleKeyId} not found`);
+      }
     }
 
     function filterSerialsList(styleKeyId, searchText) {
