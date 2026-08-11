@@ -663,12 +663,18 @@ router.get('/batches/:batch_id/full-data', (req, res) => {
             SELECT sd.* FROM serial_data sd
             WHERE sd.serial_id IN (SELECT id FROM serials WHERE batch_id = ?)
           `, [batch_id], (err, allSerialData) => {
-            res.json({
-              batch: batch,
-              style: style || null,
-              transparency_data: transData,
-              serials: serials || [],
-              serial_data: allSerialData || []
+            // Get batch_style_data (styles with composition but no serials)
+            db.all(`
+              SELECT style_number, variant, composition FROM batch_style_data WHERE batch_id = ?
+            `, [batch_id], (err, batchStyleData) => {
+              res.json({
+                batch: batch,
+                style: style || null,
+                transparency_data: transData,
+                serials: serials || [],
+                serial_data: allSerialData || [],
+                batch_style_data: batchStyleData || []
+              });
             });
           });
         });

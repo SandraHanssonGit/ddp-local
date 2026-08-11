@@ -2240,9 +2240,6 @@
         if (pd) document.getElementById('editBatchProductionDate').value = pd.value;
         if (mfg) document.getElementById('editBatchManufacturing').value = mfg.value;
       }
-
-      // Show serials in table with pagination
-      showSerialsTable(data.serials, data.serial_data || []);
     }
 
     async function loadBatchImages(batchId) {
