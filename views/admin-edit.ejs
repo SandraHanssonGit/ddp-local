@@ -2433,11 +2433,19 @@
     }
 
     function toggleBatchDetailsEdit() {
+      console.log('toggleBatchDetailsEdit called');
       const editForm = document.getElementById('batchDetailsEditForm');
-      if (!editForm) return;
+      console.log('Edit form element:', editForm);
+
+      if (!editForm) {
+        console.error('Edit form not found!');
+        return;
+      }
 
       const isHidden = editForm.style.display === 'none' || editForm.style.display === '';
+      console.log('Current state - isHidden:', isHidden);
       editForm.style.display = isHidden ? 'block' : 'none';
+      console.log('New display state:', editForm.style.display);
     }
 
     async function saveBatchDetails() {
