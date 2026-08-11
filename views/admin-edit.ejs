@@ -3124,10 +3124,77 @@
           styleSelectModalElement = null;
         }
 
-        // Open add serials dialog for this style/batch combo
-        showAddSerialsModal(batchId, styleNumber, variant || null);
+        // Open batch details form for editing (first step)
+        openBatchDetailsModal(batchId, styleNumber, variant || null);
       } catch (err) {
         console.error('Error in proceedAddStyleToBatch:', err);
+        showToast('Error: ' + err.message);
+      }
+    }
+
+    async function openBatchDetailsModal(batchId, styleNumber, variant) {
+      try {
+        // Fetch current batch data
+        const res = await authFetch(`/api/batches/${batchId}`);
+        const data = await res.json();
+
+        // Find existing metadata
+        const prodDateData = data.batch_data?.find(d => d.key === 'production_date');
+        const mfgData = data.batch_data?.find(d => d.key === 'manufacturing_details');
+
+        // Create modal
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        modal.id = 'batchDetailsModal';
+        modal.innerHTML = `
+          <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4 space-y-4">
+            <h2 class="text-lg font-semibold text-gray-900">Batch Details for ${batchId}</h2>
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Production Date</label>
+              <input type="date" id="batchDetailsProdDate" value="${prodDateData?.value || ''}" class="w-full border border-gray-300 rounded px-3 py-2">
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Manufacturing Details</label>
+              <textarea id="batchDetailsMfg" rows="3" class="w-full border border-gray-300 rounded px-3 py-2">${mfgData?.value || ''}</textarea>
+            </div>
+            <div class="flex gap-2 justify-end">
+              <button type="button" class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300" id="batchDetailsCancel">Cancel</button>
+              <button type="button" class="px-4 py-2 bg-gray-900 text-white rounded hover:bg-gray-800" id="batchDetailsSave">Save & Continue</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+
+        document.getElementById('batchDetailsCancel').onclick = () => {
+          modal.remove();
+        };
+
+        document.getElementById('batchDetailsSave').onclick = async () => {
+          // Save batch metadata
+          const prodDate = document.getElementById('batchDetailsProdDate').value;
+          const mfg = document.getElementById('batchDetailsMfg').value;
+
+          const saveRes = await authFetch('/api/batch/metadata', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              batch_id: batchId,
+              production_date: prodDate,
+              manufacturing_details: mfg
+            })
+          });
+
+          if (saveRes.ok) {
+            showToast('✓ Batch details saved!');
+            modal.remove();
+            // Now open add serials dialog for the new style
+            showAddSerialsModal(batchId, styleNumber, variant);
+          } else {
+            showToast('Error saving batch details');
+          }
+        };
+      } catch (err) {
+        console.error('Error in openBatchDetailsModal:', err);
         showToast('Error: ' + err.message);
       }
     }
