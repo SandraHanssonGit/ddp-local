@@ -2109,7 +2109,7 @@
               Edit Batch Details
             </button>
             <button onclick="showAddStyleToBatchModal('${batch.batch_id}')" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
-              ➕ Add Style to Batch
+              <span class="text-white">➕</span> Add Style to Batch
             </button>
           </div>
         </div>
@@ -3115,16 +3115,17 @@
           return;
         }
 
-        // Close the dialog
+        // Parse style_number and variant from selected value
+        const [styleNumber, variant] = selected.split('|');
+
+        // Close the style select modal
         if (styleSelectModalElement) {
           styleSelectModalElement.remove();
           styleSelectModalElement = null;
         }
 
-        showToast('✓ Style added to batch!');
-
-        // Reload batch to show new style
-        await loadBatch(batchId);
+        // Open add serials dialog for this style/batch combo
+        showAddSerialsModal(batchId, styleNumber, variant || null);
       } catch (err) {
         console.error('Error in proceedAddStyleToBatch:', err);
         showToast('Error: ' + err.message);
