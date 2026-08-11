@@ -2206,7 +2206,7 @@
       }).join('');
 
       document.getElementById('batchInfo').innerHTML = `
-        <div id="batchMetadataView" class="space-y-6">
+        <div id="batchMetadataView" class="space-y-6" style="display: block;">
           <!-- Batch Header -->
           <div class="border-b pb-4">
             <div class="grid grid-cols-2 gap-4 mb-4">
@@ -2262,8 +2262,8 @@
 
       batchEditDiv = document.createElement('div');
       batchEditDiv.id = 'batchMetadataEdit';
-      batchEditDiv.className = 'hidden mt-4 bg-blue-50 border border-blue-200 rounded-lg p-6';
-      batchEditDiv.style.display = 'none'; // Explicit style for better visibility toggle
+      batchEditDiv.className = 'mt-4 bg-blue-50 border border-blue-200 rounded-lg p-6';
+      batchEditDiv.style.display = 'none'; // Start hidden
       batchEditDiv.innerHTML = `
         <h3 class="font-semibold text-gray-900 mb-4">Edit Batch Details</h3>
         <div class="space-y-4">
