@@ -583,6 +583,37 @@ router.post('/batch/metadata', verifyToken, checkRole(['editor', 'admin', 'super
   });
 });
 
+// Save batch style composition (overstöra style-level composition för denna batch)
+router.post('/batches/:batch_id/style-composition', verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
+  const { batch_id } = req.params;
+  const { style_number, variant, composition } = req.body;
+
+  db.run(`
+    INSERT OR REPLACE INTO batch_style_data (batch_id, style_number, variant, composition, updated_at)
+    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+  `, [batch_id, style_number, variant || null, composition], (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ success: true });
+  });
+});
+
+// Get batch style composition
+router.get('/batches/:batch_id/style-composition', (req, res) => {
+  const { batch_id } = req.params;
+  const { style_number, variant } = req.query;
+
+  const variantClause = variant ? 'AND variant = ?' : 'AND variant IS NULL';
+  const params = variant ? [batch_id, style_number, variant] : [batch_id, style_number];
+
+  db.get(`
+    SELECT composition FROM batch_style_data
+    WHERE batch_id = ? AND style_number = ? ${variantClause}
+  `, params, (err, row) => {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ composition: row?.composition || null });
+  });
+});
+
 // Get full DPP data for a batch (with all serials)
 // Get batch with metadata
 router.get('/batches/:batch_id', (req, res) => {

@@ -176,6 +176,21 @@ db.serialize(() => {
     )
   `);
 
+  // Batch style data (composition, etc. per style per batch)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS batch_style_data (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      batch_id TEXT NOT NULL,
+      style_number TEXT NOT NULL,
+      variant TEXT,
+      composition TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(batch_id, style_number, variant),
+      FOREIGN KEY(batch_id) REFERENCES batches(batch_id)
+    )
+  `);
+
   // Events (repair, recycling, etc)
   db.run(`
     CREATE TABLE IF NOT EXISTS events (
