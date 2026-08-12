@@ -1890,6 +1890,8 @@
       document.getElementById('styleSection').classList.remove('hidden');
       document.getElementById('batchSection').classList.add('hidden');
       document.getElementById('serialSection').classList.add('hidden');
+      document.getElementById('recentBatchesContainer').classList.add('hidden');
+      document.getElementById('resultsListContainer').classList.add('hidden');
 
       // Only show variant in title if it's a real value (not null, undefined, or "null" string)
       const cleanVariant = (variant && variant !== 'null' && variant !== 'undefined') ? variant : null;
