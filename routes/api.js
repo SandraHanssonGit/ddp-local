@@ -327,6 +327,7 @@ router.post('/styles/:style_number/product-info', verifyToken, checkRole(['edito
     return res.status(400).json({ error: 'Invalid style number' });
   }
   const { product_type, variant, product_name, description, care_instructions, delivery_returns, size_material_composition } = req.body;
+  console.log('API received care_instructions:', care_instructions, 'length:', care_instructions ? care_instructions.length : 0);
   // Normalize product_type to standard format: 'Jeans' or 'Tops'
   let normalizedProductType = String(product_type || 'Jeans').trim();
   const lowerType = normalizedProductType.toLowerCase();
@@ -347,25 +348,36 @@ router.post('/styles/:style_number/product-info', verifyToken, checkRole(['edito
     return res.status(400).json({ error: 'Variant must only contain letters, numbers or dashes' });
   }
 
-  db.run(`
-    INSERT INTO styles (style_number, variant, product_type, product_name, description, care_instructions, delivery_returns, size_material_composition)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(style_number, variant) DO UPDATE SET
-      product_type = excluded.product_type,
-      product_name = excluded.product_name,
-      description = excluded.description,
-      care_instructions = excluded.care_instructions,
-      delivery_returns = excluded.delivery_returns,
-      size_material_composition = excluded.size_material_composition,
-      updated_at = CURRENT_TIMESTAMP
-  `, [style_number, normalizedVariant, normalizedProductType, product_name, description, care_instructions, delivery_returns, size_material_composition], function(err) {
-    if (err) {
-      if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-        return res.status(409).json({ error: 'This variant already exists for this style' });
+  // Use DELETE + INSERT to ensure clean update
+  db.serialize(() => {
+    db.run('BEGIN TRANSACTION');
+
+    db.run('DELETE FROM styles WHERE style_number = ? AND (variant = ? OR (variant IS NULL AND ? IS NULL))',
+      [style_number, normalizedVariant, normalizedVariant],
+      function(err) {
+        if (err) {
+          db.run('ROLLBACK');
+          return res.status(400).json({ error: 'Delete failed: ' + err.message });
+        }
+
+        db.run(`
+          INSERT INTO styles (style_number, variant, product_type, product_name, description, care_instructions, delivery_returns, size_material_composition)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `, [style_number, normalizedVariant, normalizedProductType, product_name, description, care_instructions, delivery_returns, size_material_composition], function(err) {
+          if (err) {
+            db.run('ROLLBACK');
+            return res.status(400).json({ error: 'Insert failed: ' + err.message });
+          }
+
+          db.run('COMMIT', function(err) {
+            if (err) {
+              return res.status(400).json({ error: 'Commit failed: ' + err.message });
+            }
+            res.json({ success: true, style_number, variant: normalizedVariant });
+          });
+        });
       }
-      return res.status(400).json({ error: err.message });
-    }
-    res.json({ success: true, style_number, variant: normalizedVariant });
+    );
   });
 });
 
