@@ -178,6 +178,14 @@ router.post('/batch/import', verifyToken, checkRole(['editor', 'admin', 'super_a
     insertSerials();
 
     function insertSerials() {
+      // If no serials provided, batch is created successfully without serials
+      if (!serials || serials.length === 0) {
+        return res.json({
+          success: true,
+          batch_id,
+          serials_imported: 0
+        });
+      }
 
       // Insert serials
       let inserted = 0;

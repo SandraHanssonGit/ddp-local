@@ -3110,12 +3110,10 @@
         return;
       }
 
-      if (!serialsInput) {
-        showToast('Please enter at least one serial number');
-        return;
-      }
-
-      const serials = serialsInput.split(',').map(s => s.trim()).filter(s => s.length > 0);
+      // Serial numbers are optional - can be added later via scanning
+      const serials = serialsInput
+        ? serialsInput.split(',').map(s => s.trim()).filter(s => s.length > 0)
+        : [];
 
       try {
         // Step 1: Create batch
