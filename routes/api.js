@@ -386,18 +386,33 @@ router.post('/styles/:style_number/transparency', validateStyleNumber, verifyTok
   const { style_number } = req.params;
   const { variant, suppliers_chain, certifications, environmental_data, social_data } = req.body;
 
-  db.run(`
-    INSERT INTO transparency_data (style_number, variant, suppliers_chain, certifications, environmental_data, social_data)
-    VALUES (?, ?, ?, ?, ?, ?)
-    ON CONFLICT(style_number, variant) DO UPDATE SET
-      suppliers_chain = excluded.suppliers_chain,
-      certifications = excluded.certifications,
-      environmental_data = excluded.environmental_data,
-      social_data = excluded.social_data,
-      updated_at = CURRENT_TIMESTAMP
-  `, [style_number, variant || null, JSON.stringify(suppliers_chain), JSON.stringify(certifications), JSON.stringify(environmental_data), JSON.stringify(social_data)], function(err) {
-    if (err) return res.status(400).json({ error: err.message });
-    res.json({ success: true, style_number, variant: variant || null });
+  db.serialize(() => {
+    db.run('BEGIN TRANSACTION');
+
+    db.run('DELETE FROM transparency_data WHERE style_number = ? AND (variant = ? OR (variant IS NULL AND ? IS NULL))',
+      [style_number, variant || null, variant || null],
+      function(err) {
+        if (err) {
+          db.run('ROLLBACK');
+          return res.status(400).json({ error: 'Delete failed: ' + err.message });
+        }
+
+        db.run(`
+          INSERT INTO transparency_data (style_number, variant, suppliers_chain, certifications, environmental_data, social_data)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `, [style_number, variant || null, JSON.stringify(suppliers_chain), JSON.stringify(certifications), JSON.stringify(environmental_data), JSON.stringify(social_data)], function(err) {
+          if (err) {
+            db.run('ROLLBACK');
+            return res.status(400).json({ error: 'Insert failed: ' + err.message });
+          }
+
+          db.run('COMMIT', function(err) {
+            if (err) return res.status(400).json({ error: 'Commit failed: ' + err.message });
+            res.json({ success: true, style_number, variant: variant || null });
+          });
+        });
+      }
+    );
   });
 });
 
@@ -406,17 +421,33 @@ router.post('/styles/:style_number/nudie-values', validateStyleNumber, verifyTok
   const { style_number } = req.params;
   const { variant, repair_info, trade_in_info, partner_links } = req.body;
 
-  db.run(`
-    INSERT INTO nudie_values (style_number, variant, repair_info, trade_in_info, partner_links)
-    VALUES (?, ?, ?, ?, ?)
-    ON CONFLICT(style_number, variant) DO UPDATE SET
-      repair_info = excluded.repair_info,
-      trade_in_info = excluded.trade_in_info,
-      partner_links = excluded.partner_links,
-      updated_at = CURRENT_TIMESTAMP
-  `, [style_number, variant || null, repair_info, trade_in_info, JSON.stringify(partner_links)], function(err) {
-    if (err) return res.status(400).json({ error: err.message });
-    res.json({ success: true, style_number, variant: variant || null });
+  db.serialize(() => {
+    db.run('BEGIN TRANSACTION');
+
+    db.run('DELETE FROM nudie_values WHERE style_number = ? AND (variant = ? OR (variant IS NULL AND ? IS NULL))',
+      [style_number, variant || null, variant || null],
+      function(err) {
+        if (err) {
+          db.run('ROLLBACK');
+          return res.status(400).json({ error: 'Delete failed: ' + err.message });
+        }
+
+        db.run(`
+          INSERT INTO nudie_values (style_number, variant, repair_info, trade_in_info, partner_links)
+          VALUES (?, ?, ?, ?, ?)
+        `, [style_number, variant || null, repair_info, trade_in_info, JSON.stringify(partner_links)], function(err) {
+          if (err) {
+            db.run('ROLLBACK');
+            return res.status(400).json({ error: 'Insert failed: ' + err.message });
+          }
+
+          db.run('COMMIT', function(err) {
+            if (err) return res.status(400).json({ error: 'Commit failed: ' + err.message });
+            res.json({ success: true, style_number, variant: variant || null });
+          });
+        });
+      }
+    );
   });
 });
 
@@ -425,17 +456,33 @@ router.post('/styles/:style_number/storytelling', validateStyleNumber, verifyTok
   const { style_number } = req.params;
   const { variant, summary, content, links } = req.body;
 
-  db.run(`
-    INSERT INTO storytelling (style_number, variant, summary, content, links)
-    VALUES (?, ?, ?, ?, ?)
-    ON CONFLICT(style_number, variant) DO UPDATE SET
-      summary = excluded.summary,
-      content = excluded.content,
-      links = excluded.links,
-      updated_at = CURRENT_TIMESTAMP
-  `, [style_number, variant || null, summary, content, JSON.stringify(links)], function(err) {
-    if (err) return res.status(400).json({ error: err.message });
-    res.json({ success: true, style_number, variant: variant || null });
+  db.serialize(() => {
+    db.run('BEGIN TRANSACTION');
+
+    db.run('DELETE FROM storytelling WHERE style_number = ? AND (variant = ? OR (variant IS NULL AND ? IS NULL))',
+      [style_number, variant || null, variant || null],
+      function(err) {
+        if (err) {
+          db.run('ROLLBACK');
+          return res.status(400).json({ error: 'Delete failed: ' + err.message });
+        }
+
+        db.run(`
+          INSERT INTO storytelling (style_number, variant, summary, content, links)
+          VALUES (?, ?, ?, ?, ?)
+        `, [style_number, variant || null, summary, content, JSON.stringify(links)], function(err) {
+          if (err) {
+            db.run('ROLLBACK');
+            return res.status(400).json({ error: 'Insert failed: ' + err.message });
+          }
+
+          db.run('COMMIT', function(err) {
+            if (err) return res.status(400).json({ error: 'Commit failed: ' + err.message });
+            res.json({ success: true, style_number, variant: variant || null });
+          });
+        });
+      }
+    );
   });
 });
 
