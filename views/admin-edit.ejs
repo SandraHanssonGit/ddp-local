@@ -2548,8 +2548,6 @@
         const variantInput = document.getElementById('productVariant');
         const variantValue = (variantInput?.value || '').trim();
 
-        console.log('saveProductInfo called:', { styleNumber, selectedProductType, variantValue });
-
         if (!styleNumber) {
           showToast('❌ Style number not set');
           return;
@@ -2620,22 +2618,17 @@
           size_material_composition: document.getElementById('productMaterial').value
         };
 
-        console.log('Sending payload:', payload);
         const res = await authFetch(`/api/styles/${styleNumber}/product-info`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        console.log('Response status:', res.status, res.ok);
         const result = await res.json();
-        console.log('Response body:', result);
 
         if (res.ok) {
           showToast('✓ Style saved!');
-          console.log('About to toggle edit and reload style');
           toggleEdit('product-info');
           await loadStyle(styleNumber);
-          console.log('Style reloaded');
 
           // Always refresh search results if search was active
           const searchQuery = document.getElementById('searchQuery')?.value?.trim();
@@ -2646,7 +2639,6 @@
           showToast('Error: ' + result.error);
         }
       } catch (err) {
-        console.error('Error in saveProductInfo:', err);
         showToast('Error: ' + err.message);
       }
     }

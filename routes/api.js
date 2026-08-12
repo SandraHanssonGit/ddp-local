@@ -327,7 +327,15 @@ router.post('/styles/:style_number/product-info', verifyToken, checkRole(['edito
     return res.status(400).json({ error: 'Invalid style number' });
   }
   const { product_type, variant, product_name, description, care_instructions, delivery_returns, size_material_composition } = req.body;
-  const normalizedProductType = String(product_type || 'Jeans').trim();
+  // Normalize product_type to standard format: 'Jeans' or 'Tops'
+  let normalizedProductType = String(product_type || 'Jeans').trim();
+  const lowerType = normalizedProductType.toLowerCase();
+  if (lowerType === 'tops' || lowerType === 'topp') {
+    normalizedProductType = 'Tops';
+  } else {
+    normalizedProductType = 'Jeans';
+  }
+
   const trimmedVariant = typeof variant === 'string' ? variant.trim() : '';
   const normalizedVariant = normalizedProductType === 'Tops' ? trimmedVariant.toUpperCase() : null;
 
