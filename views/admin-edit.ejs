@@ -2068,27 +2068,25 @@
         const container = document.getElementById('styleImages');
 
         if (images.length === 0) {
-          container.innerHTML = '<p class="text-gray-500 text-sm">No images yet</p>';
+          container.innerHTML = '<p class="text-gray-500 text-sm">No image yet</p>';
           return;
         }
 
+        // Show only the first (latest) image
+        const img = images[0];
         container.innerHTML = `
-          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            ${images.map(img => `
-              <div class="relative group">
-                <div class="bg-gray-100 rounded-lg overflow-hidden aspect-square">
-                  <img src="data:image/jpeg;base64,${img.image_data}"
-                       class="w-full h-full object-cover"
-                       alt="${img.image_name}">
-                </div>
-                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded-lg transition"></div>
-                <button onclick="deleteStyleImage(${img.id})"
-                        class="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-sm opacity-0 group-hover:opacity-100 transition">
-                  Delete
-                </button>
-                <p class="text-xs text-gray-600 mt-2 truncate">${img.image_name}</p>
-              </div>
-            `).join('')}
+          <div class="relative group w-48 h-48">
+            <div class="bg-gray-100 rounded-lg overflow-hidden w-full h-full">
+              <img src="data:image/jpeg;base64,${img.image_data}"
+                   class="w-full h-full object-cover"
+                   alt="${img.image_name}">
+            </div>
+            <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded-lg transition"></div>
+            <button onclick="deleteStyleImage(${img.id})"
+                    class="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-sm opacity-0 group-hover:opacity-100 transition">
+              Delete
+            </button>
+            <p class="text-xs text-gray-600 mt-2 truncate">${img.image_name}</p>
           </div>
         `;
       } catch (err) {
@@ -2288,27 +2286,25 @@
         const container = document.getElementById('batchImages');
 
         if (images.length === 0) {
-          container.innerHTML = '<p class="text-gray-500 text-sm">No images yet</p>';
+          container.innerHTML = '<p class="text-gray-500 text-sm">No image yet</p>';
           return;
         }
 
+        // Show only the first (latest) image
+        const img = images[0];
         container.innerHTML = `
-          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            ${images.map(img => `
-              <div class="relative group">
-                <div class="bg-gray-100 rounded-lg overflow-hidden aspect-square">
-                  <img src="data:image/jpeg;base64,${img.image_data}"
-                       class="w-full h-full object-cover"
-                       alt="${img.image_name}">
-                </div>
-                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded-lg transition"></div>
-                <button onclick="deleteBatchImage(${img.id})"
-                        class="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-sm opacity-0 group-hover:opacity-100 transition">
-                  Delete
-                </button>
-                <p class="text-xs text-gray-600 mt-2 truncate">${img.image_name}</p>
-              </div>
-            `).join('')}
+          <div class="relative group w-48 h-48">
+            <div class="bg-gray-100 rounded-lg overflow-hidden w-full h-full">
+              <img src="data:image/jpeg;base64,${img.image_data}"
+                   class="w-full h-full object-cover"
+                   alt="${img.image_name}">
+            </div>
+            <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded-lg transition"></div>
+            <button onclick="deleteBatchImage(${img.id})"
+                    class="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-sm opacity-0 group-hover:opacity-100 transition">
+              Delete
+            </button>
+            <p class="text-xs text-gray-600 mt-2 truncate">${img.image_name}</p>
           </div>
         `;
       } catch (err) {
@@ -2848,54 +2844,66 @@
       }
 
       const styleNumber = currentData.style.style.style_number;
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          // Compress image
-          const img = new Image();
-          img.onload = async () => {
-            const canvas = document.createElement('canvas');
-            let width = img.width;
-            let height = img.height;
 
-            // Scale down to max 800px width while maintaining aspect ratio
-            if (width > 800) {
-              height = (height * 800) / width;
-              width = 800;
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-
-            // Convert to JPEG with 80% quality
-            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
-
-            const res = await authFetch(`/api/styles/${styleNumber}/image`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                image_data: compressedBase64,
-                image_name: file.name
-              })
-            });
-
-            const result = await res.json();
-            if (res.ok) {
-              showToast('✓ Image uploaded!');
-              document.getElementById('styleImageUpload').value = '';
-              await loadStyleImages(styleNumber);
-            } else {
-              showToast('Error: ' + (result.error || 'Upload failed'));
-            }
-          };
-          img.src = e.target.result;
-        } catch (err) {
-          showToast('Error: ' + err.message);
+      try {
+        // Delete existing images for this style
+        const existingRes = await authFetch(`/api/styles/${styleNumber}/images`);
+        const existingImages = await existingRes.json();
+        for (const img of existingImages) {
+          await authFetch(`/api/styles/image/${img.id}`, { method: 'DELETE' });
         }
-      };
-      reader.readAsDataURL(file);
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            // Compress image
+            const img = new Image();
+            img.onload = async () => {
+              const canvas = document.createElement('canvas');
+              let width = img.width;
+              let height = img.height;
+
+              // Scale down to max 800px width while maintaining aspect ratio
+              if (width > 800) {
+                height = (height * 800) / width;
+                width = 800;
+              }
+
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, width, height);
+
+              // Convert to JPEG with 80% quality
+              const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+
+              const res = await authFetch(`/api/styles/${styleNumber}/image`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  image_data: compressedBase64,
+                  image_name: file.name
+                })
+              });
+
+              const result = await res.json();
+              if (res.ok) {
+                showToast('✓ Image uploaded!');
+                document.getElementById('styleImageUpload').value = '';
+                await loadStyleImages(styleNumber);
+              } else {
+                showToast('Error: ' + (result.error || 'Upload failed'));
+              }
+            };
+            img.src = e.target.result;
+          } catch (err) {
+            showToast('Error: ' + err.message);
+          }
+        };
+        reader.readAsDataURL(file);
+      } catch (err) {
+        showToast('Error: ' + err.message);
+      }
     }
 
     async function uploadBatchImage() {
@@ -2906,54 +2914,66 @@
       }
 
       const batchId = currentData.batch.batch.batch_id;
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          // Compress image
-          const img = new Image();
-          img.onload = async () => {
-            const canvas = document.createElement('canvas');
-            let width = img.width;
-            let height = img.height;
 
-            // Scale down to max 800px width while maintaining aspect ratio
-            if (width > 800) {
-              height = (height * 800) / width;
-              width = 800;
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-
-            // Convert to JPEG with 80% quality
-            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
-
-            const res = await authFetch(`/api/batches/${batchId}/image`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                image_data: compressedBase64,
-                image_name: file.name
-              })
-            });
-
-            const result = await res.json();
-            if (res.ok) {
-              showToast('✓ Image uploaded!');
-              document.getElementById('batchImageUpload').value = '';
-              await loadBatchImages(batchId);
-            } else {
-              showToast('Error: ' + (result.error || 'Upload failed'));
-            }
-          };
-          img.src = e.target.result;
-        } catch (err) {
-          showToast('Error: ' + err.message);
+      try {
+        // Delete existing images for this batch
+        const existingRes = await authFetch(`/api/batches/${batchId}/images`);
+        const existingImages = await existingRes.json();
+        for (const img of existingImages) {
+          await authFetch(`/api/batches/image/${img.id}`, { method: 'DELETE' });
         }
-      };
-      reader.readAsDataURL(file);
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            // Compress image
+            const img = new Image();
+            img.onload = async () => {
+              const canvas = document.createElement('canvas');
+              let width = img.width;
+              let height = img.height;
+
+              // Scale down to max 800px width while maintaining aspect ratio
+              if (width > 800) {
+                height = (height * 800) / width;
+                width = 800;
+              }
+
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, width, height);
+
+              // Convert to JPEG with 80% quality
+              const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+
+              const res = await authFetch(`/api/batches/${batchId}/image`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  image_data: compressedBase64,
+                  image_name: file.name
+                })
+              });
+
+              const result = await res.json();
+              if (res.ok) {
+                showToast('✓ Image uploaded!');
+                document.getElementById('batchImageUpload').value = '';
+                await loadBatchImages(batchId);
+              } else {
+                showToast('Error: ' + (result.error || 'Upload failed'));
+              }
+            };
+            img.src = e.target.result;
+          } catch (err) {
+            showToast('Error: ' + err.message);
+          }
+        };
+        reader.readAsDataURL(file);
+      } catch (err) {
+        showToast('Error: ' + err.message);
+      }
     }
 
     async function deleteStyleImage(id) {
