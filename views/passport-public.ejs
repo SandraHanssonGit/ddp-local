@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product Passport - <%= batch.batch_number %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
+  <style>
+    @media print {
+      body { background: white; }
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body class="bg-white">
+  <div class="max-w-4xl mx-auto px-8 py-16">
+    <!-- Logo -->
+    <div class="mb-12 pb-8 border-b border-gray-200">
+      <img src="https://images.teamtailor-cdn.com/images/s3/teamtailor-production/logotype-v3/image_uploads/7118e754-48bc-483f-b8fa-42a84f2e08f2/original.png" alt="Nudie Jeans" class="h-8">
+    </div>
+
+    <!-- Header -->
+    <div class="mb-8 pb-8 border-b border-gray-200">
+      <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide mb-4">Product Passport</p>
+      <h1 class="text-5xl font-bold text-gray-900 mb-2"><%= batch.style_name %></h1>
+      <p class="text-lg text-gray-600">
+        Style <%= batch.style_number %>
+        <% if (batch.variant_code) { %>• Variant <%= batch.variant_code %><% if (batch.variant_name) { %> – <%= batch.variant_name %><% } %><% } %>
+        • Batch <%= batch.batch_number %>
+      </p>
+    </div>
+
+    <!-- Product Image -->
+    <% if (batch.variant_image_url || batch.style_image_url) { %>
+      <div class="mb-12">
+        <img src="<%= batch.variant_image_url || batch.style_image_url %>" alt="<%= batch.style_name %>" class="w-96 object-cover rounded">
+      </div>
+    <% } %>
+
+    <!-- Product Details -->
+    <div class="grid grid-cols-3 gap-8 mb-16 pb-16 border-b border-gray-200">
+      <div>
+        <p class="text-xs text-gray-600 font-semibold uppercase tracking-wide mb-2">Product Type</p>
+        <p class="text-gray-900"><%= batch.product_type %></p>
+      </div>
+      <div>
+        <p class="text-xs text-gray-600 font-semibold uppercase tracking-wide mb-2">Batch Number</p>
+        <p class="text-gray-900 font-mono"><%= batch.batch_number %></p>
+      </div>
+      <div>
+        <p class="text-xs text-gray-600 font-semibold uppercase tracking-wide mb-2">Production Date</p>
+        <p class="text-gray-900"><%= batch.production_date ? new Date(batch.production_date).toLocaleDateString('sv-SE') : '-' %></p>
+      </div>
+    </div>
+
+    <!-- Material -->
+    <div class="mb-16 pb-16 border-b border-gray-200">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4">Material Composition</h2>
+      <p class="text-gray-700 text-lg leading-relaxed"><%= batch.material_composition || 'Not specified' %></p>
+    </div>
+
+    <!-- Origin & Supplier -->
+    <div class="grid grid-cols-2 gap-16 mb-16 pb-16 border-b border-gray-200">
+      <div>
+        <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Country of Origin</h3>
+        <p class="text-gray-700 text-lg"><%= batch.country_of_origin || '-' %></p>
+      </div>
+      <div>
+        <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Supplier</h3>
+        <p class="text-gray-700 text-lg"><%= batch.supplier || '-' %></p>
+      </div>
+    </div>
+
+    <!-- Care & Recycling -->
+    <div class="grid grid-cols-2 gap-16 mb-16 pb-16 border-b border-gray-200">
+      <% if (batch.care_instructions) { %>
+        <div>
+          <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Care Instructions</h3>
+          <p class="text-gray-700 leading-relaxed"><%= batch.care_instructions %></p>
+        </div>
+      <% } %>
+      <% if (batch.recycling_info) { %>
+        <div>
+          <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Recycling & Environment</h3>
+          <p class="text-gray-700 leading-relaxed"><%= batch.recycling_info %></p>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- Certification -->
+    <% if (batch.certification_name) { %>
+      <div class="mb-16 pb-16 border-b border-gray-200">
+        <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">Certification</h3>
+        <a href="<%= batch.certification_url %>" target="_blank" class="inline-block text-gray-900 border border-gray-900 px-6 py-3 hover:bg-gray-900 hover:text-white transition font-semibold">
+          <%= batch.certification_name %> ↗
+        </a>
+      </div>
+    <% } %>
+
+    <!-- QR Code -->
+    <div class="flex flex-col items-center py-16 no-print">
+      <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide mb-6">Scan to Verify</p>
+      <div id="qrcode" class="mb-6"></div>
+      <p class="text-xs text-gray-500 text-center">This QR code links to the digital passport for verification</p>
+    </div>
+
+    <!-- Footer -->
+    <div class="text-center text-sm text-gray-600 pt-8 border-t border-gray-200">
+      <p class="mb-2">Digital Product Passport</p>
+      <p><%= new Date().toLocaleDateString('sv-SE', {year: 'numeric', month: 'long', day: 'numeric'}) %></p>
+    </div>
+
+    <!-- Print Button -->
+    <div class="text-center mt-8 no-print">
+      <button onclick="window.print()" class="border border-gray-900 text-gray-900 px-8 py-3 font-semibold hover:bg-gray-900 hover:text-white transition">
+        Print Passport
+      </button>
+    </div>
+  </div>
+
+  <script>
+    new QRCode(document.getElementById('qrcode'), {
+      text: window.location.href,
+      width: 200,
+      height: 200,
+      colorDark: '#000000',
+      colorLight: '#ffffff'
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DPP Hub - Digital Product Passport</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-image: url('/nudie-background.jpg');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      min-height: 100vh;
+      position: relative;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: -1;
+    }
+    .login-card {
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(10px);
+    }
+    .input-field {
+      border: none;
+      border-bottom: 1px solid #ccc;
+      background: transparent;
+      font-size: 1rem;
+      padding: 0.75rem 0;
+      transition: border-color 0.3s;
+    }
+    .input-field:focus {
+      outline: none;
+      border-bottom-color: #000;
+    }
+    .submit-btn {
+      background: #000;
+      letter-spacing: 1px;
+    }
+    .submit-btn:hover {
+      background: #333;
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center">
+  <div class="login-card max-w-sm w-full mx-4 px-10 py-16">
+    <!-- Logo -->
+    <div class="text-center mb-12">
+      <div id="logoContainer" class="mb-8 min-h-16 flex items-center justify-center">
+        <!-- Nudie Jeans logo will load here from localStorage -->
+      </div>
+      <h1 class="text-6xl font-light text-black tracking-tight mb-2">HUB</h1>
+      <p class="text-xs uppercase tracking-widest text-gray-600">Digital Product Passport</p>
+    </div>
+
+    <!-- Form -->
+    <form id="loginForm" class="space-y-8">
+      <div>
+        <label class="block text-xs uppercase tracking-wide text-gray-700 mb-4 font-semibold">Username</label>
+        <input
+          type="text"
+          id="username"
+          name="username"
+          required
+          class="input-field w-full text-gray-900 placeholder-gray-400"
+          placeholder="sandra"
+        >
+      </div>
+
+      <div>
+        <label class="block text-xs uppercase tracking-wide text-gray-700 mb-4 font-semibold">Password</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          required
+          class="input-field w-full text-gray-900 placeholder-gray-400"
+          placeholder="••••••••"
+        >
+      </div>
+
+      <button
+        type="submit"
+        class="submit-btn w-full text-white font-semibold py-3 uppercase tracking-wider text-sm transition"
+      >
+        Sign In
+      </button>
+
+      <div id="error" class="hidden bg-red-50 border-l-4 border-red-600 text-red-700 px-4 py-3 text-sm"></div>
+    </form>
+
+    <!-- Test accounts -->
+    <div class="mt-12 pt-8 border-t border-gray-200">
+      <p class="text-xs uppercase tracking-widest text-gray-700 font-semibold mb-4">Test Accounts</p>
+      <div class="space-y-2 text-xs text-gray-600">
+        <div><strong>sandra</strong> / password123 (Super Admin)</div>
+        <div><strong>viewer</strong> / test (Viewer)</div>
+        <div><strong>editor</strong> / test (Editor)</div>
+        <div><strong>admin</strong> / test (Admin)</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Load logo from server on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      const logoContainer = document.getElementById('logoContainer');
+      const img = new Image();
+      img.onload = () => {
+        logoContainer.innerHTML = `<img src="/nudie-logo.png" style="max-height: 80px; max-width: 200px;" alt="Nudie Jeans">`;
+      };
+      img.onerror = () => {
+        // No logo available, leave empty
+      };
+      img.src = '/nudie-logo.png';
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          // Token is saved in httpOnly cookie by server
+          // Also save to localStorage for client-side auth operations
+          localStorage.setItem('user', JSON.stringify(data.user));
+          // Get token from response and save locally for authFetch calls
+          // Note: The server also sets it as httpOnly cookie for server-side verification
+          const token = data.token || 'authenticated'; // Server sets cookie, we just mark as authenticated
+          if (data.token) localStorage.setItem('token', data.token);
+          // Redirect to DPP Hub
+          window.location.href = '/admin-edit';
+        } else {
+          document.getElementById('error').textContent = data.error || 'Login failed';
+          document.getElementById('error').classList.remove('hidden');
+        }
+      } catch (err) {
+        document.getElementById('error').textContent = 'Connection error';
+        document.getElementById('error').classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>

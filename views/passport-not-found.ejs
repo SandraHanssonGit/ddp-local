@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Passport Not Found</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+  <div class="max-w-2xl mx-auto py-24 px-4">
+    <div class="bg-white rounded-lg shadow-md p-8 text-center">
+      <h1 class="text-4xl font-bold text-gray-900 mb-4">404</h1>
+      <p class="text-xl text-gray-600 mb-6">Serial number not found: <code class="bg-gray-100 px-3 py-1 rounded"><%= serial_number %></code></p>
+      <p class="text-gray-600 mb-8">This product passport doesn't exist yet. It may not have been registered in the system.</p>
+      <a href="/admin" class="inline-block bg-blue-600 text-white px-6 py-3 rounded font-semibold hover:bg-blue-700">
+        Go to Admin Panel
+      </a>
+    </div>
+  </div>
+</body>
+</html>

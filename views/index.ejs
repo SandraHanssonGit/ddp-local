@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DPP - Product Passport Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white">
+  <nav class="border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-8 py-4">
+      <div class="flex justify-between items-center">
+        <a href="/" class="flex items-center">
+          <img src="https://images.teamtailor-cdn.com/images/s3/teamtailor-production/logotype-v3/image_uploads/7118e754-48bc-483f-b8fa-42a84f2e08f2/original.png" alt="Nudie Jeans" class="h-8">
+        </a>
+        <a href="/styles/new" class="bg-gray-900 text-white px-6 py-2 text-sm font-semibold hover:bg-gray-800">
+          + Add Style
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-8 py-16">
+    <!-- Header -->
+    <div class="mb-12">
+      <h1 class="text-5xl font-bold text-gray-900 mb-2">Dashboard</h1>
+      <p class="text-gray-600 text-lg">Manage product passports and batch information</p>
+    </div>
+
+    <!-- Statistics -->
+    <div class="grid grid-cols-3 gap-8 mb-12">
+      <div class="border border-gray-200 p-6">
+        <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide mb-2">Total Styles</p>
+        <p class="text-4xl font-bold text-gray-900"><%= stats.total_styles %></p>
+      </div>
+      <div class="border border-gray-200 p-6">
+        <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide mb-2">Total Batches</p>
+        <p class="text-4xl font-bold text-gray-900"><%= stats.total_batches %></p>
+      </div>
+      <div class="border border-gray-200 p-6">
+        <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide mb-2">Archived Batches</p>
+        <p class="text-4xl font-bold text-gray-900"><%= stats.archived_batches %></p>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="grid grid-cols-2 gap-8 mb-12">
+      <!-- Recent Changes -->
+      <div class="border border-gray-200 p-6">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Recent Changes</h2>
+        <% if (recentChanges.length === 0) { %>
+          <p class="text-gray-600">No changes yet</p>
+        <% } else { %>
+          <div class="space-y-4">
+            <% recentChanges.forEach(change => { %>
+              <div class="border-l-4 border-gray-300 pl-4 py-2">
+                <p class="text-sm font-semibold text-gray-900">
+                  Batch <%= change.batch_number || 'N/A' %>
+                </p>
+                <p class="text-xs text-gray-600 mt-1">
+                  <%= change.change_description %>
+                </p>
+                <p class="text-xs text-gray-500 mt-1">
+                  <%= new Date(change.created_at).toLocaleDateString('sv-SE', {year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'}) %>
+                </p>
+              </div>
+            <% }); %>
+          </div>
+        <% } %>
+      </div>
+
+      <!-- Recent Batches -->
+      <div class="border border-gray-200 p-6">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Recent Batches</h2>
+        <% if (recentBatches.length === 0) { %>
+          <p class="text-gray-600">No batches yet</p>
+        <% } else { %>
+          <div class="space-y-4">
+            <% recentBatches.forEach(batch => { %>
+              <a href="/batches/<%= batch.batch_id %>" class="block border border-gray-200 p-4 hover:border-gray-400 transition">
+                <p class="font-semibold text-gray-900 hover:underline">
+                  <%= batch.batch_number %>
+                </p>
+                <p class="text-sm text-gray-600 mt-1">
+                  <%= batch.style_name %><% if (batch.variant_code) { %> • <%= batch.variant_code %><% } %>
+                </p>
+                <div class="flex gap-2 mt-2">
+                  <% if (batch.lifecycle_status === 'draft') { %>
+                    <span class="inline-block text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded">Draft</span>
+                  <% } else if (batch.lifecycle_status === 'published') { %>
+                    <span class="inline-block text-xs bg-green-200 text-green-800 px-2 py-1 rounded">Published</span>
+                  <% } else if (batch.lifecycle_status === 'archived') { %>
+                    <span class="inline-block text-xs bg-gray-300 text-gray-800 px-2 py-1 rounded">Archived</span>
+                  <% } %>
+                </div>
+              </a>
+            <% }); %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Search & Filter -->
+    <div class="mb-12 pb-12 border-b border-gray-200">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Find Styles</h2>
+      <form method="GET" action="/" class="flex gap-4">
+        <input type="text" name="search" placeholder="Search by style number or name..."
+          value="<%= search %>" class="flex-1 border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900">
+        <button type="submit" class="bg-gray-900 text-white px-6 py-2 text-sm font-semibold hover:bg-gray-800">
+          Search
+        </button>
+        <% if (search) { %>
+          <a href="/" class="border border-gray-300 text-gray-900 px-6 py-2 text-sm font-semibold hover:border-gray-900">
+            Clear
+          </a>
+        <% } %>
+      </form>
+    </div>
+
+    <!-- Styles List -->
+    <div>
+      <div class="mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Product Styles</h2>
+        <% if (styles.length === 0) { %>
+          <div class="text-center py-16">
+            <p class="text-gray-600 text-lg mb-6">
+              <% if (search) { %>
+                No styles match your search.
+              <% } else { %>
+                No styles yet.
+              <% } %>
+            </p>
+            <a href="/styles/new" class="inline-block bg-gray-900 text-white px-8 py-3 font-semibold hover:bg-gray-800">
+              Create First Style
+            </a>
+          </div>
+        <% } else { %>
+          <div class="grid gap-8">
+            <% styles.forEach(style => { %>
+              <a href="/styles/<%= style.style_id %>" class="border border-gray-200 p-8 hover:border-gray-400 transition group">
+                <div class="flex justify-between items-start">
+                  <div class="flex-1">
+                    <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide mb-1">Style <%= style.style_number %></p>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2 group-hover:underline"><%= style.style_name %></h2>
+                    <p class="text-gray-600 mb-4"><%= style.product_type %></p>
+                    <p class="text-sm text-gray-500"><%= style.material_composition || 'Material not specified' %></p>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-sm text-gray-600">
+                      <%= new Date(style.created_at).toLocaleDateString('sv-SE') %>
+                    </p>
+                  </div>
+                </div>
+              </a>
+            <% }); %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

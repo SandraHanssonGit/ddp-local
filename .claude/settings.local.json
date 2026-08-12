@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node scripts/seed.js)",
+      "PowerShell(cd \"c:\\\\Users\\\\Sandra.Hansson\\\\OneDrive - Nudie Jeans Marketing AB\\\\Projects\\\\dpp-local\"; if \\(-not \\(Test-Path \"data\"\\)\\) { New-Item -ItemType Directory -Path \"data\" } else { Write-Host \"data directory already exists\" })",
+      "WebFetch(domain:www.nudiejeans.com)",
+      "Bash(npm start *)"
+    ]
+  }
+}

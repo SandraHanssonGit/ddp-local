@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Batch <%= batch.batch_number %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white">
+  <nav class="border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-8 py-4">
+      <div class="flex items-center">
+        <a href="/" class="flex items-center">
+          <img src="https://images.teamtailor-cdn.com/images/s3/teamtailor-production/logotype-v3/image_uploads/7118e754-48bc-483f-b8fa-42a84f2e08f2/original.png" alt="Nudie Jeans" class="h-8">
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-2xl mx-auto px-8 py-16">
+    <a href="/batches/<%= batch.batch_id %>" class="text-gray-600 hover:text-gray-900 mb-8 inline-block">← Back</a>
+
+    <div class="mb-12">
+      <% if (batch.variant_id) { %>
+        <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide mb-2">Variant <%= batch.variant_code %><% if (batch.variant_name) { %> – <%= batch.variant_name %><% } %></p>
+      <% } %>
+      <h1 class="text-4xl font-bold text-gray-900">Edit Batch <%= batch.batch_number %></h1>
+      <% if (typeof error !== 'undefined' && error) { %>
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mt-4">
+          <%= error %>
+        </div>
+      <% } %>
+    </div>
+
+    <form method="POST" action="/batches/<%= batch.batch_id %>" class="space-y-8">
+      <!-- Style Info (Read-only) -->
+      <div class="border-b border-gray-200 pb-8">
+        <h2 class="text-lg font-bold text-gray-900 mb-6">Style Information (Read-only)</h2>
+        <div class="space-y-4">
+          <div>
+            <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide mb-1">Style <%= batch.style_number %></p>
+            <p class="text-gray-900"><%= batch.style_name %></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Material & Supplier -->
+      <div class="border-b border-gray-200 pb-8">
+        <h2 class="text-lg font-bold text-gray-900 mb-6">Material & Supplier</h2>
+        <p class="text-xs text-gray-500 mb-6">Default values are taken from the Style. Override here if needed for this batch.</p>
+        <div class="space-y-6">
+          <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2">Material Composition</label>
+            <textarea name="material_composition" class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900" rows="2"><%= batch.material_composition || '' %></textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2">Supplier</label>
+            <input type="text" name="supplier" value="<%= batch.supplier || '' %>" class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900">
+          </div>
+        </div>
+      </div>
+
+      <!-- Batch Info -->
+      <div class="border-b border-gray-200 pb-8">
+        <h2 class="text-lg font-bold text-gray-900 mb-6">Batch Information</h2>
+        <div class="space-y-6">
+          <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2">Batch Number *</label>
+            <input type="text" name="batch_number" required value="<%= batch.batch_number || '' %>" class="w-full border px-4 py-2 text-sm focus:outline-none <%= (typeof error !== 'undefined' && error) ? 'border-red-500 focus:border-red-500 bg-red-50' : 'border-gray-300 focus:border-gray-900' %>" placeholder="e.g., 2024-ROY-001">
+            <% if (typeof error !== 'undefined' && error) { %>
+              <p class="text-red-600 text-xs mt-1"><%= error %></p>
+            <% } %>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2">Production Date</label>
+            <input type="date" name="production_date" value="<%= batch.production_date || '' %>" class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2">Quantity</label>
+            <input type="number" name="quantity" value="<%= batch.quantity || '' %>" class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2">Status</label>
+            <select name="status" class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900">
+              <option value="active" <%= batch.status === 'active' ? 'selected' : '' %>>Active</option>
+              <option value="archived" <%= batch.status === 'archived' ? 'selected' : '' %>>Archived</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recycling & Passport -->
+      <div class="pb-8">
+        <h2 class="text-lg font-bold text-gray-900 mb-6">Additional Information</h2>
+        <div class="space-y-6">
+          <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2">Recycling Information</label>
+            <textarea name="recycling_info" class="w-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:border-gray-900" rows="3"><%= batch.recycling_info || '' %></textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2">Passport URL</label>
+            <p class="text-sm text-gray-600 p-3 bg-gray-100 rounded">
+              <% if (batch.variant_code) { %>
+                /p/<%= batch.style_number %>-<%= batch.variant_code %>-<%= batch.batch_number %>
+              <% } else { %>
+                /p/<%= batch.style_number %>-<%= batch.batch_number %>
+              <% } %>
+            </p>
+            <p class="text-xs text-gray-500 mt-2">Generated automatically from Style, Variant (if any) and Batch Number</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex gap-4">
+        <button type="submit" class="flex-1 bg-gray-900 text-white py-3 font-semibold hover:bg-gray-800">
+          Save Changes
+        </button>
+        <a href="/batches/<%= batch.batch_id %>" class="flex-1 border border-gray-300 text-gray-900 py-3 font-semibold text-center hover:border-gray-900">
+          Cancel
+        </a>
+      </div>
+    </form>
+  </main>
+</body>
+</html>
