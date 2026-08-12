@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="sv">
 <head>
   <meta charset="UTF-8">
@@ -41,6 +41,9 @@
       </button>
       <button id="tabScan" class="px-6 py-4 font-semibold text-gray-700">
         Scan
+      </button>
+      <button id="tabProduct" class="px-6 py-4 font-semibold text-gray-700">
+        Produkt
       </button>
       <button id="tabEdit" class="px-6 py-4 font-semibold text-gray-700">
         Design
@@ -98,14 +101,14 @@
       <!-- Top Styles -->
       <div class="grid grid-cols-2 gap-6">
         <div class="bg-white rounded-lg shadow-md p-6">
-          <h2 class="text-xl font-semibold text-gray-900 mb-4">Top 5 Styles</h2>
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Top 5 Products</h2>
           <div id="topStyles" class="space-y-2"></div>
         </div>
 
         <!-- Data Quality -->
         <div class="bg-white rounded-lg shadow-md p-6">
           <h2 class="text-xl font-semibold text-gray-900 mb-4">Data Quality Issues</h2>
-          <div id="dataQualityIssues" class="space-y-2 text-sm"></div>
+          <div id="dataQualityIssues" class="space-y-2 text-sm max-h-64 overflow-y-auto pr-2"></div>
         </div>
 
         <!-- Most Viewed Serials -->
@@ -202,6 +205,371 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- PRODUCT TAB -->
+    <div id="productTab" class="hidden">
+    <!-- SEARCH SECTION (Always visible on top) -->
+    <div class="bg-white rounded-lg shadow-md p-8 mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Search</h2>
+      <form id="searchForm-product" class="flex gap-4">
+        <input type="text" id="searchQuery-product" placeholder="Style, Serial, Batch, SGTIN..." class="flex-1 border border-gray-300 rounded px-4 py-3" required>
+        <button type="submit" class="bg-gray-900 text-white px-8 py-3 rounded font-semibold hover:bg-gray-800">
+          Search
+        </button>
+      </form>
+      <div id="searchStatus-product" class="mt-4 text-sm text-gray-600"></div>
+    </div>
+
+    <!-- DEFAULT VIEW: Recent Items Grid (shown when no form is open) -->
+    <div id="recentBatchesContainer-product" class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <!-- Left Column: Empty space (2/3) -->
+      <div class="lg:col-span-2"></div>
+
+      <!-- Right Column: Recent Items (1/3) -->
+      <div class="lg:col-span-1 space-y-6">
+        <!-- Recent Batches -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Batches</h3>
+          <div id="defaultRecentBatches-product" class="space-y-2 text-sm">
+            <div class="text-gray-500">Loading...</div>
+          </div>
+        </div>
+
+        <!-- Recent Styles -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Styles</h3>
+          <div id="defaultRecentStyles-product" class="space-y-2 text-sm">
+            <div class="text-gray-500">Loading...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEARCH RESULTS LIST (shown when search has results) -->
+    <div id="resultsListContainer-product" class="hidden bg-white rounded-lg shadow-md p-8 mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Search Results</h2>
+      <div id="resultsList-product" class="space-y-2 max-h-64 overflow-y-auto"></div>
+    </div>
+
+    <!-- RESULT CONTAINER -->
+    <div id="resultContainer-product" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Main Content (2/3 width on desktop) -->
+      <div class="lg:col-span-2">
+
+      <!-- STYLE VIEW -->
+      <div id="styleSection-product" class="hidden bg-white rounded-lg shadow-md p-8">
+        <input type="hidden" id="styleNumber-product">
+        <div class="flex justify-between items-center mb-8">
+          <h2 class="text-3xl font-semibold text-gray-900">Style: <span id="styleTitle-product"></span></h2>
+          <button id="fetchNudieBtn-product" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800" onclick="showFetchNudieModal()" style="display: none;">
+            Fetch from Nudie Jeans
+          </button>
+        </div>
+
+        <!-- Images Section -->
+        <div class="bg-gray-50 p-6 rounded mb-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Style Images</h3>
+          <div id="styleImages-product" class="flex gap-4 mb-4 flex-wrap"></div>
+          <input type="file" id="styleImageUpload-product" accept="image/*" class="border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900 w-full">
+          <button onclick="uploadStyleImage()" class="mt-2 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+            Upload Image
+          </button>
+        </div>
+
+        <!-- Style Data Tabs -->
+        <div class="space-y-6">
+          <div class="border-t pt-6">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl font-semibold text-gray-900">Product Information</h3>
+              <button onclick="toggleEdit('product-info')" class="edit-button bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+                Edit
+              </button>
+            </div>
+            <div id="productInfoView-product" class="bg-gray-50 rounded-lg p-6 space-y-3"></div>
+            <div id="productInfoEdit-product" class="hidden space-y-4 mt-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Product Type</label>
+                  <select id="productType-product" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+                    <option value="">Select product type</option>
+                    <option value="jeans">Jeans</option>
+                    <option value="topp">Tops</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Variant</label>
+                  <input type="text" id="productVariant-product" placeholder="Required for Tops (e.g. B20)" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+                  <p class="text-xs text-gray-500 mt-2">Required for Tops only. Jeans cannot have variants.</p>
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Product Name</label>
+                <input type="text" id="productName-product" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Description</label>
+                <textarea id="productDescription-product" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Care Instructions</label>
+                <textarea id="productCare-product" rows="2" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Delivery & Returns</label>
+                <textarea id="productDelivery-product" rows="2" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Size, Material & Composition</label>
+                <textarea id="productMaterial-product" rows="2" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
+              </div>
+              <button onclick="saveProductInfo()" class="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 font-semibold">
+                Save
+              </button>
+            </div>
+          </div>
+
+          <div class="border-t pt-6">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl font-semibold text-gray-900">Transparency Data</h3>
+              <button onclick="toggleEdit('transparency')" class="edit-button bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+                Edit
+              </button>
+            </div>
+            <div id="transparencyView-product" class="bg-gray-50 rounded-lg p-6 text-sm overflow-auto max-h-48"></div>
+            <div id="transparencyEdit-product" class="hidden space-y-4 mt-4">
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Suppliers Chain (JSON)</label>
+                <textarea id="transparencySuppliers-product" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-xs focus:outline-none focus:border-gray-900"></textarea>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Certifications (JSON)</label>
+                <textarea id="transparencyCerts-product" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-xs focus:outline-none focus:border-gray-900"></textarea>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Environmental Data (JSON)</label>
+                <textarea id="transparencyEnv-product" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-xs focus:outline-none focus:border-gray-900"></textarea>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Social Data (JSON)</label>
+                <textarea id="transparencySocial-product" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-xs focus:outline-none focus:border-gray-900"></textarea>
+              </div>
+              <button onclick="saveTransparency()" class="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 font-semibold">
+                Save
+              </button>
+            </div>
+          </div>
+
+          <div class="border-t pt-6">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl font-semibold text-gray-900">Nudie Values</h3>
+              <button onclick="toggleEdit('nudie-values')" class="edit-button bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+                Edit
+              </button>
+            </div>
+            <div id="nudieValuesView-product" class="bg-gray-50 rounded-lg p-6 space-y-3"></div>
+            <div id="nudieValuesEdit-product" class="hidden space-y-4 mt-4">
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Repair Info</label>
+                <textarea id="nudieRepair-product" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
+              </div>
+              <button onclick="saveNudieValues()" class="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 font-semibold">
+                Save
+              </button>
+            </div>
+          </div>
+
+          <div class="border-t pt-6">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl font-semibold text-gray-900">Storytelling</h3>
+              <button onclick="toggleEdit('storytelling')" class="edit-button bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+                Edit
+              </button>
+            </div>
+            <div id="storytellingView-product" class="bg-gray-50 rounded-lg p-6 space-y-3"></div>
+            <div id="storytellingEdit-product" class="hidden space-y-4 mt-4">
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Summary</label>
+                <textarea id="storytellinSummary-product" rows="2" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Content</label>
+                <textarea id="storytellingContent-product" rows="4" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Links (JSON)</label>
+                <textarea id="storytellingLinks-product" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-xs focus:outline-none focus:border-gray-900"></textarea>
+              </div>
+              <button onclick="saveStorytelling()" class="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 font-semibold">
+                Save
+              </button>
+            </div>
+          </div>
+
+          <!-- Batches for this Style -->
+          <div class="border-t pt-6">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl font-semibold text-gray-900">Batches</h3>
+              <button onclick="showNewBatchModal()" class="edit-button bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+                New Batch
+              </button>
+            </div>
+            <table class="w-full border-collapse text-sm">
+              <thead>
+                <tr class="border-b border-gray-300">
+                  <th class="text-left py-2 px-3 font-bold text-gray-900">Batch ID</th>
+                  <th class="text-left py-2 px-3 font-bold text-gray-900">Serials</th>
+                  <th class="text-left py-2 px-3 font-bold text-gray-900">Partner</th>
+                  <th class="text-right py-2 px-3 font-bold text-gray-900">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="batchesList-product"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- BATCH VIEW -->
+      <div id="batchSection-product" class="hidden bg-white rounded-lg shadow-md p-8">
+        <h2 class="text-3xl font-semibold text-gray-900 mb-8">Batch: <span id="batchTitle-product"></span></h2>
+
+        <div id="batchInfo-product" class="bg-gray-50 rounded-lg p-6 space-y-2"></div>
+
+      </div>
+
+      <!-- SERIAL VIEW -->
+      <div id="serialSection-product" class="hidden bg-white rounded-lg shadow-md p-8">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-3xl font-semibold text-gray-900">Serial: <span id="serialTitle-product"></span></h2>
+          <div class="flex gap-2">
+            <button onclick="previewPublicPassport()" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+              Preview Passport
+            </button>
+            <button onclick="copyPublicLink()" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+              Copy Public Link
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div class="bg-gray-50 rounded-lg p-6">
+            <h3 class="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-4">Serial Info</h3>
+            <div id="serialInfo-product" class="text-sm space-y-2 text-gray-700"></div>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-6">
+            <h3 class="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-4">Batch Info</h3>
+            <div id="serialBatchInfo-product" class="text-sm space-y-2 text-gray-700"></div>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-6">
+            <h3 class="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-4">Style Info</h3>
+            <div id="serialStyleInfo-product" class="text-sm space-y-2 text-gray-700"></div>
+          </div>
+        </div>
+
+        <!-- Serial Metadata -->
+        <div class="border-t pt-6">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-gray-900">Serial Metadata</h3>
+            <button onclick="toggleSerialMetadataEdit()" class="edit-button bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+              Edit
+            </button>
+          </div>
+          <div id="serialMetadataView-product" class="bg-gray-50 rounded-lg p-6 grid grid-cols-2 gap-6"></div>
+          <div id="serialMetadataEdit-product" class="hidden space-y-4 mt-4 bg-gray-50 rounded-lg p-6">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">SGTIN (Numeric)</label>
+                <input type="text" id="serialSGTINNumeric-product" placeholder="301414170001200ABC" class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-sm focus:outline-none focus:border-gray-900">
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">RFID</label>
+                <input type="text" id="serialRFID-product" placeholder="12AB34CD56EF01" class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-sm focus:outline-none focus:border-gray-900">
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Public URL (QR Code Link)</label>
+              <input type="text" id="serialSGTINUri-product" placeholder="https://nudiejeans.dpp.com/01/.../21/..." class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-sm focus:outline-none focus:border-gray-900">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Size</label>
+                <select id="serialSize-product" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+                  <option value="">-- Not specified --</option>
+                  <option value="XS">XS</option>
+                  <option value="S">S</option>
+                  <option value="M">M</option>
+                  <option value="L">L</option>
+                  <option value="XL">XL</option>
+                  <option value="XXL">XXL</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Condition (Lifecycle)</label>
+                <select id="serialCondition-product" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+                  <option value="">-- Not specified --</option>
+                  <option value="new">ðŸ†• New</option>
+                  <option value="repaired">ðŸ”§ Repaired</option>
+                  <option value="reused">â™»ï¸ Reused</option>
+                  <option value="recycled">ðŸ—‘ï¸ Recycled</option>
+                </select>
+              </div>
+            </div>
+            <input type="text" id="serialLocation-product" placeholder="Location" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+            <input type="text" id="serialOwner-product" placeholder="Owner/Customer ID" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+            <textarea id="serialNotes-product" placeholder="Notes" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
+            <button onclick="saveSerialMetadata()" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+              Save
+            </button>
+          </div>
+        </div>
+
+        <!-- Events Timeline -->
+        <div class="border-t pt-6">
+          <h3 class="text-xl font-bold text-gray-900 mb-4">Events & History</h3>
+          <div id="eventsTimeline-product" class="space-y-3 mb-6"></div>
+
+          <div class="bg-gray-50 rounded-lg p-6">
+            <h4 class="font-bold text-gray-900 mb-4">Event</h4>
+            <div class="space-y-4">
+              <select id="eventType-product" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+                <option value="">-- Select Event Type --</option>
+                <option value="service">Service</option>
+                <option value="repair">Repair</option>
+                <option value="reuse">Reuse (Trade-in)</option>
+                <option value="recycling">Recycling</option>
+                <option value="scanned">Scanned</option>
+              </select>
+              <textarea id="eventData-product" placeholder='Event details (JSON) - optional' rows="4" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900 font-mono text-xs"></textarea>
+              <p class="text-xs text-gray-500 mt-1">Leave empty or enter valid JSON like {"location": "Stockholm"}</p>
+              <button id="addEventBtn-product" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+                ✓ Add Event
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <!-- Sidebar: Recent Items (1/3 width on desktop) -->
+      <div class="lg:col-span-1 space-y-6">
+        <!-- Recent Batches -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Batches</h3>
+          <div id="sidebarRecentBatches-product" class="space-y-2 text-sm">
+            <div class="text-gray-500">Loading...</div>
+          </div>
+        </div>
+
+        <!-- Recent Styles -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Styles</h3>
+          <div id="sidebarRecentStyles-product" class="space-y-2 text-sm">
+            <div class="text-gray-500">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
     </div>
 
     <!-- EDIT TAB -->
@@ -321,7 +689,7 @@
                 <textarea id="productMaterial" rows="2" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
               </div>
               <button onclick="saveProductInfo()" class="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 font-semibold">
-                ✓ Save
+                Save
               </button>
             </div>
           </div>
@@ -352,7 +720,7 @@
                 <textarea id="transparencySocial" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-xs focus:outline-none focus:border-gray-900"></textarea>
               </div>
               <button onclick="saveTransparency()" class="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 font-semibold">
-                ✓ Save
+                Save
               </button>
             </div>
           </div>
@@ -371,7 +739,7 @@
                 <textarea id="nudieRepair" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
               </div>
               <button onclick="saveNudieValues()" class="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 font-semibold">
-                ✓ Save
+                Save
               </button>
             </div>
           </div>
@@ -398,7 +766,7 @@
                 <textarea id="storytellingLinks" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-xs focus:outline-none focus:border-gray-900"></textarea>
               </div>
               <button onclick="saveStorytelling()" class="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 font-semibold">
-                ✓ Save
+                Save
               </button>
             </div>
           </div>
@@ -504,10 +872,10 @@
                 <label class="block text-sm font-bold text-gray-700 mb-1">Condition (Lifecycle)</label>
                 <select id="serialCondition" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
                   <option value="">-- Not specified --</option>
-                  <option value="new">🆕 New</option>
-                  <option value="repaired">🔧 Repaired</option>
-                  <option value="reused">♻️ Reused</option>
-                  <option value="recycled">🗑️ Recycled</option>
+                  <option value="new">ðŸ†• New</option>
+                  <option value="repaired">ðŸ”§ Repaired</option>
+                  <option value="reused">â™»ï¸ Reused</option>
+                  <option value="recycled">ðŸ—‘ï¸ Recycled</option>
                 </select>
               </div>
             </div>
@@ -515,7 +883,7 @@
             <input type="text" id="serialOwner" placeholder="Owner/Customer ID" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
             <textarea id="serialNotes" placeholder="Notes" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
             <button onclick="saveSerialMetadata()" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
-              ✓ Save
+              Save
             </button>
           </div>
         </div>
@@ -771,11 +1139,28 @@
         searchForm.addEventListener('submit', handleSearch);
       }
 
+      // Setup search form for product tab
+      const searchFormProduct = document.getElementById('searchForm-product');
+      if (searchFormProduct) {
+        searchFormProduct.addEventListener('submit', handleSearch);
+      }
+
       // Setup delegated click handler for onclick attributes
       // This handles inline onclick="functionName()" calls
       // Load dashboard on initial page load
       loadDashboard();
     });
+
+    // Track the currently active tab
+    let currentActiveTab = 'dashboard';
+
+    // Helper function to get the correct element ID based on the active tab
+    function getElementId(baseId) {
+      if (currentActiveTab === 'product') {
+        return baseId + '-product';
+      }
+      return baseId;
+    }
 
     function escapeHtml(value) {
       return String(value)
@@ -790,24 +1175,24 @@
     function createStyleFromSearch(styleNum, variant, isVariant) {
       const typeVal = document.getElementById('createStyleTypeSelect').value;
       if (!typeVal) {
-        showToast('❌ Please select Jeans or Tops');
+        showToast('âŒ Please select Jeans or Tops');
         return;
       }
       const finalVariant = isVariant ? variant : null;
       showCreateStyleForm(styleNum, finalVariant, typeVal);
-      document.getElementById('searchQuery').value = '';
+      document.getElementById(getElementId('searchQuery')).value = '';
     }
 
     // Search handler function
     async function handleSearch(e) {
       e.preventDefault();
-      const q = document.getElementById('searchQuery').value.trim();
-      const status = document.getElementById('searchStatus');
+      const q = document.getElementById(getElementId('searchQuery')).value.trim();
+      const status = document.getElementById(getElementId('searchStatus'));
 
       if (!q) {
         status.textContent = 'Please enter a search term';
-        document.getElementById('resultsListContainer').classList.add('hidden');
-        document.getElementById('recentBatchesContainer').classList.remove('hidden');
+        document.getElementById(getElementId('resultsListContainer')).classList.add('hidden');
+        document.getElementById(getElementId('recentBatchesContainer')).classList.remove('hidden');
         return;
       }
 
@@ -863,21 +1248,21 @@
             suggestions += `<div class="inline-flex items-center gap-2 flex-wrap"><select id="createStyleTypeSelect" class="border border-gray-300 rounded px-3 py-2 text-sm"><option value="">Select type</option><option value="jeans">Jeans</option><option value="topp">Tops</option></select><button class="text-blue-600 hover:underline font-semibold cursor-pointer" onclick="createStyleFromSearch('${q}', null, false)">Create new style ${escapeHtml(q)}</button></div>`;
           } else {
             suggestions += `<div class="text-gray-600">Try searching by:</div>`;
-            suggestions += `<div class="text-sm text-gray-500">• Style number (e.g., 114519)</div>`;
-            suggestions += `<div class="text-sm text-gray-500">• Batch ID (e.g., BATCH001)</div>`;
-            suggestions += `<div class="text-sm text-gray-500">• Serial number</div>`;
+            suggestions += `<div class="text-sm text-gray-500">â€¢ Style number (e.g., 114519)</div>`;
+            suggestions += `<div class="text-sm text-gray-500">â€¢ Batch ID (e.g., BATCH001)</div>`;
+            suggestions += `<div class="text-sm text-gray-500">â€¢ Serial number</div>`;
           }
 
           suggestions += '</div>';
           status.innerHTML = `No results found for "${q}". ${suggestions}`;
-          document.getElementById('resultsListContainer').classList.add('hidden');
-          document.getElementById('recentBatchesContainer').classList.remove('hidden');
-          document.getElementById('resultContainer').classList.add('hidden');
+          document.getElementById(getElementId('resultsListContainer')).classList.add('hidden');
+          document.getElementById(getElementId('recentBatchesContainer')).classList.remove('hidden');
+          document.getElementById(getElementId('resultContainer')).classList.add('hidden');
           return;
         }
 
         // Hide recent batches when showing search results
-        document.getElementById('recentBatchesContainer').classList.add('hidden');
+        document.getElementById(getElementId('recentBatchesContainer')).classList.add('hidden');
 
         // Sort by relevance
         const sorted = result.results.sort((a, b) => {
@@ -891,7 +1276,7 @@
         });
 
         // Show results
-        const resultsList = document.getElementById('resultsList');
+        const resultsList = document.getElementById(getElementId('resultsList'));
         resultsList.innerHTML = sorted.map((r, idx) => {
           const displayName = r.result_type === 'style'
             ? `${r.style_number}${r.variant ? '-' + r.variant : ''} - ${r.product_name || 'No name'}`
@@ -906,7 +1291,7 @@
           </button>`;
         }).join('');
 
-        document.getElementById('resultsListContainer').classList.remove('hidden');
+        document.getElementById(getElementId('resultsListContainer')).classList.remove('hidden');
 
         // Show result count
         let statusMsg = `Found ${result.results.length} result(s)`;
@@ -921,7 +1306,7 @@
 
           if (hasTopp && !hasJeans) {
             // Only Tops exist - offer to add new variant
-            status.innerHTML += `<div class="mt-3 text-sm"><button class="text-blue-600 hover:underline font-semibold" onclick="addNewTopVariant('${q}')">➕ Add new variant for ${escapeHtml(q)}</button></div>`;
+            status.innerHTML += `<div class="mt-3 text-sm"><button class="text-blue-600 hover:underline font-semibold" onclick="addNewTopVariant('${q}')">âž• Add new variant for ${escapeHtml(q)}</button></div>`;
           }
           // If only jeans exist - no action needed, just show the results
         }
@@ -971,6 +1356,11 @@
     document.getElementById('tabScan')?.addEventListener('click', () => {
       switchTab('scan');
       loadStylesForScanning();
+    });
+    document.getElementById('tabProduct')?.addEventListener('click', () => {
+      switchTab('product');
+      loadRecentBatches();
+      loadRecentStyles();
     });
     document.getElementById('tabEdit')?.addEventListener('click', () => {
       switchTab('edit');
@@ -1034,8 +1424,8 @@
     }
 
     function toggleSerialMetadataEdit() {
-      const editEl = document.getElementById('serialMetadataEdit');
-      const viewEl = document.getElementById('serialMetadataView');
+      const editEl = document.getElementById(getElementId('serialMetadataEdit'));
+      const viewEl = document.getElementById(getElementId('serialMetadataView'));
       if (editEl) {
         editEl.classList.toggle('hidden');
       }
@@ -1049,8 +1439,8 @@
       const camelId = sectionId.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
       const viewId = camelId + 'View';
       const editId = camelId + 'Edit';
-      const viewEl = document.getElementById(viewId);
-      const editEl = document.getElementById(editId);
+      const viewEl = document.getElementById(getElementId(viewId));
+      const editEl = document.getElementById(getElementId(editId));
 
       if (viewEl) viewEl.classList.toggle('hidden');
       if (editEl) editEl.classList.toggle('hidden');
@@ -1129,7 +1519,7 @@
       const serial = currentData.serial.serial.serial_number;
       const publicLink = `${window.location.origin}/p/${style}/${batch}/${serial}`;
       navigator.clipboard.writeText(publicLink).then(() => {
-        showToast('📋 Link copied!');
+        showToast('ðŸ“‹ Link copied!');
       });
     }
 
@@ -1174,7 +1564,7 @@
     async function confirmDeleteEvent() {
       if (!pendingDeleteEventId) return;
 
-      const serialNumber = document.getElementById('serialTitle').textContent;
+      const serialNumber = document.getElementById(getElementId('serialTitle')).textContent;
       const eventId = pendingDeleteEventId;
 
       try {
@@ -1362,7 +1752,7 @@
         cardsContainer.innerHTML = recentBatches.map(b => {
           const stylesInBatch = serialsByBatchAndStyle[b.batch_id] || {};
           const stylesList = Object.entries(stylesInBatch)
-            .map(([styleNum, count]) => `<div class="text-sm">• ${styleNum} (${count})</div>`)
+            .map(([styleNum, count]) => `<div class="text-sm">â€¢ ${styleNum} (${count})</div>`)
             .join('');
           const totalSerials = Object.values(stylesInBatch).reduce((sum, count) => sum + count, 0);
 
@@ -1384,8 +1774,8 @@
           document.querySelectorAll(selector).forEach(element => {
             element.addEventListener('click', () => {
               const batchId = element.getAttribute('data-batch-id');
-              document.getElementById('resultContainer').classList.remove('hidden');
-              document.getElementById('recentBatchesContainer').classList.add('hidden');
+              document.getElementById(getElementId('resultContainer')).classList.remove('hidden');
+              document.getElementById(getElementId('recentBatchesContainer')).classList.add('hidden');
               loadBatch(batchId);
             });
           });
@@ -1453,27 +1843,34 @@
         document.getElementById('conditionReused').textContent = conditions.reused;
         document.getElementById('conditionRecycled').textContent = conditions.recycled;
 
-        // Top 5 styles
-        const styleSerialCounts = {};
+        // Top 5 products (styles with variants for Tops)
+        const productSerialCounts = {};
         serials.forEach(s => {
-          const style = s.style_number;
-          styleSerialCounts[style] = (styleSerialCounts[style] || 0) + 1;
+          // Find the style info to get variant if it's a Tops
+          const styleInfo = styles.find(st => st.style_number === s.style_number);
+          const isTopp = styleInfo && (styleInfo.product_type || '').toLowerCase() === 'tops';
+          const productKey = isTopp && s.variant
+            ? `${s.style_number}-${s.variant}`
+            : s.style_number;
+          productSerialCounts[productKey] = (productSerialCounts[productKey] || 0) + 1;
         });
-        const topStyles = Object.entries(styleSerialCounts)
+        const topProducts = Object.entries(productSerialCounts)
           .sort((a, b) => b[1] - a[1])
           .slice(0, 5);
         const topStylesEl = document.getElementById('topStyles');
-        topStylesEl.innerHTML = topStyles.map(([style, count], idx) => `
-          <div class="flex justify-between p-2 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer" data-style-index="${idx}">
-            <span class="font-semibold text-blue-600 hover:underline">${style}</span>
+        topStylesEl.innerHTML = topProducts.map(([product, count], idx) => `
+          <div class="flex justify-between p-2 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer" data-product-index="${idx}">
+            <span class="font-semibold text-blue-600 hover:underline">${product}</span>
             <span class="text-gray-600">${count} serials</span>
           </div>
         `).join('');
 
-        // Add click handlers to top styles
-        topStylesEl.querySelectorAll('[data-style-index]').forEach((el, idx) => {
+        // Add click handlers to top products
+        topStylesEl.querySelectorAll('[data-product-index]').forEach((el, idx) => {
+          const product = topProducts[idx][0];
+          const [styleNum, variant] = product.includes('-') ? product.split('-') : [product, null];
           el.addEventListener('click', () => {
-            goToLookup('style', topStyles[idx][0]);
+            goToLookup('style', styleNum, variant);
           });
         });
 
@@ -1482,10 +1879,12 @@
 
         // Check Styles
         styles.forEach(s => {
-          if (!s.product_name || s.product_name.trim() === '') issues.push({ type: 'style', target: s.style_number, text: `Style ${s.style_number}: missing product name` });
-          if (!s.description || s.description.trim() === '') issues.push({ type: 'style', target: s.style_number, text: `Style ${s.style_number}: missing description` });
-          if (!s.care_instructions || s.care_instructions.trim() === '') issues.push({ type: 'style', target: s.style_number, text: `Style ${s.style_number}: missing care instructions` });
-          if (!s.size_material_composition || s.size_material_composition.trim() === '') issues.push({ type: 'style', target: s.style_number, text: `Style ${s.style_number}: missing material composition` });
+          const isTopp = (s.product_type || '').toLowerCase() === 'tops';
+          const styleDisplay = isTopp && s.variant ? `${s.style_number}-${s.variant}` : s.style_number;
+          if (!s.product_name || s.product_name.trim() === '') issues.push({ type: 'style', target: s.style_number, text: `Style ${styleDisplay}: missing product name` });
+          if (!s.description || s.description.trim() === '') issues.push({ type: 'style', target: s.style_number, text: `Style ${styleDisplay}: missing description` });
+          if (!s.care_instructions || s.care_instructions.trim() === '') issues.push({ type: 'style', target: s.style_number, text: `Style ${styleDisplay}: missing care instructions` });
+          if (!s.size_material_composition || s.size_material_composition.trim() === '') issues.push({ type: 'style', target: s.style_number, text: `Style ${styleDisplay}: missing material composition` });
         });
 
         // Check Batches (partner_name)
@@ -1500,9 +1899,9 @@
 
         const issuesEl = document.getElementById('dataQualityIssues');
         if (issues.length > 0) {
-          issuesEl.innerHTML = issues.slice(0, 5).map((i, idx) => `
+          issuesEl.innerHTML = issues.map((i, idx) => `
             <div class="text-gray-700">
-              • <a href="javascript:void(0)" class="text-blue-600 hover:underline cursor-pointer" data-issue-index="${idx}">${i.text}</a>
+              â€¢ <a href="javascript:void(0)" class="text-blue-600 hover:underline cursor-pointer" data-issue-index="${idx}">${i.text}</a>
             </div>
           `).join('');
 
@@ -1587,14 +1986,18 @@
 
     // Tab switching
     function switchTab(tab) {
+      // Update the current active tab
+      currentActiveTab = tab;
+
       // Hide/show tabs
       document.getElementById('dashboardTab').classList.toggle('hidden', tab !== 'dashboard');
       document.getElementById('scanTab').classList.toggle('hidden', tab !== 'scan');
+      document.getElementById('productTab').classList.toggle('hidden', tab !== 'product');
       document.getElementById('editTab').classList.toggle('hidden', tab !== 'edit');
       document.getElementById('adminTab').classList.toggle('hidden', tab !== 'admin');
 
       // Update button styles
-      ['dashboard', 'scan', 'edit', 'admin'].forEach(t => {
+      ['dashboard', 'scan', 'product', 'edit', 'admin'].forEach(t => {
         const btn = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}`);
         if (btn) {
           btn.classList.toggle('border-b-2', tab === t);
@@ -1612,6 +2015,12 @@
       // Load dashboard data when dashboard tab is opened
       if (tab === 'dashboard') {
         loadDashboard();
+      }
+
+      // Load recent batches and styles when product tab is opened
+      if (tab === 'product') {
+        loadRecentBatches();
+        loadRecentStyles();
       }
 
       // Load recent batches and styles when design tab is opened
@@ -1667,7 +2076,7 @@
       const result = await res.json();
       const resultDiv = document.getElementById('newStyleResult');
       resultDiv.className = res.ok ? 'mt-4 p-4 rounded bg-green-50 border border-green-200 text-green-900' : 'mt-4 p-4 rounded bg-red-50 border border-red-200 text-red-900';
-      resultDiv.innerHTML = `<p>${res.ok ? '✓ Style created! Now add transparency/nudie/storytelling data.' : '✗ Error: ' + result.error}</p>`;
+      resultDiv.innerHTML = `<p>${res.ok ? '✓ Style created! Now add transparency/nudie/storytelling data.' : 'âœ— Error: ' + result.error}</p>`;
       resultDiv.classList.remove('hidden');
       if (res.ok) document.getElementById('newStyleForm').reset();
     });
@@ -1711,7 +2120,7 @@
 
       const resultDiv = document.getElementById('newBatchResult');
       resultDiv.className = res.ok ? 'mt-4 p-4 rounded bg-green-50 border border-green-200 text-green-900' : 'mt-4 p-4 rounded bg-red-50 border border-red-200 text-red-900';
-      resultDiv.innerHTML = `<p>${res.ok ? '✓ Batch created with ' + result.serials_imported + ' serials!' : '✗ Error: ' + result.error}</p>`;
+      resultDiv.innerHTML = `<p>${res.ok ? '✓ Batch created with ' + result.serials_imported + ' serials!' : 'âœ— Error: ' + result.error}</p>`;
       resultDiv.classList.remove('hidden');
       if (res.ok) document.getElementById('newBatchForm').reset();
     });
@@ -1731,18 +2140,16 @@
       const result = await res.json();
       const resultDiv = document.getElementById('importSupplierResult');
       resultDiv.className = res.ok ? 'mt-4 p-4 rounded bg-green-50 border border-green-200 text-green-900' : 'mt-4 p-4 rounded bg-red-50 border border-red-200 text-red-900';
-      resultDiv.innerHTML = `<p>${res.ok ? '✓ Imported ' + result.processed + ' records' : '✗ Error: ' + result.error}</p>`;
+      resultDiv.innerHTML = `<p>${res.ok ? '✓ Imported ' + result.processed + ' records' : 'âœ— Error: ' + result.error}</p>`;
       resultDiv.classList.remove('hidden');
       if (res.ok) document.getElementById('importSupplierForm').reset();
     });
 
 
     function loadData(type, styleNumber, batchId, serialNumber, variant = null) {
-      // Switch to Design tab
-      switchTab('edit');
-      // Show result container and hide recent batches
-      document.getElementById('resultContainer').classList.remove('hidden');
-      document.getElementById('recentBatchesContainer').classList.add('hidden');
+      // Show result container and hide recent batches (using the active tab)
+      document.getElementById(getElementId('resultContainer')).classList.remove('hidden');
+      document.getElementById(getElementId('recentBatchesContainer')).classList.add('hidden');
 
       if (type === 'style') {
         loadStyle(styleNumber, variant);
@@ -1825,12 +2232,12 @@
           errorMsg = '';
 
           if (trimmedVariant === '') {
-            errorMsg = '❌ Variant name cannot be empty.';
+            errorMsg = 'âŒ Variant name cannot be empty.';
             continue;
           }
 
           if (existingVariants.has(trimmedVariant)) {
-            errorMsg = `❌ Variant "${trimmedVariant}" already exists. Please choose another name.`;
+            errorMsg = `âŒ Variant "${trimmedVariant}" already exists. Please choose another name.`;
             continue;
           }
 
@@ -1840,10 +2247,10 @@
 
         // Variant is valid, open form
         await showCreateStyleForm(styleNumber, chosenVariant, 'topp');
-        document.getElementById('searchQuery').value = '';
+        document.getElementById(getElementId('searchQuery')).value = '';
       } catch (error) {
         console.error('Error in addNewTopVariant:', error);
-        showToast('❌ Error checking variants. Please try again.');
+        showToast('âŒ Error checking variants. Please try again.');
       }
     }
 
@@ -1867,12 +2274,12 @@
             errorMsg = '';
 
             if (trimmedVariant === '') {
-              errorMsg = '❌ Variant name cannot be empty.';
+              errorMsg = 'âŒ Variant name cannot be empty.';
               continue;
             }
 
             if (existingVariants.has(trimmedVariant)) {
-              errorMsg = `❌ Variant "${trimmedVariant}" already exists. Please choose another name.`;
+              errorMsg = `âŒ Variant "${trimmedVariant}" already exists. Please choose another name.`;
               continue;
             }
 
@@ -1881,65 +2288,82 @@
           }
         } catch (error) {
           console.error('Error checking variants:', error);
-          showToast('❌ Error checking variants. Please try again.');
+          showToast('âŒ Error checking variants. Please try again.');
           return;
         }
       }
 
-      document.getElementById('resultContainer').classList.remove('hidden');
-      document.getElementById('styleSection').classList.remove('hidden');
-      document.getElementById('batchSection').classList.add('hidden');
-      document.getElementById('serialSection').classList.add('hidden');
-      document.getElementById('recentBatchesContainer').classList.add('hidden');
-      document.getElementById('resultsListContainer').classList.add('hidden');
+      document.getElementById(getElementId('resultContainer')).classList.remove('hidden');
+      document.getElementById(getElementId('styleSection')).classList.remove('hidden');
+      document.getElementById(getElementId('batchSection')).classList.add('hidden');
+      document.getElementById(getElementId('serialSection')).classList.add('hidden');
+      document.getElementById(getElementId('recentBatchesContainer')).classList.add('hidden');
+      document.getElementById(getElementId('resultsListContainer')).classList.add('hidden');
 
       // Only show variant in title if it's a real value (not null, undefined, or "null" string)
       const cleanVariant = (variant && variant !== 'null' && variant !== 'undefined') ? variant : null;
       const displayTitle = cleanVariant ? `${styleNumber}-${cleanVariant}` : styleNumber;
-      document.getElementById('styleTitle').textContent = displayTitle;
-      document.getElementById('fetchNudieBtn').style.display = 'block';
+      document.getElementById(getElementId('styleTitle')).textContent = displayTitle;
+      document.getElementById(getElementId('fetchNudieBtn')).style.display = 'block';
 
       // Use product type chosen by user, or infer from variant if creating from variant search
       const finalProductType = productType || (variant ? 'topp' : 'jeans');
       const typeLabel = finalProductType === 'topp' ? 'Tops' : 'Jeans';
-      document.getElementById('productInfoView').innerHTML = `<p class="text-gray-500">New ${typeLabel} - fill in details below</p>`;
+      document.getElementById(getElementId('productInfoView')).innerHTML = `<p class="text-gray-500">New ${typeLabel} - fill in details below</p>`;
 
       // Show edit form with all fields
-      document.getElementById('productType').value = finalProductType;
-      document.getElementById('productType').disabled = true; // Lock type for new styles
+      document.getElementById(getElementId('productType')).value = finalProductType;
+      document.getElementById(getElementId('productType')).disabled = true; // Lock type for new styles
       const variantValue = (variant && variant !== 'null' && variant !== 'undefined') ? variant : '';
-      document.getElementById('productVariant').value = variantValue;
+      document.getElementById(getElementId('productVariant')).value = variantValue;
       // Disable variant for Jeans (always), or lock it if Tops has variant provided
-      document.getElementById('productVariant').disabled = (finalProductType === 'jeans') || !!variantValue;
+      document.getElementById(getElementId('productVariant')).disabled = (finalProductType === 'jeans') || !!variantValue;
       updateVariantRequirements();
-      document.getElementById('productName').value = '';
-      document.getElementById('productDescription').value = '';
-      document.getElementById('productCare').value = '';
-      document.getElementById('productDelivery').value = '';
-      document.getElementById('productMaterial').value = '';
+      document.getElementById(getElementId('productName')).value = '';
+      document.getElementById(getElementId('productDescription')).value = '';
+      document.getElementById(getElementId('productCare')).value = '';
+      document.getElementById(getElementId('productDelivery')).value = '';
+      document.getElementById(getElementId('productMaterial')).value = '';
 
       // Open edit form automatically for new styles
-      document.getElementById('productInfoView').classList.add('hidden');
-      document.getElementById('productInfoEdit').classList.remove('hidden');
+      document.getElementById(getElementId('productInfoView')).classList.add('hidden');
+      document.getElementById(getElementId('productInfoEdit')).classList.remove('hidden');
 
       // Set style number for saving
-      document.getElementById('styleNumber').dataset.styleNumber = styleNumber;
-      document.getElementById('styleNumber').dataset.variant = variant || '';
+      document.getElementById(getElementId('styleNumber')).dataset.styleNumber = styleNumber;
+      document.getElementById(getElementId('styleNumber')).dataset.variant = variant || '';
+
+      // Clear any previous images from other styles
+      await loadStyleImages(styleNumber);
     }
 
     async function loadStyle(styleNumber, variant = null) {
-      document.getElementById('styleSection').classList.remove('hidden');
-      document.getElementById('batchSection').classList.add('hidden');
-      document.getElementById('serialSection').classList.add('hidden');
-      document.getElementById('fetchNudieBtn').style.display = 'none';
+      try {
+        // Clear old data before loading new style - only clear view sections, not edit forms
+        const elementIds = ['styleImages', 'productInfoView', 'transparencyView', 'nudieValuesView', 'storytellingView', 'batchesList', 'eventsTimeline'];
+        elementIds.forEach(id => {
+          const el = document.getElementById(getElementId(id));
+          if (el) el.innerHTML = '';
+        });
+        // Clear form field values (don't delete the forms themselves)
+        const formFields = ['productName', 'productDescription', 'productCare', 'productDelivery', 'productMaterial', 'transparencySuppliers', 'transparencyCerts', 'transparencyEnv', 'transparencySocial', 'nudieRepair', 'storytellinSummary', 'storytellingContent', 'storytellingLinks'];
+        formFields.forEach(id => {
+          const el = document.getElementById(getElementId(id));
+          if (el) el.value = '';
+        });
 
-      const variantParam = variant ? `?variant=${encodeURIComponent(variant)}` : '';
-      const res = await authFetch(`/api/styles/${styleNumber}/full-data${variantParam}`);
-      const data = await res.json();
-      currentData.style = data;
+        document.getElementById(getElementId('styleSection')).classList.remove('hidden');
+        document.getElementById(getElementId('batchSection')).classList.add('hidden');
+        document.getElementById(getElementId('serialSection')).classList.add('hidden');
+        document.getElementById(getElementId('fetchNudieBtn')).style.display = 'none';
+
+        const variantParam = variant ? `?variant=${encodeURIComponent(variant)}` : '';
+        const res = await authFetch(`/api/styles/${styleNumber}/full-data${variantParam}`);
+        const data = await res.json();
+        currentData.style = data;
 
       const displayTitle = data.style.variant ? `${styleNumber}-${data.style.variant}` : styleNumber;
-      document.getElementById('styleTitle').textContent = displayTitle;
+      document.getElementById(getElementId('styleTitle')).textContent = displayTitle;
 
       // Load style images
       await loadStyleImages(styleNumber);
@@ -1947,7 +2371,7 @@
       // Product info
       const style = data.style;
       const variantBadge = style.variant ? `<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-semibold">${style.variant}</span>` : '';
-      document.getElementById('productInfoView').innerHTML = `
+      document.getElementById(getElementId('productInfoView')).innerHTML = `
         <div><strong>Style #:</strong> ${style.style_number}</div>
         <div><strong>Type:</strong> ${style.product_type || 'jeans'} ${variantBadge}</div>
         <div><strong>Name:</strong> ${style.product_name || '-'}</div>
@@ -1958,60 +2382,60 @@
       `;
 
       // Pre-fill edit form
-      document.getElementById('productName').value = style.product_name || '';
-      document.getElementById('productDescription').value = style.description || '';
-      document.getElementById('productCare').value = style.care_instructions || '';
-      document.getElementById('productDelivery').value = style.delivery_returns || '';
-      document.getElementById('productMaterial').value = style.size_material_composition || '';
-      if (document.getElementById('productVariant')) {
+      document.getElementById(getElementId('productName')).value = style.product_name || '';
+      document.getElementById(getElementId('productDescription')).value = style.description || '';
+      document.getElementById(getElementId('productCare')).value = style.care_instructions || '';
+      document.getElementById(getElementId('productDelivery')).value = style.delivery_returns || '';
+      document.getElementById(getElementId('productMaterial')).value = style.size_material_composition || '';
+      if (document.getElementById(getElementId('productVariant'))) {
         const variantVal = (style.variant && style.variant !== 'null') ? style.variant : '';
-        document.getElementById('productVariant').value = variantVal;
+        document.getElementById(getElementId('productVariant')).value = variantVal;
         // Disable variant for Jeans, lock it if Topp has variant
         const productType = style.product_type || 'jeans';
-        document.getElementById('productVariant').disabled = (productType === 'jeans') || !!variantVal;
+        document.getElementById(getElementId('productVariant')).disabled = (productType === 'jeans') || !!variantVal;
       }
-      if (document.getElementById('productType')) {
+      if (document.getElementById(getElementId('productType'))) {
         // Normalize product_type: "Jeans"/"Tops" (from DB) -> "jeans"/"topp" (dropdown values)
         let normalizedType = 'jeans';
         if (style.product_type) {
           const lowerType = style.product_type.toLowerCase();
           normalizedType = (lowerType === 'tops' || lowerType === 'topp') ? 'topp' : 'jeans';
         }
-        document.getElementById('productType').value = normalizedType;
-        document.getElementById('productType').disabled = true; // Lock type - cannot be changed after creation
+        document.getElementById(getElementId('productType')).value = normalizedType;
+        document.getElementById(getElementId('productType')).disabled = true; // Lock type - cannot be changed after creation
         updateVariantRequirements(); // Update variant requirements based on product type
       }
 
       // Transparency
       if (data.transparency_data) {
-        document.getElementById('transparencyView').textContent = JSON.stringify(data.transparency_data, null, 2);
-        document.getElementById('transparencySuppliers').value = JSON.stringify(data.transparency_data.suppliers_chain || {}, null, 2);
-        document.getElementById('transparencyCerts').value = JSON.stringify(data.transparency_data.certifications || {}, null, 2);
-        document.getElementById('transparencyEnv').value = JSON.stringify(data.transparency_data.environmental_data || {}, null, 2);
-        document.getElementById('transparencySocial').value = JSON.stringify(data.transparency_data.social_data || {}, null, 2);
+        document.getElementById(getElementId('transparencyView')).textContent = JSON.stringify(data.transparency_data, null, 2);
+        document.getElementById(getElementId('transparencySuppliers')).value = JSON.stringify(data.transparency_data.suppliers_chain || {}, null, 2);
+        document.getElementById(getElementId('transparencyCerts')).value = JSON.stringify(data.transparency_data.certifications || {}, null, 2);
+        document.getElementById(getElementId('transparencyEnv')).value = JSON.stringify(data.transparency_data.environmental_data || {}, null, 2);
+        document.getElementById(getElementId('transparencySocial')).value = JSON.stringify(data.transparency_data.social_data || {}, null, 2);
       }
 
       // Nudie values
       if (data.nudie_values) {
-        document.getElementById('nudieValuesView').innerHTML = `
+        document.getElementById(getElementId('nudieValuesView')).innerHTML = `
           <div><strong>Repair Info:</strong> ${data.nudie_values.repair_info || '-'}</div>
         `;
-        document.getElementById('nudieRepair').value = data.nudie_values.repair_info || '';
+        document.getElementById(getElementId('nudieRepair')).value = data.nudie_values.repair_info || '';
       }
 
       // Storytelling
       if (data.storytelling) {
-        document.getElementById('storytellingView').innerHTML = `
+        document.getElementById(getElementId('storytellingView')).innerHTML = `
           <div><strong>Summary:</strong> ${data.storytelling.summary || '-'}</div>
           <div><strong>Content:</strong> ${data.storytelling.content || '-'}</div>
         `;
-        document.getElementById('storytellinSummary').value = data.storytelling.summary || '';
-        document.getElementById('storytellingContent').value = data.storytelling.content || '';
-        document.getElementById('storytellingLinks').value = JSON.stringify(data.storytelling.links || [], null, 2);
+        document.getElementById(getElementId('storytellinSummary')).value = data.storytelling.summary || '';
+        document.getElementById(getElementId('storytellingContent')).value = data.storytelling.content || '';
+        document.getElementById(getElementId('storytellingLinks')).value = JSON.stringify(data.storytelling.links || [], null, 2);
       }
 
       // Batches - table format
-      const batchesList = document.getElementById('batchesList');
+      const batchesList = document.getElementById(getElementId('batchesList'));
       batchesList.innerHTML = data.batches.map(b => `
         <tr class="border-b border-gray-200 hover:bg-gray-50">
           <td class="py-3 px-3"><button onclick="loadBatch('${b.batch_id}')" class="text-blue-600 hover:underline cursor-pointer font-semibold">${b.batch_id}</button></td>
@@ -2027,6 +2451,10 @@
           </td>
         </tr>
       `).join('');
+      } catch (err) {
+        console.error('Error loading style:', err);
+        showToast('Error loading style: ' + err.message);
+      }
     }
 
     async function loadRecentBatches() {
@@ -2042,8 +2470,8 @@
           `).join('')
           : '<div class="text-gray-500">No batches yet</div>';
 
-        document.getElementById('sidebarRecentBatches').innerHTML = html;
-        document.getElementById('defaultRecentBatches').innerHTML = html;
+        document.getElementById(getElementId('sidebarRecentBatches')).innerHTML = html;
+        document.getElementById(getElementId('defaultRecentBatches')).innerHTML = html;
       } catch (err) {
         console.error('Error loading recent batches:', err);
       }
@@ -2065,8 +2493,8 @@
           }).join('')
           : '<div class="text-gray-500">No styles yet</div>';
 
-        document.getElementById('sidebarRecentStyles').innerHTML = html;
-        document.getElementById('defaultRecentStyles').innerHTML = html;
+        document.getElementById(getElementId('sidebarRecentStyles')).innerHTML = html;
+        document.getElementById(getElementId('defaultRecentStyles')).innerHTML = html;
       } catch (err) {
         console.error('Error loading recent styles:', err);
       }
@@ -2076,7 +2504,7 @@
       try {
         const res = await authFetch(`/api/styles/${styleNumber}/images`);
         const images = await res.json();
-        const container = document.getElementById('styleImages');
+        const container = document.getElementById(getElementId('styleImages'));
 
         if (images.length === 0) {
           container.innerHTML = '<p class="text-gray-500 text-sm">No image yet</p>';
@@ -2106,15 +2534,22 @@
     }
 
     async function loadBatch(batchId) {
-      document.getElementById('styleSection').classList.add('hidden');
-      document.getElementById('batchSection').classList.remove('hidden');
-      document.getElementById('serialSection').classList.add('hidden');
+      // Clear old data before loading new batch
+      const elementIds = ['batchInfo', 'batchImages', 'eventsTimeline'];
+      elementIds.forEach(id => {
+        const el = document.getElementById(getElementId(id));
+        if (el) el.innerHTML = '';
+      });
+
+      document.getElementById(getElementId('styleSection')).classList.add('hidden');
+      document.getElementById(getElementId('batchSection')).classList.remove('hidden');
+      document.getElementById(getElementId('serialSection')).classList.add('hidden');
 
       const res = await authFetch(`/api/batches/${batchId}/full-data`);
       const data = await res.json();
       currentData.batch = data;
 
-      document.getElementById('batchTitle').textContent = batchId;
+      document.getElementById(getElementId('batchTitle')).textContent = batchId;
 
       const batch = data.batch;
 
@@ -2203,7 +2638,7 @@
                 </div>
                 <div class="flex gap-2">
                   <button onclick="saveStyleCompositionInline('${batch.batch_id}', '${item.style_number}', '${item.variant || ''}', '${styleKeyId}')" class="text-xs bg-gray-900 text-white px-3 py-1 rounded hover:bg-gray-800">
-                    ✓ Save
+                    Save
                   </button>
                   <button onclick="toggleStyleEdit('${styleKeyId}')" class="text-xs bg-gray-300 text-gray-900 px-3 py-1 rounded hover:bg-gray-400">
                     Cancel
@@ -2223,7 +2658,7 @@
         `;
       }).join('');
 
-      document.getElementById('batchInfo').innerHTML = `
+      document.getElementById(getElementId('batchInfo')).innerHTML = `
         <div id="batchMetadataView" class="space-y-6" style="display: block;">
           <!-- Batch Header -->
           <div class="border-b pb-4">
@@ -2267,7 +2702,7 @@
                 <textarea id="editBatchManufacturing" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">${mfgDetails}</textarea>
               </div>
               <div class="flex gap-2">
-                <button onclick="saveBatchDetails()" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">✓ Save</button>
+                <button onclick="saveBatchDetails()" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">Save</button>
                 <button onclick="hideBatchDetailsEdit()" class="bg-gray-300 text-gray-900 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
               </div>
             </div>
@@ -2324,18 +2759,25 @@
     }
 
     async function loadSerial(serialNumber) {
-      document.getElementById('styleSection').classList.add('hidden');
-      document.getElementById('batchSection').classList.add('hidden');
-      document.getElementById('serialSection').classList.remove('hidden');
+      // Clear old data before loading new serial
+      const elementIds = ['serialInfo', 'serialBatchInfo', 'serialStyleInfo', 'serialMetadataView', 'serialMetadataEdit', 'eventsTimeline'];
+      elementIds.forEach(id => {
+        const el = document.getElementById(getElementId(id));
+        if (el) el.innerHTML = '';
+      });
+
+      document.getElementById(getElementId('styleSection')).classList.add('hidden');
+      document.getElementById(getElementId('batchSection')).classList.add('hidden');
+      document.getElementById(getElementId('serialSection')).classList.remove('hidden');
 
       const res = await authFetch(`/api/serials/${serialNumber}/full-data`);
       const data = await res.json();
       currentData.serial = data;
 
-      document.getElementById('serialTitle').textContent = serialNumber;
+      document.getElementById(getElementId('serialTitle')).textContent = serialNumber;
 
       const serial = data.serial;
-      document.getElementById('serialInfo').innerHTML = `
+      document.getElementById(getElementId('serialInfo')).innerHTML = `
         <div><strong>Serial:</strong> ${serial.serial_number}</div>
         <div><strong>SGTIN:</strong> ${serial.sgtin_numeric || '-'}</div>
         <div><strong>RFID:</strong> ${serial.rfid || '-'}</div>
@@ -2345,14 +2787,14 @@
       `;
 
       if (data.batch) {
-        document.getElementById('serialBatchInfo').innerHTML = `
+        document.getElementById(getElementId('serialBatchInfo')).innerHTML = `
           <div><strong>Batch:</strong> ${data.batch.batch_id}</div>
           <div><strong>Units:</strong> ${data.batch.total_units || '-'}</div>
         `;
       }
 
       if (data.style) {
-        document.getElementById('serialStyleInfo').innerHTML = `
+        document.getElementById(getElementId('serialStyleInfo')).innerHTML = `
           <div><strong>Style:</strong> ${data.style.style_number}</div>
           <div><strong>Name:</strong> ${data.style.product_name || '-'}</div>
         `;
@@ -2389,7 +2831,7 @@
         }
       }
 
-      document.getElementById('serialMetadataView').innerHTML = `
+      document.getElementById(getElementId('serialMetadataView')).innerHTML = `
         <div><strong>Public URL:</strong> <span class="font-mono text-xs break-all">${publicUrl}</span></div>
         <div><strong>Size:</strong> ${metadata.size || '-'}</div>
         <div><strong>Condition:</strong> ${conditionDisplay}</div>
@@ -2399,20 +2841,20 @@
       `;
 
       // Pre-fill edit form - SGTIN/RFID
-      const serialSGTINNumeric = document.getElementById('serialSGTINNumeric');
+      const serialSGTINNumeric = document.getElementById(getElementId('serialSGTINNumeric'));
       if (serialSGTINNumeric) serialSGTINNumeric.value = serial.sgtin_numeric || '';
 
-      const serialSGTINUri = document.getElementById('serialSGTINUri');
+      const serialSGTINUri = document.getElementById(getElementId('serialSGTINUri'));
       if (serialSGTINUri) serialSGTINUri.value = serial.sgtin_uri || publicUrl;
 
-      const serialRFID = document.getElementById('serialRFID');
+      const serialRFID = document.getElementById(getElementId('serialRFID'));
       if (serialRFID) serialRFID.value = serial.rfid || '';
 
       // Pre-fill edit form - Metadata
-      const serialSize = document.getElementById('serialSize');
+      const serialSize = document.getElementById(getElementId('serialSize'));
       if (serialSize) serialSize.value = metadata.size || '';
 
-      const serialCondition = document.getElementById('serialCondition');
+      const serialCondition = document.getElementById(getElementId('serialCondition'));
       if (serialCondition) {
         // Auto-set condition based on latest event
         let conditionValue = metadata.condition || '';
@@ -2440,13 +2882,13 @@
         serialCondition.value = conditionValue;
       }
 
-      const serialLocation = document.getElementById('serialLocation');
+      const serialLocation = document.getElementById(getElementId('serialLocation'));
       if (serialLocation) serialLocation.value = metadata.location || '';
 
-      const serialOwner = document.getElementById('serialOwner');
+      const serialOwner = document.getElementById(getElementId('serialOwner'));
       if (serialOwner) serialOwner.value = metadata.owner_id || '';
 
-      const serialNotes = document.getElementById('serialNotes');
+      const serialNotes = document.getElementById(getElementId('serialNotes'));
       if (serialNotes) serialNotes.value = metadata.notes || '';
 
       // Events
@@ -2488,7 +2930,7 @@
         }
       }).join('');
 
-      document.getElementById('eventsTimeline').innerHTML = eventsHTML || '<div class="text-gray-500 text-sm">No events yet</div>';
+      document.getElementById(getElementId('eventsTimeline')).innerHTML = eventsHTML || '<div class="text-gray-500 text-sm">No events yet</div>';
       attachEventListeners();
     }
 
@@ -2503,7 +2945,7 @@
     }
 
     async function saveBatchDetails() {
-      const batchId = document.getElementById('batchTitle')?.textContent;
+      const batchId = document.getElementById(getElementId('batchTitle'))?.textContent;
       const prodDate = document.getElementById('editBatchProductionDate')?.value || '';
       const mfgDetails = document.getElementById('editBatchManufacturing')?.value || '';
 
@@ -2533,8 +2975,8 @@
     }
 
     function updateVariantRequirements() {
-      const productType = document.getElementById('productType')?.value?.trim().toLowerCase() || '';
-      const variantInput = document.getElementById('productVariant');
+      const productType = document.getElementById(getElementId('productType'))?.value?.trim().toLowerCase() || '';
+      const variantInput = document.getElementById(getElementId('productVariant'));
       const variantLabel = document.querySelector('#productInfoEdit label[for="productVariant"]');
 
       if (!variantInput) return;
@@ -2548,48 +2990,49 @@
       }
     }
 
-    document.getElementById('productType')?.addEventListener('change', updateVariantRequirements);
+    document.getElementById(getElementId('productType'))?.addEventListener('change', updateVariantRequirements);
 
     async function saveProductInfo() {
       try {
-        const styleNumber = currentData.style?.style?.style_number || document.getElementById('styleNumber')?.dataset?.styleNumber;
+        const styleNumber = currentData.style?.style?.style_number || document.getElementById(getElementId('styleNumber'))?.dataset?.styleNumber;
         const isNewStyle = !currentData.style?.style?.style_number;
-        const selectedProductType = (document.getElementById('productType')?.value || '').trim().toLowerCase();
-        const variantInput = document.getElementById('productVariant');
+        const rawProductType = (document.getElementById(getElementId('productType'))?.value || '').trim().toLowerCase();
+        const selectedProductType = rawProductType === 'topp' ? 'Tops' : 'Jeans';
+        const variantInput = document.getElementById(getElementId('productVariant'));
         const variantValue = (variantInput?.value || '').trim();
 
         if (!styleNumber) {
-          showToast('❌ Style number not set');
+          showToast('âŒ Style number not set');
           return;
         }
 
         if (!selectedProductType) {
-          showToast('❌ Please select Jeans or Tops');
+          showToast('âŒ Please select Jeans or Tops');
           return;
         }
 
       // Strict validation: Tops MUST have variant
-      if (selectedProductType === 'topp') {
+      if (selectedProductType === 'Tops') {
         if (!variantValue || variantValue === 'null' || variantValue === 'undefined') {
-          showToast('❌ Variant is REQUIRED for Tops (e.g., B20, C01)');
+          showToast('âŒ Variant is REQUIRED for Tops (e.g., B20, C01)');
           variantInput?.focus();
           return;
         }
         if (!/^[A-Za-z0-9-]+$/.test(variantValue)) {
-          showToast('❌ Variant: only letters, numbers, dashes allowed');
+          showToast('âŒ Variant: only letters, numbers, dashes allowed');
           return;
         }
       }
 
       // Strict validation: Jeans must NOT have variant
-      if (selectedProductType === 'jeans' && variantValue) {
-        showToast('❌ Jeans cannot have variants (should be empty)');
+      if (selectedProductType === 'Jeans' && variantValue) {
+        showToast('âŒ Jeans cannot have variants (should be empty)');
         variantInput.value = '';
         return;
       }
 
-      // Check if this variant already exists (for ALL Tops, not just new ones)
-      if (selectedProductType === 'topp' && variantValue) {
+      // For Tops: check if this Style+Variant already exists
+      if (selectedProductType === 'Tops' && variantValue) {
         const searchQuery = `${styleNumber}-${variantValue.toUpperCase()}`;
         const searchRes = await authFetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
         const searchData = await searchRes.json();
@@ -2602,30 +3045,19 @@
         );
 
         if (existingVariant) {
-          if (isNewStyle) {
-            // For new styles, open the existing one in edit mode
-            showToast('✏️ This variant already exists - opening in edit mode');
-            await loadStyle(styleNumber);
-            setTimeout(() => {
-              document.querySelector('[id="productInfoView"]')?.scrollIntoView({ behavior: 'smooth' });
-            }, 300);
-            return;
-          } else if (currentData.style?.style?.variant !== variantValue.toUpperCase()) {
-            // For existing styles, prevent overwriting another variant
-            showToast('❌ This variant already exists! Cannot overwrite it.');
-            return;
-          }
+          showToast('âŒ This Tops variant already exists - cannot save duplicate');
+          return;
         }
       }
 
         const payload = {
           product_type: selectedProductType,
-          variant: selectedProductType === 'topp' ? variantValue.toUpperCase() : null,
-          product_name: document.getElementById('productName').value,
-          description: document.getElementById('productDescription').value,
-          care_instructions: document.getElementById('productCare').value,
-          delivery_returns: document.getElementById('productDelivery').value,
-          size_material_composition: document.getElementById('productMaterial').value
+          variant: selectedProductType === 'Tops' ? variantValue.toUpperCase() : null,
+          product_name: document.getElementById(getElementId('productName')).value,
+          description: document.getElementById(getElementId('productDescription')).value,
+          care_instructions: document.getElementById(getElementId('productCare')).value,
+          delivery_returns: document.getElementById(getElementId('productDelivery')).value,
+          size_material_composition: document.getElementById(getElementId('productMaterial')).value
         };
 
         const res = await authFetch(`/api/styles/${styleNumber}/product-info`, {
@@ -2640,8 +3072,11 @@
           toggleEdit('product-info');
           await loadStyle(styleNumber);
 
+          // Always reload recent styles after saving
+          await loadRecentStyles();
+
           // Always refresh search results if search was active
-          const searchQuery = document.getElementById('searchQuery')?.value?.trim();
+          const searchQuery = document.getElementById(getElementId('searchQuery'))?.value?.trim();
           if (searchQuery) {
             handleSearch({ preventDefault: () => {} });
           }
@@ -2662,10 +3097,10 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             variant: variant,
-            suppliers_chain: JSON.parse(document.getElementById('transparencySuppliers').value || '{}'),
-            certifications: JSON.parse(document.getElementById('transparencyCerts').value || '{}'),
-            environmental_data: JSON.parse(document.getElementById('transparencyEnv').value || '{}'),
-            social_data: JSON.parse(document.getElementById('transparencySocial').value || '{}')
+            suppliers_chain: JSON.parse(document.getElementById(getElementId('transparencySuppliers')).value || '{}'),
+            certifications: JSON.parse(document.getElementById(getElementId('transparencyCerts')).value || '{}'),
+            environmental_data: JSON.parse(document.getElementById(getElementId('transparencyEnv')).value || '{}'),
+            social_data: JSON.parse(document.getElementById(getElementId('transparencySocial')).value || '{}')
           })
         });
         const result = await res.json();
@@ -2689,7 +3124,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           variant: variant,
-          repair_info: document.getElementById('nudieRepair').value
+          repair_info: document.getElementById(getElementId('nudieRepair')).value
         })
       });
       const result = await res.json();
@@ -2711,9 +3146,9 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             variant: variant,
-            summary: document.getElementById('storytellinSummary').value,
-            content: document.getElementById('storytellingContent').value,
-            links: JSON.parse(document.getElementById('storytellingLinks').value || '[]')
+            summary: document.getElementById(getElementId('storytellinSummary')).value,
+            content: document.getElementById(getElementId('storytellingContent')).value,
+            links: JSON.parse(document.getElementById(getElementId('storytellingLinks')).value || '[]')
           })
         });
         const result = await res.json();
@@ -2761,14 +3196,14 @@
     async function saveSerialMetadata() {
       const serialNumber = currentData.serial.serial.serial_number;
       const fields = [
-        { key: 'sgtin_numeric', value: document.getElementById('serialSGTINNumeric').value },
-        { key: 'rfid', value: document.getElementById('serialRFID').value },
-        { key: 'size', value: document.getElementById('serialSize').value },
-        { key: 'condition', value: document.getElementById('serialCondition').value },
-        { key: 'location', value: document.getElementById('serialLocation').value },
-        { key: 'owner_id', value: document.getElementById('serialOwner').value },
-        { key: 'notes', value: document.getElementById('serialNotes').value },
-        { key: 'sgtin_uri', value: document.getElementById('serialSGTINUri').value }
+        { key: 'sgtin_numeric', value: document.getElementById(getElementId('serialSGTINNumeric')).value },
+        { key: 'rfid', value: document.getElementById(getElementId('serialRFID')).value },
+        { key: 'size', value: document.getElementById(getElementId('serialSize')).value },
+        { key: 'condition', value: document.getElementById(getElementId('serialCondition')).value },
+        { key: 'location', value: document.getElementById(getElementId('serialLocation')).value },
+        { key: 'owner_id', value: document.getElementById(getElementId('serialOwner')).value },
+        { key: 'notes', value: document.getElementById(getElementId('serialNotes')).value },
+        { key: 'sgtin_uri', value: document.getElementById(getElementId('serialSGTINUri')).value }
       ].filter(f => f.value);
 
       for (const field of fields) {
@@ -2795,8 +3230,8 @@
         }
 
         const serialNumber = currentData.serial.serial.serial_number;
-        const eventType = document.getElementById('eventType').value;
-        const eventDataStr = (document.getElementById('eventData').value || '').trim();
+        const eventType = document.getElementById(getElementId('eventType')).value;
+        const eventDataStr = (document.getElementById(getElementId('eventData')).value || '').trim();
 
         if (!eventType) {
           showToast('Please select event type');
@@ -2836,8 +3271,8 @@
 
         if (res.ok) {
           showToast('✓ Event added!');
-          document.getElementById('eventType').value = '';
-          document.getElementById('eventData').value = '';
+          document.getElementById(getElementId('eventType')).value = '';
+          document.getElementById(getElementId('eventData')).value = '';
           await loadSerial(serialNumber);
         } else {
           showToast('Error: ' + (result.error || 'Unknown error'));
@@ -2849,7 +3284,7 @@
     }
 
     async function uploadStyleImage() {
-      const file = document.getElementById('styleImageUpload').files[0];
+      const file = document.getElementById(getElementId('styleImageUpload')).files[0];
       if (!file) {
         showToast('Please select an image');
         return;
@@ -2901,7 +3336,7 @@
               const result = await res.json();
               if (res.ok) {
                 showToast('✓ Image uploaded!');
-                document.getElementById('styleImageUpload').value = '';
+                document.getElementById(getElementId('styleImageUpload')).value = '';
                 await loadStyleImages(styleNumber);
               } else {
                 showToast('Error: ' + (result.error || 'Upload failed'));
@@ -3091,8 +3526,8 @@
         const data = await res.json();
         if (res.ok) {
           // Fill in the form with fetched data
-          document.getElementById('productName').value = data.product_name || '';
-          document.getElementById('productDescription').value = data.description || '';
+          document.getElementById(getElementId('productName')).value = data.product_name || '';
+          document.getElementById(getElementId('productDescription')).value = data.description || '';
           showToast('✓ Data fetched!');
           closeFetchNudieModal();
         } else {
@@ -3352,7 +3787,7 @@
 
         if (!selected) {
           console.log('Selected is empty, showing error');
-          showToast('❌ Please select a style');
+          showToast('âŒ Please select a style');
           return;
         }
 
@@ -3379,7 +3814,7 @@
         });
 
         if (styleExists) {
-          showToast('❌ This style is already in the batch');
+          showToast('âŒ This style is already in the batch');
           // Close the style select modal
           if (styleSelectModalElement) {
             styleSelectModalElement.remove();
@@ -3778,7 +4213,7 @@
         });
 
         if (!styleInBatch) {
-          showToast('❌ This style is not in this batch');
+          showToast('âŒ This style is not in this batch');
           return;
         }
         const res = await fetch('/api/scan', {
@@ -3846,3 +4281,5 @@
   </script>
 </body>
 </html>
+
+
