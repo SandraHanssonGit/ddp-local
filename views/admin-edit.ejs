@@ -1136,12 +1136,8 @@
       window.open(`/p/${style}/${batch}/${serial}`, '_blank');
     }
 
-    // Event listeners for edit/delete buttons
+    // Event listeners for delete buttons
     function attachEventListeners() {
-      document.querySelectorAll('.editEventBtn').forEach(btn => {
-        btn.removeEventListener('click', handleEditEvent);
-        btn.addEventListener('click', handleEditEvent);
-      });
       document.querySelectorAll('.deleteEventBtn').forEach(btn => {
         btn.removeEventListener('click', handleDeleteEvent);
         btn.addEventListener('click', handleDeleteEvent);
@@ -1155,23 +1151,6 @@
 
     let pendingDeleteEventId = null;
     let addSerialsForBatchId = null;
-
-    function handleEditEvent(e) {
-      const btn = e.target.closest('.editEventBtn');
-      const eventId = btn.getAttribute('data-event-id');
-      const eventType = btn.getAttribute('data-event-type');
-      const eventDataStr = btn.getAttribute('data-event-data');
-
-      // Only let user edit the JSON data, not the event type
-      document.getElementById('eventType').value = eventType;
-      document.getElementById('eventType').disabled = true;
-      document.getElementById('eventData').value = eventDataStr;
-      document.getElementById('eventData').focus();
-      document.getElementById('addEventBtn').textContent = '✓ Update Event';
-      document.getElementById('addEventBtn').dataset.editingEventId = eventId;
-
-      showToast('Edit the event data and click Update');
-    }
 
     function handleDeleteEvent(e) {
       const btn = e.target.closest('.deleteEventBtn');
@@ -1434,10 +1413,31 @@
         document.getElementById('statsSerials').textContent = serials.length;
         document.getElementById('statsEvents').textContent = events.length;
 
-        // Count conditions
+        // Count conditions - calculate from events
         const conditions = { new: 0, repaired: 0, reused: 0, recycled: 0 };
         serials.forEach(s => {
-          const cond = s.condition || 'new';
+          // Get events for this serial
+          const serialEvents = events.filter(e => e.serial_id === s.id);
+
+          // Calculate condition based on latest event
+          let cond = 'new';
+          if (serialEvents.length > 0) {
+            const sortedEvents = [...serialEvents].sort((a, b) => {
+              const dateA = new Date(a.created_at);
+              const dateB = new Date(b.created_at);
+              return dateB - dateA;
+            });
+            const latestEvent = sortedEvents[0];
+            const eventConditionMap = {
+              'repair': 'repaired',
+              'reuse': 'reused',
+              'recycling': 'recycled',
+              'service': 'new',
+              'scanned': 'new'
+            };
+            cond = eventConditionMap[latestEvent.event_type.toLowerCase()] || 'new';
+          }
+
           if (conditions.hasOwnProperty(cond)) conditions[cond]++;
         });
         document.getElementById('conditionNew').textContent = conditions.new;
@@ -1556,15 +1556,18 @@
           .slice(0, 10);
 
         if (mostViewed.length > 0) {
-          mostViewedTable.innerHTML = mostViewed.map(s => `
+          mostViewedTable.innerHTML = mostViewed.map(s => {
+            const styleDisplay = s.style_number ? `${s.style_number}${s.variant ? '-' + s.variant : ''}` : 'N/A';
+            return `
             <tr class="border-b border-gray-200 hover:bg-gray-50">
               <td class="px-4 py-3 font-mono text-gray-900">${s.serial_number}</td>
-              <td class="px-4 py-3 text-gray-700">${s.batch_id ? batches.find(b => b.batch_id === s.batch_id)?.style_number || 'N/A' : 'N/A'}</td>
+              <td class="px-4 py-3 text-gray-700">${styleDisplay}</td>
               <td class="px-4 py-3 text-right">
                 <span class="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-bold">${s.view_count || 0}</span>
               </td>
             </tr>
-          `).join('');
+          `;
+          }).join('');
         } else {
           mostViewedTable.innerHTML = '<tr><td colspan="3" class="px-4 py-3 text-center text-gray-500">No views yet</td></tr>';
         }
@@ -2357,10 +2360,32 @@
       // Build public URL using new format: /p/STYLE/BATCH/SERIAL
       const publicUrl = serial.sgtin_uri || `${window.location.origin}/p/${data.style?.style_number || ''}/${data.batch?.batch_id || ''}/${serial.serial_number}`;
 
+      // Calculate Condition based on latest event
+      let conditionDisplay = metadata.condition || '';
+      if (data.events && data.events.length > 0) {
+        const sortedEvents = [...data.events].sort((a, b) => {
+          const dateA = new Date(a.created_at);
+          const dateB = new Date(b.created_at);
+          return dateB - dateA;
+        });
+        const latestEvent = sortedEvents[0];
+        const eventConditionMap = {
+          'repair': 'repaired',
+          'reuse': 'reused',
+          'recycling': 'recycled',
+          'service': 'new',
+          'scanned': 'new'
+        };
+        const mappedCondition = eventConditionMap[latestEvent.event_type.toLowerCase()];
+        if (mappedCondition) {
+          conditionDisplay = mappedCondition;
+        }
+      }
+
       document.getElementById('serialMetadataView').innerHTML = `
         <div><strong>Public URL:</strong> <span class="font-mono text-xs break-all">${publicUrl}</span></div>
         <div><strong>Size:</strong> ${metadata.size || '-'}</div>
-        <div><strong>Condition:</strong> ${metadata.condition || '-'}</div>
+        <div><strong>Condition:</strong> ${conditionDisplay}</div>
         <div><strong>Location:</strong> ${metadata.location || '-'}</div>
         <div><strong>Owner:</strong> ${metadata.owner_id || '-'}</div>
         <div><strong>Notes:</strong> ${metadata.notes || '-'}</div>
@@ -2381,7 +2406,32 @@
       if (serialSize) serialSize.value = metadata.size || '';
 
       const serialCondition = document.getElementById('serialCondition');
-      if (serialCondition) serialCondition.value = metadata.condition || '';
+      if (serialCondition) {
+        // Auto-set condition based on latest event
+        let conditionValue = metadata.condition || '';
+        if (data.events && data.events.length > 0) {
+          // Find the latest event (most recent date)
+          const sortedEvents = [...data.events].sort((a, b) => {
+            const dateA = new Date(a.created_at);
+            const dateB = new Date(b.created_at);
+            return dateB - dateA; // Descending order (newest first)
+          });
+          const latestEvent = sortedEvents[0];
+
+          const eventConditionMap = {
+            'repair': 'repaired',
+            'reuse': 'reused',
+            'recycling': 'recycled',
+            'service': 'new',
+            'scanned': 'new'
+          };
+          const mappedCondition = eventConditionMap[latestEvent.event_type.toLowerCase()];
+          if (mappedCondition) {
+            conditionValue = mappedCondition;
+          }
+        }
+        serialCondition.value = conditionValue;
+      }
 
       const serialLocation = document.getElementById('serialLocation');
       if (serialLocation) serialLocation.value = metadata.location || '';
@@ -2406,9 +2456,6 @@
                   ${eventDataJson && Object.keys(eventDataJson).length > 0 ? `<pre class="text-xs mt-2 bg-white p-2 rounded overflow-auto">${JSON.stringify(eventDataJson, null, 2)}</pre>` : '<div class="text-xs text-gray-500 mt-2">(no data)</div>'}
                 </div>
                 <div class="flex gap-2 whitespace-nowrap">
-                  <button class="editEventBtn text-gray-900 hover:text-gray-700 text-sm font-semibold" data-event-id="${e.id}" data-event-type="${e.event_type}" data-event-data='${JSON.stringify(eventDataJson)}'>
-                    Edit
-                  </button>
                   <button class="deleteEventBtn text-gray-900 hover:text-gray-700 text-sm font-semibold" data-event-id="${e.id}">
                     Delete
                   </button>
@@ -2742,10 +2789,6 @@
         const serialNumber = currentData.serial.serial.serial_number;
         const eventType = document.getElementById('eventType').value;
         const eventDataStr = (document.getElementById('eventData').value || '').trim();
-        const addBtn = document.getElementById('addEventBtn');
-        const isEditing = addBtn.dataset.editingEventId;
-
-        console.log('Adding event:', { serialNumber, eventType, eventDataStr, isEditing });
 
         if (!eventType) {
           showToast('Please select event type');
@@ -2754,7 +2797,6 @@
 
         let eventData = {};
         if (eventDataStr) {
-          // If something is entered, it MUST be valid JSON
           if (!eventDataStr.startsWith('{') && !eventDataStr.startsWith('[')) {
             showToast('Event details must be valid JSON or left empty. Example: {"location": "Stockholm"}');
             return;
@@ -2767,15 +2809,8 @@
           }
         }
 
-        console.log('Sending event data:', { event_type: eventType, event_data: eventData });
-
-        const endpoint = isEditing
-          ? `/api/serials/${serialNumber}/event/${isEditing}`
-          : `/api/serials/${serialNumber}/event`;
-        const method = isEditing ? 'PUT' : 'POST';
-
-        const res = await authFetch(endpoint, {
-          method: method,
+        const res = await authFetch(`/api/serials/${serialNumber}/event`, {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             event_type: eventType,
@@ -2784,7 +2819,6 @@
         });
 
         const result = await res.json();
-        console.log('Event response:', result);
 
         if (res.status === 401) {
           showToast('Session expired - please login again');
@@ -2793,18 +2827,9 @@
         }
 
         if (res.ok) {
-          showToast(isEditing ? 'Event updated!' : 'Event added!');
-          const eventTypeEl = document.getElementById('eventType');
-          const eventDataEl = document.getElementById('eventData');
-          if (eventTypeEl) {
-            eventTypeEl.value = '';
-            eventTypeEl.disabled = false;
-          }
-          if (eventDataEl) eventDataEl.value = '';
-          if (addBtn) {
-            addBtn.textContent = '✓ Add Event';
-            delete addBtn.dataset.editingEventId;
-          }
+          showToast('✓ Event added!');
+          document.getElementById('eventType').value = '';
+          document.getElementById('eventData').value = '';
           await loadSerial(serialNumber);
         } else {
           showToast('Error: ' + (result.error || 'Unknown error'));
