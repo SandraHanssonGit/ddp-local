@@ -2541,21 +2541,24 @@
     document.getElementById('productType')?.addEventListener('change', updateVariantRequirements);
 
     async function saveProductInfo() {
-      const styleNumber = currentData.style?.style?.style_number || document.getElementById('styleNumber')?.dataset?.styleNumber;
-      const isNewStyle = !currentData.style?.style?.style_number;
-      const selectedProductType = (document.getElementById('productType')?.value || '').trim().toLowerCase();
-      const variantInput = document.getElementById('productVariant');
-      const variantValue = (variantInput?.value || '').trim();
+      try {
+        const styleNumber = currentData.style?.style?.style_number || document.getElementById('styleNumber')?.dataset?.styleNumber;
+        const isNewStyle = !currentData.style?.style?.style_number;
+        const selectedProductType = (document.getElementById('productType')?.value || '').trim().toLowerCase();
+        const variantInput = document.getElementById('productVariant');
+        const variantValue = (variantInput?.value || '').trim();
 
-      if (!styleNumber) {
-        showToast('❌ Style number not set');
-        return;
-      }
+        console.log('saveProductInfo called:', { styleNumber, selectedProductType, variantValue });
 
-      if (!selectedProductType) {
-        showToast('❌ Please select Jeans or Tops');
-        return;
-      }
+        if (!styleNumber) {
+          showToast('❌ Style number not set');
+          return;
+        }
+
+        if (!selectedProductType) {
+          showToast('❌ Please select Jeans or Tops');
+          return;
+        }
 
       // Strict validation: Tops MUST have variant
       if (selectedProductType === 'topp') {
@@ -2607,34 +2610,44 @@
         }
       }
 
-      const payload = {
-        product_type: selectedProductType,
-        variant: selectedProductType === 'topp' ? variantValue.toUpperCase() : null,
-        product_name: document.getElementById('productName').value,
-        description: document.getElementById('productDescription').value,
-        care_instructions: document.getElementById('productCare').value,
-        delivery_returns: document.getElementById('productDelivery').value,
-        size_material_composition: document.getElementById('productMaterial').value
-      };
+        const payload = {
+          product_type: selectedProductType,
+          variant: selectedProductType === 'topp' ? variantValue.toUpperCase() : null,
+          product_name: document.getElementById('productName').value,
+          description: document.getElementById('productDescription').value,
+          care_instructions: document.getElementById('productCare').value,
+          delivery_returns: document.getElementById('productDelivery').value,
+          size_material_composition: document.getElementById('productMaterial').value
+        };
 
-      const res = await authFetch(`/api/styles/${styleNumber}/product-info`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const result = await res.json();
-      if (res.ok) {
-        showToast('✓ Style saved!');
-        toggleEdit('product-info');
-        await loadStyle(styleNumber);
+        console.log('Sending payload:', payload);
+        const res = await authFetch(`/api/styles/${styleNumber}/product-info`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        console.log('Response status:', res.status, res.ok);
+        const result = await res.json();
+        console.log('Response body:', result);
 
-        // Always refresh search results if search was active
-        const searchQuery = document.getElementById('searchQuery')?.value?.trim();
-        if (searchQuery) {
-          handleSearch({ preventDefault: () => {} });
+        if (res.ok) {
+          showToast('✓ Style saved!');
+          console.log('About to toggle edit and reload style');
+          toggleEdit('product-info');
+          await loadStyle(styleNumber);
+          console.log('Style reloaded');
+
+          // Always refresh search results if search was active
+          const searchQuery = document.getElementById('searchQuery')?.value?.trim();
+          if (searchQuery) {
+            handleSearch({ preventDefault: () => {} });
+          }
+        } else {
+          showToast('Error: ' + result.error);
         }
-      } else {
-        showToast('Error: ' + result.error);
+      } catch (err) {
+        console.error('Error in saveProductInfo:', err);
+        showToast('Error: ' + err.message);
       }
     }
 
