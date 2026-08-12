@@ -1943,6 +1943,7 @@
         <div><strong>Name:</strong> ${style.product_name || '-'}</div>
         <div><strong>Description:</strong> ${style.description || '-'}</div>
         <div><strong>Care:</strong> ${style.care_instructions || '-'}</div>
+        <div><strong>Delivery & Returns:</strong> ${style.delivery_returns || '-'}</div>
         <div><strong>Material:</strong> ${style.size_material_composition || '-'}</div>
       `;
 
@@ -2606,30 +2607,26 @@
         }
       }
 
+      const payload = {
+        product_type: selectedProductType,
+        variant: selectedProductType === 'topp' ? variantValue.toUpperCase() : null,
+        product_name: document.getElementById('productName').value,
+        description: document.getElementById('productDescription').value,
+        care_instructions: document.getElementById('productCare').value,
+        delivery_returns: document.getElementById('productDelivery').value,
+        size_material_composition: document.getElementById('productMaterial').value
+      };
+
       const res = await authFetch(`/api/styles/${styleNumber}/product-info`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          product_type: selectedProductType,
-          variant: selectedProductType === 'topp' ? variantValue.toUpperCase() : null,
-          product_name: document.getElementById('productName').value,
-          description: document.getElementById('productDescription').value,
-          care_instructions: document.getElementById('productCare').value,
-          delivery_returns: document.getElementById('productDelivery').value,
-          size_material_composition: document.getElementById('productMaterial').value
-        })
+        body: JSON.stringify(payload)
       });
       const result = await res.json();
       if (res.ok) {
         showToast('✓ Style saved!');
         toggleEdit('product-info');
-
-        // Load/reload style data
-        if (isNewStyle) {
-          await loadStyle(styleNumber);
-        } else {
-          await loadStyle(styleNumber);
-        }
+        await loadStyle(styleNumber);
 
         // Always refresh search results if search was active
         const searchQuery = document.getElementById('searchQuery')?.value?.trim();
