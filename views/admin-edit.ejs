@@ -2012,6 +2012,9 @@
 
       // Load all batches when design tab is opened
       if (tab === 'edit') {
+        // Hide sidebar (Recent Batches & Styles) on Design tab
+        const sidebar = document.querySelector('#resultContainer .lg\\:col-span-1');
+        if (sidebar) sidebar.classList.add('hidden');
         loadAllBatches();
       }
 
