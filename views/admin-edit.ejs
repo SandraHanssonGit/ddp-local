@@ -2269,6 +2269,13 @@
         }
       }
 
+      // Clear old data from previous products - only clear view sections
+      const elementIds = ['styleImages', 'productInfoView', 'transparencyView', 'nudieValuesView', 'storytellingView', 'batchesList', 'eventsTimeline'];
+      elementIds.forEach(id => {
+        const el = document.getElementById(getElementId(id));
+        if (el) el.innerHTML = '';
+      });
+
       // Show details container and hide product list
       document.getElementById(getElementId('resultContainer')).classList.remove('hidden');
       document.getElementById(getElementId('productsListContainer')).classList.add('hidden');
