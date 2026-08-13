@@ -3236,7 +3236,8 @@
         if (res.ok) {
           showToast('✓ Style saved!');
           toggleEdit('product-info');
-          await loadStyle(styleNumber);
+          const variantForLoad = selectedProductType === 'Tops' ? variantValue.toUpperCase() : null;
+          await loadStyle(styleNumber, variantForLoad);
 
           if (currentActiveTab === 'product') {
             await loadAllProducts();
