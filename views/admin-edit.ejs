@@ -3030,7 +3030,7 @@
       }
     }
 
-    async function loadSerial(serialNumber) {
+    async function loadSerialDesignTab(serialNumber) {
       try {
         // Hide batch details, show serial details
         document.getElementById('batchDetailsContainer').classList.add('hidden');
@@ -3255,7 +3255,7 @@
                     ? '<div class="text-gray-500">No serials</div>'
                     : `<div class="space-y-2">
                         ${product.serials.map(s => `
-                          <button onclick="loadSerial('${s.serial_number}')" class="w-full text-left p-2 bg-white rounded border border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-sm cursor-pointer transition">
+                          <button onclick="loadSerialDesignTab('${s.serial_number}')" class="w-full text-left p-2 bg-white rounded border border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-sm cursor-pointer transition">
                             <div class="font-mono text-gray-900">${s.serial_number}</div>
                             <div class="text-gray-600 text-xs mt-1">Created: ${new Date(s.created_at).toLocaleDateString()}</div>
                           </button>
