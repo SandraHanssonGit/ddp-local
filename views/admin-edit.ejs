@@ -2755,9 +2755,100 @@
     }
 
     // Edit functions for Design tab
-    function editBatch(batchId) {
-      showToast('Edit batch: ' + batchId + ' (Coming soon)');
-      // TODO: Implement batch edit functionality
+    async function editBatch(batchId) {
+      try {
+        // Load batch data for editing
+        const res = await authFetch(`/api/batches/${batchId}/full-data`);
+        const data = await res.json();
+        const batch = data.batch;
+
+        // Get batch metadata
+        let prodDate = '';
+        let mfgDetails = '';
+        if (data.batch_data && data.batch_data.length > 0) {
+          const pd = data.batch_data.find(d => d.key === 'production_date');
+          const mfg = data.batch_data.find(d => d.key === 'manufacturing_details');
+          if (pd) prodDate = pd.value;
+          if (mfg) mfgDetails = mfg.value;
+        }
+
+        // Create and show edit modal
+        const modalHTML = `
+          <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-8 max-w-md w-full">
+              <h2 class="text-2xl font-bold text-gray-900 mb-6">Edit Batch: ${batchId}</h2>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-2">PO</label>
+                  <input type="text" id="editBatchPO" value="${batch.po || ''}" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+                </div>
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-2">Partner</label>
+                  <input type="text" id="editBatchPartner" value="${batch.partner_name || ''}" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+                </div>
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-2">Production Date</label>
+                  <input type="date" id="editBatchProdDate" value="${prodDate}" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+                </div>
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-2">Manufacturing Details</label>
+                  <textarea id="editBatchMfgDetails" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">${mfgDetails}</textarea>
+                </div>
+                <div class="flex gap-2 pt-4">
+                  <button onclick="saveBatchEditDesign('${batchId}')" class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">Save</button>
+                  <button onclick="closeBatchEditModal()" class="flex-1 bg-gray-300 text-gray-900 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        // Insert modal into DOM
+        const modalContainer = document.createElement('div');
+        modalContainer.id = 'batchEditModal';
+        modalContainer.innerHTML = modalHTML;
+        document.body.appendChild(modalContainer);
+      } catch (err) {
+        console.error('Error loading batch for edit:', err);
+        showToast('Error loading batch data');
+      }
+    }
+
+    function closeBatchEditModal() {
+      const modal = document.getElementById('batchEditModal');
+      if (modal) modal.remove();
+    }
+
+    async function saveBatchEditDesign(batchId) {
+      try {
+        const po = document.getElementById('editBatchPO').value;
+        const partner = document.getElementById('editBatchPartner').value;
+        const prodDate = document.getElementById('editBatchProdDate').value;
+        const mfgDetails = document.getElementById('editBatchMfgDetails').value;
+
+        // Save batch details
+        const res = await authFetch(`/api/batches/${batchId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            po: po,
+            partner_name: partner,
+            production_date: prodDate,
+            manufacturing_details: mfgDetails
+          })
+        });
+
+        if (res.ok) {
+          showToast('✓ Batch saved!');
+          closeBatchEditModal();
+          await loadBatchForDesignTab(batchId);
+        } else {
+          showToast('Error saving batch');
+        }
+      } catch (err) {
+        console.error('Error saving batch:', err);
+        showToast('Error saving batch');
+      }
     }
 
     function editProduct(styleNumber, variant) {
@@ -2766,9 +2857,43 @@
       // TODO: Implement product edit functionality
     }
 
-    function loadSerial(serialNumber) {
-      showToast('Load serial: ' + serialNumber + ' (Coming soon)');
-      // TODO: Implement serial detail view
+    async function loadSerial(serialNumber) {
+      try {
+        // Load serial data for viewing/editing
+        const res = await authFetch(`/api/serials/${serialNumber}`);
+        const data = await res.json();
+
+        // Create modal for serial details
+        const modalHTML = `
+          <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-8 max-w-2xl w-full max-h-96 overflow-y-auto">
+              <h2 class="text-2xl font-bold text-gray-900 mb-6">Serial: ${serialNumber}</h2>
+              <div class="grid grid-cols-2 gap-4 text-sm mb-6">
+                <div><strong>Batch:</strong> ${data.serial.batch_id}</div>
+                <div><strong>Style:</strong> ${data.serial.style_number}${data.serial.variant ? '-' + data.serial.variant : ''}</div>
+                <div><strong>Created:</strong> ${new Date(data.serial.created_at).toLocaleDateString()}</div>
+                <div><strong>Status:</strong> ${data.serial.status || '-'}</div>
+              </div>
+              <div class="flex gap-2">
+                <button onclick="closeSerialModal()" class="flex-1 bg-gray-300 text-gray-900 px-4 py-2 rounded hover:bg-gray-400">Close</button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        const modalContainer = document.createElement('div');
+        modalContainer.id = 'serialModal';
+        modalContainer.innerHTML = modalHTML;
+        document.body.appendChild(modalContainer);
+      } catch (err) {
+        console.error('Error loading serial:', err);
+        showToast('Error loading serial data');
+      }
+    }
+
+    function closeSerialModal() {
+      const modal = document.getElementById('serialModal');
+      if (modal) modal.remove();
     }
 
     // Design Tab: Load all batches for display
