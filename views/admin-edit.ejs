@@ -1982,6 +1982,11 @@
         loadAllProducts();
       }
 
+      // Load all batches when design tab is opened
+      if (tab === 'edit') {
+        loadAllBatches();
+      }
+
       // Load recent batches and styles when design tab is opened
       if (tab === 'edit') {
         loadRecentBatches();
@@ -2718,6 +2723,39 @@
         `;
       } catch (err) {
         console.log('No images found');
+      }
+    }
+
+    // Design Tab: Load all batches for display
+    async function loadAllBatches() {
+      try {
+        const res = await authFetch('/api/batches');
+        const batches = await res.json();
+
+        const container = document.getElementById('batchesList');
+        if (!Array.isArray(batches) || batches.length === 0) {
+          container.innerHTML = '<div class="text-center text-gray-500 py-8">No batches found</div>';
+          return;
+        }
+
+        // Sort by batch_id descending (newest first)
+        batches.sort((a, b) => b.batch_id.localeCompare(a.batch_id));
+
+        // Render batches as clickable cards
+        container.innerHTML = batches.map(b => `
+          <button onclick="loadBatchInDesignTab('${b.batch_id}')" class="w-full text-left p-4 bg-gray-50 hover:bg-blue-50 border border-gray-200 rounded transition cursor-pointer">
+            <div class="flex justify-between items-start">
+              <div>
+                <div class="font-semibold text-gray-900">${b.batch_id}</div>
+                ${b.po ? `<div class="text-sm text-gray-600 mt-1">PO: ${b.po}</div>` : ''}
+              </div>
+              <div class="text-xs text-gray-500">${b.partner_name || '-'}</div>
+            </div>
+          </button>
+        `).join('');
+      } catch (err) {
+        console.error('Error loading batches:', err);
+        document.getElementById('batchesList').innerHTML = '<div class="text-center text-red-500 py-8">Error loading batches</div>';
       }
     }
 
