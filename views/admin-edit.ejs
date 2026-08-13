@@ -2312,11 +2312,18 @@
       // Disable variant for Jeans (always), or lock it if Tops has variant provided
       document.getElementById(getElementId('productVariant')).disabled = (finalProductType === 'jeans') || !!variantValue;
       updateVariantRequirements();
+      // Clear all form fields
       document.getElementById(getElementId('productName')).value = '';
       document.getElementById(getElementId('productDescription')).value = '';
       document.getElementById(getElementId('productCare')).value = '';
       document.getElementById(getElementId('productDelivery')).value = '';
       document.getElementById(getElementId('productMaterial')).value = '';
+      document.getElementById(getElementId('transparencySuppliers')).value = '';
+      document.getElementById(getElementId('transparencyCerts')).value = '';
+      document.getElementById(getElementId('nudieRepair')).value = '';
+      document.getElementById(getElementId('storytellinSummary')).value = '';
+      document.getElementById(getElementId('storytellingContent')).value = '';
+      document.getElementById(getElementId('storytellingLinks')).value = '';
 
       // Open edit form automatically for new styles
       document.getElementById(getElementId('productInfoView')).classList.add('hidden');
