@@ -545,11 +545,11 @@
 
     <!-- EDIT TAB -->
     <div id="editTab" class="hidden">
-    <!-- SEARCH SECTION (Always visible on top) -->
+    <!-- SEARCH SECTION -->
     <div class="bg-white rounded-lg shadow-md p-8 mb-8">
       <h2 class="text-2xl font-bold text-gray-900 mb-6">Search</h2>
       <form id="searchForm" class="flex gap-4">
-        <input type="text" id="searchQuery" placeholder="Style, Serial, Batch, SGTIN..." class="flex-1 border border-gray-300 rounded px-4 py-3" required>
+        <input type="text" id="searchQuery" placeholder="Search by Batch ID or PO..." class="flex-1 border border-gray-300 rounded px-4 py-3">
         <button type="submit" class="bg-gray-900 text-white px-8 py-3 rounded font-semibold hover:bg-gray-800">
           Search
         </button>
@@ -557,28 +557,11 @@
       <div id="searchStatus" class="mt-4 text-sm text-gray-600"></div>
     </div>
 
-    <!-- DEFAULT VIEW: Recent Items Grid (shown when no form is open) -->
-    <div id="recentBatchesContainer" class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-      <!-- Left Column: Empty space (2/3) -->
-      <div class="lg:col-span-2"></div>
-
-      <!-- Right Column: Recent Items (1/3) -->
-      <div class="lg:col-span-1 space-y-6">
-        <!-- Recent Batches -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Batches</h3>
-          <div id="defaultRecentBatches" class="space-y-2 text-sm">
-            <div class="text-gray-500">Loading...</div>
-          </div>
-        </div>
-
-        <!-- Recent Styles -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Styles</h3>
-          <div id="defaultRecentStyles" class="space-y-2 text-sm">
-            <div class="text-gray-500">Loading...</div>
-          </div>
-        </div>
+    <!-- BATCHES LIST (shown by default) -->
+    <div id="batchesListContainer" class="bg-white rounded-lg shadow-md p-8 mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">All Batches</h2>
+      <div id="batchesList" class="space-y-2 max-h-96 overflow-y-auto">
+        <div class="text-center text-gray-500 py-8">Loading batches...</div>
       </div>
     </div>
 
