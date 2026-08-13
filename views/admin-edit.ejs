@@ -2449,13 +2449,10 @@
       const batchesList = document.getElementById(getElementId('batchesList'));
       batchesList.innerHTML = data.batches.map(b => `
         <tr class="border-b border-gray-200 hover:bg-gray-50">
-          <td class="py-3 px-3"><button onclick="loadBatch('${b.batch_id}')" class="text-blue-600 hover:underline cursor-pointer font-semibold">${b.batch_id}</button></td>
+          <td class="py-3 px-3"><button onclick="loadBatchInDesignTab('${b.batch_id}')" class="text-gray-900 hover:underline cursor-pointer font-semibold">${b.batch_id}</button></td>
           <td class="py-3 px-3">${b.serial_count}</td>
           <td class="py-3 px-3">${b.partner_name || '-'}</td>
-          <td class="py-3 px-3 text-right space-x-2">
-            <button onclick="showCopyBatchModal('${b.batch_id}')" class="edit-button bg-gray-900 text-white px-3 py-1 rounded text-sm hover:bg-gray-800">
-              Copy
-            </button>
+          <td class="py-3 px-3 text-right">
             <button onclick="deleteBatch('${b.batch_id}')" class="delete-button bg-gray-600 text-white px-3 py-1 rounded text-sm hover:bg-gray-700">
               Delete
             </button>
@@ -2706,6 +2703,11 @@
       } catch (err) {
         console.log('No images found');
       }
+    }
+
+    async function loadBatchInDesignTab(batchId) {
+      switchTab('edit');
+      await loadBatch(batchId);
     }
 
     async function loadBatch(batchId) {
