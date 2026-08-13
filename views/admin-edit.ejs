@@ -209,8 +209,8 @@
 
     <!-- PRODUCT TAB -->
     <div id="productTab" class="hidden">
-    <!-- SEARCH SECTION (Always visible on top) -->
-    <div class="bg-white rounded-lg shadow-md p-8 mb-8">
+    <!-- SEARCH SECTION (hidden when viewing product details) -->
+    <div id="searchSection-product" class="bg-white rounded-lg shadow-md p-8 mb-8">
       <h2 class="text-2xl font-bold text-gray-900 mb-6">Search</h2>
       <form id="searchForm-product" class="flex gap-4">
         <input type="text" id="searchQuery-product" placeholder="Search by Style and/or Variant..." class="flex-1 border border-gray-300 rounded px-4 py-3">
@@ -2380,8 +2380,9 @@
           if (el) el.value = '';
         });
 
-        // Show product details, hide product list and search results
+        // Show product details, hide product list and search
         document.getElementById(getElementId('resultContainer')).classList.remove('hidden');
+        document.getElementById(getElementId('searchSection')).classList.add('hidden');
         document.getElementById(getElementId('productsListContainer')).classList.add('hidden');
         document.getElementById(getElementId('resultsListContainer')).classList.add('hidden');
 
@@ -2503,7 +2504,8 @@
         // Hide product details and search results
         document.getElementById('resultContainer-product').classList.add('hidden');
         document.getElementById('resultsListContainer-product').classList.add('hidden');
-        // Show product list
+        // Show product list and search
+        document.getElementById('searchSection-product').classList.remove('hidden');
         document.getElementById('productsListContainer-product').classList.remove('hidden');
 
         const res = await authFetch('/api/styles');
