@@ -565,91 +565,6 @@
       </div>
     </div>
 
-    <!-- SERIAL DETAILS VIEW (shown when serial is selected) -->
-    <div id="serialDetailsContainer" class="hidden">
-      <!-- Back button -->
-      <div class="mb-4">
-        <button onclick="backToSerialsList()" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
-          ← Back
-        </button>
-      </div>
-
-      <!-- Serial Details Card -->
-      <div class="bg-white rounded-lg shadow-md p-8">
-        <div class="flex justify-between items-center mb-6">
-          <h2 class="text-3xl font-bold text-gray-900">Serial: <span id="serialDetailsTitle"></span></h2>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div class="bg-gray-50 rounded-lg p-6">
-            <h3 class="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-4">Serial Info</h3>
-            <div id="serialDetailsInfo" class="text-sm space-y-2 text-gray-700"></div>
-          </div>
-          <div class="bg-gray-50 rounded-lg p-6">
-            <h3 class="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-4">Batch Info</h3>
-            <div id="serialDetailsBatchInfo" class="text-sm space-y-2 text-gray-700"></div>
-          </div>
-          <div class="bg-gray-50 rounded-lg p-6">
-            <h3 class="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-4">Style Info</h3>
-            <div id="serialDetailsStyleInfo" class="text-sm space-y-2 text-gray-700"></div>
-          </div>
-        </div>
-
-        <!-- Serial Metadata -->
-        <div class="border-t pt-6">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold text-gray-900">Serial Metadata</h3>
-            <button onclick="toggleSerialDetailsEdit()" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">Edit</button>
-          </div>
-          <div id="serialDetailsMetadataView" class="bg-gray-50 rounded-lg p-6 grid grid-cols-2 gap-6"></div>
-          <div id="serialDetailsMetadataEdit" class="hidden space-y-4 mt-4 bg-gray-50 rounded-lg p-6">
-            <div>
-              <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">RFID</label>
-              <input type="text" id="serialDetailsRFID" class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-sm focus:outline-none focus:border-gray-900">
-            </div>
-            <div>
-              <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Size</label>
-              <select id="serialDetailsSize" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
-                <option value="">-- Not specified --</option>
-                <option value="XS">XS</option>
-                <option value="S">S</option>
-                <option value="M">M</option>
-                <option value="L">L</option>
-                <option value="XL">XL</option>
-                <option value="XXL">XXL</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">Condition</label>
-              <select id="serialDetailsCondition" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
-                <option value="">-- Not specified --</option>
-                <option value="new">New</option>
-                <option value="repaired">Repaired</option>
-                <option value="reused">Reused</option>
-                <option value="recycled">Recycled</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">Location</label>
-              <input type="text" id="serialDetailsLocation" placeholder="Location" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
-            </div>
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">Owner/Customer ID</label>
-              <input type="text" id="serialDetailsOwner" placeholder="Owner" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
-            </div>
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">Notes</label>
-              <textarea id="serialDetailsNotes" placeholder="Notes" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
-            </div>
-            <div class="flex gap-2 pt-4">
-              <button onclick="saveSerialDetailsEdit()" class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">Save</button>
-              <button onclick="toggleSerialDetailsEdit()" class="flex-1 bg-gray-300 text-gray-900 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- BATCH DETAILS VIEW (shown when batch is selected) -->
     <div id="batchDetailsContainer" class="hidden">
       <!-- Back button -->
@@ -3032,115 +2947,27 @@
 
     async function loadSerialDesignTab(serialNumber) {
       try {
-        // Hide batch details, show serial details
+        // Hide batch details, show serial section (reuse existing structure)
         document.getElementById('batchDetailsContainer').classList.add('hidden');
-        document.getElementById('serialDetailsContainer').classList.remove('hidden');
+        document.getElementById('resultContainer').classList.remove('hidden');
 
-        // Load serial data
-        const res = await authFetch(`/api/serials/${serialNumber}`);
-        const data = await res.json();
-        const serial = data.serial;
+        // Use existing loadSerial for the real loading
+        // But we're on Design tab, so we just call the existing function
+        // First, switch to Design context for element IDs
+        currentActiveTab = 'edit';
 
-        // Display serial title
-        document.getElementById('serialDetailsTitle').textContent = serialNumber;
-
-        // Display serial info
-        document.getElementById('serialDetailsInfo').innerHTML = `
-          <div><strong>Serial #:</strong> ${serialNumber}</div>
-          <div><strong>Created:</strong> ${new Date(serial.created_at).toLocaleDateString()}</div>
-          <div><strong>Status:</strong> ${serial.status || '-'}</div>
-          <div><strong>Views:</strong> ${serial.view_count || 0}</div>
-        `;
-
-        // Display batch info
-        document.getElementById('serialDetailsBatchInfo').innerHTML = `
-          <div><strong>Batch:</strong> ${serial.batch_id}</div>
-          <div><strong>Partner:</strong> ${serial.partner_name || '-'}</div>
-        `;
-
-        // Display style info
-        document.getElementById('serialDetailsStyleInfo').innerHTML = `
-          <div><strong>Style:</strong> ${serial.style_number}${serial.variant ? '-' + serial.variant : ''}</div>
-          <div><strong>Type:</strong> ${serial.product_type || '-'}</div>
-        `;
-
-        // Display metadata
-        document.getElementById('serialDetailsMetadataView').innerHTML = `
-          <div><strong>RFID:</strong> ${serial.rfid || '-'}</div>
-          <div><strong>Size:</strong> ${serial.size || '-'}</div>
-          <div><strong>Condition:</strong> ${serial.condition || '-'}</div>
-          <div><strong>Location:</strong> ${serial.location || '-'}</div>
-          <div><strong>Owner:</strong> ${serial.owner || '-'}</div>
-          <div><strong>Notes:</strong> ${serial.notes || '-'}</div>
-        `;
-
-        // Fill edit form
-        document.getElementById('serialDetailsRFID').value = serial.rfid || '';
-        document.getElementById('serialDetailsSize').value = serial.size || '';
-        document.getElementById('serialDetailsCondition').value = serial.condition || '';
-        document.getElementById('serialDetailsLocation').value = serial.location || '';
-        document.getElementById('serialDetailsOwner').value = serial.owner || '';
-        document.getElementById('serialDetailsNotes').value = serial.notes || '';
+        // Call the existing serial loader
+        await loadSerial(serialNumber);
       } catch (err) {
         console.error('Error loading serial:', err);
-        showToast('Error loading serial data');
-      }
-    }
-
-    function toggleSerialDetailsEdit() {
-      const viewEl = document.getElementById('serialDetailsMetadataView');
-      const editEl = document.getElementById('serialDetailsMetadataEdit');
-      viewEl.classList.toggle('hidden');
-      editEl.classList.toggle('hidden');
-    }
-
-    async function saveSerialDetailsEdit() {
-      try {
-        const serialNumber = document.getElementById('serialDetailsTitle').textContent;
-        const rfid = document.getElementById('serialDetailsRFID').value;
-        const size = document.getElementById('serialDetailsSize').value;
-        const condition = document.getElementById('serialDetailsCondition').value;
-        const location = document.getElementById('serialDetailsLocation').value;
-        const owner = document.getElementById('serialDetailsOwner').value;
-        const notes = document.getElementById('serialDetailsNotes').value;
-
-        // Save serial metadata
-        const res = await authFetch(`/api/serials/${serialNumber}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            rfid: rfid || null,
-            size: size || null,
-            condition: condition || null,
-            location: location || null,
-            owner: owner || null,
-            notes: notes || null
-          })
-        });
-
-        if (res.ok) {
-          showToast('✓ Serial saved!');
-          toggleSerialDetailsEdit();
-          await loadSerial(serialNumber);
-        } else {
-          showToast('Error saving serial');
-        }
-      } catch (err) {
-        console.error('Error saving serial:', err);
-        showToast('Error saving serial');
+        showToast('Error loading serial');
       }
     }
 
     function backToSerialsList() {
       // Go back to batch view
-      const batchTitle = document.getElementById('batchDetailsTitle').textContent.split('\n')[0].trim();
-      const batchId = batchTitle.match(/\b[A-Z0-9]+\b/)?.[0] || '';
-      if (batchId) {
-        document.getElementById('serialDetailsContainer').classList.add('hidden');
-        document.getElementById('batchDetailsContainer').classList.remove('hidden');
-      } else {
-        loadAllBatches();
-      }
+      document.getElementById('resultContainer').classList.add('hidden');
+      document.getElementById('batchDetailsContainer').classList.remove('hidden');
     }
 
     // Design Tab: Load all batches for display
