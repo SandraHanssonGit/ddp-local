@@ -2982,14 +2982,10 @@
     }
 
     function backToSerialsList() {
-      // Go back to batch view
+      // Go back to batch list with search
       document.getElementById('resultContainer').classList.add('hidden');
-      document.getElementById('batchDetailsContainer').classList.remove('hidden');
       document.getElementById('designSearchSection').classList.remove('hidden');
-
-      // Show sidebar again
-      const sidebar = document.querySelector('#resultContainer .lg\\:col-span-1');
-      if (sidebar) sidebar.classList.remove('hidden');
+      loadAllBatches();
     }
 
     // Design Tab: Load all batches for display
