@@ -2342,8 +2342,8 @@
         }
       };
 
-      // Clear any previous images from other styles
-      await loadStyleImages(styleNumber);
+      // Load images for this specific style+variant
+      await loadStyleImages(styleNumber, variant);
     }
 
     async function loadStyle(styleNumber, variant = null) {
@@ -2379,8 +2379,8 @@
       const displayTitle = data.style.variant ? `${styleNumber}-${data.style.variant}` : styleNumber;
       document.getElementById(getElementId('styleTitle')).textContent = displayTitle;
 
-      // Load style images
-      await loadStyleImages(styleNumber);
+      // Load style images for this specific variant
+      await loadStyleImages(styleNumber, variant);
 
       // Product info
       const style = data.style;
@@ -2677,9 +2677,10 @@
       }
     }
 
-    async function loadStyleImages(styleNumber) {
+    async function loadStyleImages(styleNumber, variant = null) {
       try {
-        const res = await authFetch(`/api/styles/${styleNumber}/images`);
+        const variantParam = variant ? `?variant=${encodeURIComponent(variant)}` : '';
+        const res = await authFetch(`/api/styles/${styleNumber}/images${variantParam}`);
         const images = await res.json();
         const container = document.getElementById(getElementId('styleImages'));
 
@@ -3471,10 +3472,12 @@
       }
 
       const styleNumber = currentData.style.style.style_number;
+      const variant = currentData.style.style.variant || null;
 
       try {
-        // Delete existing images for this style
-        const existingRes = await authFetch(`/api/styles/${styleNumber}/images`);
+        // Delete existing images for this specific style+variant combination
+        const variantParam = variant ? `?variant=${encodeURIComponent(variant)}` : '';
+        const existingRes = await authFetch(`/api/styles/${styleNumber}/images${variantParam}`);
         const existingImages = await existingRes.json();
         for (const img of existingImages) {
           await authFetch(`/api/styles/image/${img.id}`, { method: 'DELETE' });
@@ -3508,6 +3511,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                  variant: variant,
                   image_data: compressedBase64,
                   image_name: file.name
                 })
