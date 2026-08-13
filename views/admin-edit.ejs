@@ -2266,21 +2266,14 @@
         }
       }
 
+      // Show details container and hide product list
       document.getElementById(getElementId('resultContainer')).classList.remove('hidden');
+      document.getElementById(getElementId('productsListContainer')).classList.add('hidden');
+      document.getElementById(getElementId('resultsListContainer')).classList.add('hidden');
+
       document.getElementById(getElementId('styleSection')).classList.remove('hidden');
       document.getElementById(getElementId('batchSection')).classList.add('hidden');
       document.getElementById(getElementId('serialSection')).classList.add('hidden');
-
-      // Hide product-specific containers if they exist
-      if (document.getElementById(getElementId('productsListContainer'))) {
-        document.getElementById(getElementId('productsListContainer')).classList.add('hidden');
-      }
-      if (document.getElementById(getElementId('resultsListContainer'))) {
-        document.getElementById(getElementId('resultsListContainer')).classList.add('hidden');
-      }
-      if (document.getElementById(getElementId('recentBatchesContainer'))) {
-        document.getElementById(getElementId('recentBatchesContainer')).classList.add('hidden');
-      }
 
       // Only show variant in title if it's a real value (not null, undefined, or "null" string)
       const cleanVariant = (variant && variant !== 'null' && variant !== 'undefined') ? variant : null;
@@ -2367,6 +2360,11 @@
           const el = document.getElementById(getElementId(id));
           if (el) el.value = '';
         });
+
+        // Show product details, hide product list and search results
+        document.getElementById(getElementId('resultContainer')).classList.remove('hidden');
+        document.getElementById(getElementId('productsListContainer')).classList.add('hidden');
+        document.getElementById(getElementId('resultsListContainer')).classList.add('hidden');
 
         document.getElementById(getElementId('styleSection')).classList.remove('hidden');
         document.getElementById(getElementId('batchSection')).classList.add('hidden');
@@ -2477,6 +2475,12 @@
 
     async function loadAllProducts() {
       try {
+        // Hide product details and search results
+        document.getElementById('resultContainer-product').classList.add('hidden');
+        document.getElementById('resultsListContainer-product').classList.add('hidden');
+        // Show product list
+        document.getElementById('productsListContainer-product').classList.remove('hidden');
+
         const res = await authFetch('/api/styles');
         allProducts = await res.json();
         if (!Array.isArray(allProducts)) allProducts = [];
