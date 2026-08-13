@@ -2951,6 +2951,10 @@
         document.getElementById('batchDetailsContainer').classList.add('hidden');
         document.getElementById('resultContainer').classList.remove('hidden');
 
+        // Hide sidebar (Recent Batches & Styles)
+        const sidebar = document.querySelector('#resultContainer .lg\\:col-span-1');
+        if (sidebar) sidebar.classList.add('hidden');
+
         // Use existing loadSerial for the real loading
         // But we're on Design tab, so we just call the existing function
         // First, switch to Design context for element IDs
@@ -2968,6 +2972,10 @@
       // Go back to batch view
       document.getElementById('resultContainer').classList.add('hidden');
       document.getElementById('batchDetailsContainer').classList.remove('hidden');
+
+      // Show sidebar again
+      const sidebar = document.querySelector('#resultContainer .lg\\:col-span-1');
+      if (sidebar) sidebar.classList.remove('hidden');
     }
 
     // Design Tab: Load all batches for display
