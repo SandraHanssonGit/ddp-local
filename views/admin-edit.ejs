@@ -1412,8 +1412,10 @@
     }
 
     function toggleSerialMetadataEdit() {
-      const editEl = document.getElementById(getElementId('serialMetadataEdit'));
-      const viewEl = document.getElementById(getElementId('serialMetadataView'));
+      // For Design tab (edit), don't use suffixes
+      const isSuffixTab = currentActiveTab !== 'edit';
+      const editEl = document.getElementById(isSuffixTab ? getElementId('serialMetadataEdit') : 'serialMetadataEdit');
+      const viewEl = document.getElementById(isSuffixTab ? getElementId('serialMetadataView') : 'serialMetadataView');
       if (editEl) {
         editEl.classList.toggle('hidden');
       }
