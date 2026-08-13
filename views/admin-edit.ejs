@@ -546,7 +546,7 @@
     <!-- EDIT TAB -->
     <div id="editTab" class="hidden">
     <!-- SEARCH SECTION -->
-    <div class="bg-white rounded-lg shadow-md p-8 mb-8">
+    <div id="designSearchSection" class="bg-white rounded-lg shadow-md p-8 mb-8">
       <h2 class="text-2xl font-bold text-gray-900 mb-6">Search</h2>
       <form id="searchForm" class="flex gap-4">
         <input type="text" id="searchQuery" placeholder="Search by Batch ID or PO..." class="flex-1 border border-gray-300 rounded px-4 py-3">
@@ -2956,6 +2956,9 @@
         document.getElementById('batchDetailsContainer').classList.add('hidden');
         document.getElementById('resultContainer').classList.remove('hidden');
 
+        // Hide search section
+        document.getElementById('designSearchSection').classList.add('hidden');
+
         // Hide sidebar (Recent Batches & Styles)
         const sidebar = document.querySelector('#resultContainer .lg\\:col-span-1');
         if (sidebar) sidebar.classList.add('hidden');
@@ -2977,6 +2980,7 @@
       // Go back to batch view
       document.getElementById('resultContainer').classList.add('hidden');
       document.getElementById('batchDetailsContainer').classList.remove('hidden');
+      document.getElementById('designSearchSection').classList.remove('hidden');
 
       // Show sidebar again
       const sidebar = document.querySelector('#resultContainer .lg\\:col-span-1');
