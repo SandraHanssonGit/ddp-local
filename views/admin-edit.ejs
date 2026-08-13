@@ -2851,10 +2851,98 @@
       }
     }
 
-    function editProduct(styleNumber, variant) {
-      const productDisplay = variant ? `${styleNumber}-${variant}` : styleNumber;
-      showToast('Edit product: ' + productDisplay + ' (Coming soon)');
-      // TODO: Implement product edit functionality
+    async function editProduct(styleNumber, variant) {
+      try {
+        const productDisplay = variant ? `${styleNumber}-${variant}` : styleNumber;
+
+        // Get current batch data from DOM or reload
+        const batchTitle = document.getElementById('batchDetailsTitle').textContent.trim().split('\n')[0];
+        const batchId = batchTitle.split('\n')[0].trim();
+
+        // Load batch data to get product composition
+        const res = await authFetch(`/api/batches/${batchId}/full-data`);
+        const data = await res.json();
+
+        // Find product data
+        let productData = null;
+        if (data.batch_style_data) {
+          productData = data.batch_style_data.find(bsd =>
+            bsd.style_number === styleNumber && (bsd.variant || null) === (variant || null)
+          );
+        }
+
+        const composition = productData?.composition || '';
+
+        // Create modal for product editing
+        const modalHTML = `
+          <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-8 max-w-2xl w-full">
+              <h2 class="text-2xl font-bold text-gray-900 mb-6">Edit Product: ${productDisplay}</h2>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-2">Style Number</label>
+                  <input type="text" value="${styleNumber}" disabled class="w-full border border-gray-300 rounded-lg px-4 py-3 bg-gray-100 text-gray-600">
+                </div>
+                ${variant ? `
+                  <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Variant</label>
+                    <input type="text" value="${variant}" disabled class="w-full border border-gray-300 rounded-lg px-4 py-3 bg-gray-100 text-gray-600">
+                  </div>
+                ` : ''}
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-2">Composition</label>
+                  <textarea id="editProductComposition" rows="4" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">${composition}</textarea>
+                </div>
+                <div class="flex gap-2 pt-4">
+                  <button onclick="saveProductEdit('${batchId}', '${styleNumber}', '${variant || ''}')" class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">Save</button>
+                  <button onclick="closeProductEditModal()" class="flex-1 bg-gray-300 text-gray-900 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        const modalContainer = document.createElement('div');
+        modalContainer.id = 'productEditModal';
+        modalContainer.innerHTML = modalHTML;
+        document.body.appendChild(modalContainer);
+      } catch (err) {
+        console.error('Error loading product for edit:', err);
+        showToast('Error loading product data');
+      }
+    }
+
+    function closeProductEditModal() {
+      const modal = document.getElementById('productEditModal');
+      if (modal) modal.remove();
+    }
+
+    async function saveProductEdit(batchId, styleNumber, variant) {
+      try {
+        const composition = document.getElementById('editProductComposition').value;
+
+        // Save product composition
+        const res = await authFetch(`/api/batches/${batchId}/style-composition`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            style_number: styleNumber,
+            variant: variant || null,
+            composition: composition
+          })
+        });
+
+        if (res.ok) {
+          showToast('✓ Product saved!');
+          closeProductEditModal();
+          await loadBatchForDesignTab(batchId);
+        } else {
+          showToast('Error saving product');
+        }
+      } catch (err) {
+        console.error('Error saving product:', err);
+        showToast('Error saving product');
+      }
     }
 
     async function loadSerial(serialNumber) {
