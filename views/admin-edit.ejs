@@ -275,6 +275,12 @@
             </div>
             <div id="productInfoView-product" class="bg-gray-50 rounded-lg p-6 space-y-3"></div>
             <div id="productInfoEdit-product" class="hidden space-y-4 mt-4">
+              <!-- Style Number Display (Read-only) -->
+              <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                <p class="text-sm font-semibold text-gray-900">Style #: <span id="styleNumberDisplay-product" class="text-blue-600 font-bold">-</span></p>
+                <p id="variantDisplay-product" style="display: none;" class="text-sm text-gray-600 mt-1">Variant: <span id="variantDisplayValue-product" class="font-semibold">-</span></p>
+              </div>
+
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Product Type</label>
@@ -2323,6 +2329,15 @@
       document.getElementById(getElementId('styleNumber')).dataset.styleNumber = styleNumber;
       document.getElementById(getElementId('styleNumber')).dataset.variant = variant || '';
 
+      // Update style number display in edit form
+      document.getElementById(getElementId('styleNumberDisplay')).textContent = styleNumber;
+      if (variant) {
+        document.getElementById(getElementId('variantDisplay')).style.display = 'block';
+        document.getElementById(getElementId('variantDisplayValue')).textContent = variant;
+      } else {
+        document.getElementById(getElementId('variantDisplay')).style.display = 'none';
+      }
+
       // Initialize currentData for new style
       currentData = {
         style: {
@@ -2391,6 +2406,15 @@
         <div><strong>Delivery & Returns:</strong> ${style.delivery_returns || '-'}</div>
         <div><strong>Material:</strong> ${style.size_material_composition || '-'}</div>
       `;
+
+      // Update style number display in edit form
+      document.getElementById(getElementId('styleNumberDisplay')).textContent = style.style_number;
+      if (style.variant) {
+        document.getElementById(getElementId('variantDisplay')).style.display = 'block';
+        document.getElementById(getElementId('variantDisplayValue')).textContent = style.variant;
+      } else {
+        document.getElementById(getElementId('variantDisplay')).style.display = 'none';
+      }
 
       // Pre-fill edit form
       document.getElementById(getElementId('productName')).value = style.product_name || '';
