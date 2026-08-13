@@ -3790,15 +3790,19 @@
 
     async function saveSerialMetadata() {
       const serialNumber = currentData.serial.serial.serial_number;
+      // For Design tab (edit), don't use suffixes
+      const isSuffixTab = currentActiveTab !== 'edit';
+      const getInputId = (id) => isSuffixTab ? getElementId(id) : id;
+
       const fields = [
-        { key: 'sgtin_numeric', value: document.getElementById(getElementId('serialSGTINNumeric')).value },
-        { key: 'rfid', value: document.getElementById(getElementId('serialRFID')).value },
-        { key: 'size', value: document.getElementById(getElementId('serialSize')).value },
-        { key: 'condition', value: document.getElementById(getElementId('serialCondition')).value },
-        { key: 'location', value: document.getElementById(getElementId('serialLocation')).value },
-        { key: 'owner_id', value: document.getElementById(getElementId('serialOwner')).value },
-        { key: 'notes', value: document.getElementById(getElementId('serialNotes')).value },
-        { key: 'sgtin_uri', value: document.getElementById(getElementId('serialSGTINUri')).value }
+        { key: 'sgtin_numeric', value: document.getElementById(getInputId('serialSGTINNumeric'))?.value },
+        { key: 'rfid', value: document.getElementById(getInputId('serialRFID'))?.value },
+        { key: 'size', value: document.getElementById(getInputId('serialSize'))?.value },
+        { key: 'condition', value: document.getElementById(getInputId('serialCondition'))?.value },
+        { key: 'location', value: document.getElementById(getInputId('serialLocation'))?.value },
+        { key: 'owner_id', value: document.getElementById(getInputId('serialOwner'))?.value },
+        { key: 'notes', value: document.getElementById(getInputId('serialNotes'))?.value },
+        { key: 'sgtin_uri', value: document.getElementById(getInputId('serialSGTINUri'))?.value }
       ].filter(f => f.value);
 
       for (const field of fields) {
@@ -3825,8 +3829,11 @@
         }
 
         const serialNumber = currentData.serial.serial.serial_number;
-        const eventType = document.getElementById(getElementId('eventType')).value;
-        const eventDataStr = (document.getElementById(getElementId('eventData')).value || '').trim();
+        const isSuffixTab = currentActiveTab !== 'edit';
+        const getInputId = (id) => isSuffixTab ? getElementId(id) : id;
+
+        const eventType = document.getElementById(getInputId('eventType'))?.value;
+        const eventDataStr = (document.getElementById(getInputId('eventData'))?.value || '').trim();
 
         if (!eventType) {
           showToast('Please select event type');
