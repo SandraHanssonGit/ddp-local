@@ -2754,9 +2754,30 @@
       }
     }
 
+    // Edit functions for Design tab
+    function editBatch(batchId) {
+      showToast('Edit batch: ' + batchId + ' (Coming soon)');
+      // TODO: Implement batch edit functionality
+    }
+
+    function editProduct(styleNumber, variant) {
+      const productDisplay = variant ? `${styleNumber}-${variant}` : styleNumber;
+      showToast('Edit product: ' + productDisplay + ' (Coming soon)');
+      // TODO: Implement product edit functionality
+    }
+
+    function loadSerial(serialNumber) {
+      showToast('Load serial: ' + serialNumber + ' (Coming soon)');
+      // TODO: Implement serial detail view
+    }
+
     // Design Tab: Load all batches for display
     async function loadAllBatches() {
       try {
+        // Show batch list, hide batch details
+        document.getElementById('batchesListContainer').classList.remove('hidden');
+        document.getElementById('batchDetailsContainer').classList.add('hidden');
+
         const res = await authFetch('/api/batches');
         const batches = await res.json();
 
@@ -2798,7 +2819,11 @@
         const data = await res.json();
 
         // Display batch info
-        document.getElementById('batchDetailsTitle').textContent = batchId;
+        const titleEl = document.getElementById('batchDetailsTitle');
+        titleEl.innerHTML = `
+          <span>${batchId}</span>
+          <button onclick="editBatch('${batchId}')" class="ml-4 text-sm bg-gray-900 text-white px-3 py-1 rounded hover:bg-gray-800">Edit</button>
+        `;
         const batch = data.batch;
         document.getElementById('batchDetailsInfo').innerHTML = `
           <div><strong>Batch ID:</strong> ${batchId}</div>
@@ -2843,13 +2868,14 @@
           return `
             <div class="border border-gray-200 rounded-lg overflow-hidden">
               <!-- Product Header (clickable to expand) -->
-              <button onclick="toggleProductSerials('${productId}')" class="w-full text-left p-4 bg-gray-50 hover:bg-blue-50 flex justify-between items-center cursor-pointer">
-                <div>
+              <div class="flex items-center bg-gray-50 border-b">
+                <button onclick="toggleProductSerials('${productId}')" class="flex-1 text-left p-4 hover:bg-blue-50 cursor-pointer">
                   <div class="font-semibold text-gray-900">${displayName}</div>
                   <div class="text-sm text-gray-600 mt-1">${product.serials.length} serials</div>
-                </div>
-                <span class="text-gray-500">▼</span>
-              </button>
+                </button>
+                <button onclick="editProduct('${product.style_number}', '${product.variant || ''}')" class="px-4 py-2 text-sm bg-gray-900 text-white hover:bg-gray-800">Edit</button>
+                <span class="px-4 text-gray-500">▼</span>
+              </div>
               <!-- Serials List (expandable) -->
               <div id="${productId}" class="hidden border-t border-gray-200">
                 <div class="p-4 bg-gray-50">
@@ -2857,10 +2883,10 @@
                     ? '<div class="text-gray-500">No serials</div>'
                     : `<div class="space-y-2">
                         ${product.serials.map(s => `
-                          <div class="p-2 bg-white rounded border border-gray-200 text-sm">
+                          <button onclick="loadSerial('${s.serial_number}')" class="w-full text-left p-2 bg-white rounded border border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-sm cursor-pointer transition">
                             <div class="font-mono text-gray-900">${s.serial_number}</div>
                             <div class="text-gray-600 text-xs mt-1">Created: ${new Date(s.created_at).toLocaleDateString()}</div>
-                          </div>
+                          </button>
                         `).join('')}
                       </div>`
                   }
