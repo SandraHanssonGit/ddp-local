@@ -1221,9 +1221,9 @@
 
           if (isStyleVariant) {
             const [styleNum, variant] = q.split('-');
-            suggestions += `<div class="inline-flex items-center gap-2 flex-wrap"><select id="createStyleTypeSelect" class="border border-gray-300 rounded px-3 py-2 text-sm"><option value="">Select type</option><option value="jeans">Jeans</option><option value="tops">Tops</option></select><button class="text-blue-600 hover:underline font-semibold cursor-pointer" onclick="createStyleFromSearch('${styleNum}', '${variant}', true)">Create new ${escapeHtml(q)}</button></div>`;
+            suggestions += `<button class="text-blue-600 hover:underline font-semibold cursor-pointer" onclick="createNewProductForm('${styleNum}', '${variant}')">Create new ${escapeHtml(q)}</button>`;
           } else if (isExactStyleNum || isPartialStyleNum) {
-            suggestions += `<div class="inline-flex items-center gap-2 flex-wrap"><select id="createStyleTypeSelect" class="border border-gray-300 rounded px-3 py-2 text-sm"><option value="">Select type</option><option value="jeans">Jeans</option><option value="tops">Tops</option></select><button class="text-blue-600 hover:underline font-semibold cursor-pointer" onclick="createStyleFromSearch('${q}', null, false)">Create new style ${escapeHtml(q)}</button></div>`;
+            suggestions += `<button class="text-blue-600 hover:underline font-semibold cursor-pointer" onclick="createNewProductForm('${q}', null)">Create new style ${escapeHtml(q)}</button>`;
           } else {
             suggestions += `<div class="text-gray-600">Try searching by:</div>`;
             suggestions += `<div class="text-sm text-gray-500">â€¢ Style number (e.g., 114519)</div>`;
