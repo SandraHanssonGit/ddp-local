@@ -3287,7 +3287,7 @@
         if (res.ok) {
           showToast('Saved!');
           toggleEdit('transparency');
-          await loadStyle(styleNumber);
+          await loadStyle(styleNumber, variant);
         } else {
           showToast('Error: ' + result.error);
         }
@@ -3311,7 +3311,7 @@
       if (res.ok) {
         showToast('Saved!');
         toggleEdit('nudie-values');
-        await loadStyle(styleNumber);
+        await loadStyle(styleNumber, variant);
       } else {
         showToast('Error: ' + result.error);
       }
@@ -3335,7 +3335,7 @@
         if (res.ok) {
           showToast('Saved!');
           toggleEdit('storytelling');
-          await loadStyle(styleNumber);
+          await loadStyle(styleNumber, variant);
         } else {
           showToast('Error: ' + result.error);
         }
