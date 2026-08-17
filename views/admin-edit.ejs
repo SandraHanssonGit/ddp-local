@@ -2955,8 +2955,8 @@
     }
 
     function closeProductAddModal() {
-      const modal = document.querySelector('.fixed.inset-0.bg-black');
-      if (modal) modal.parentElement.removeChild(modal);
+      const modal = document.getElementById('addProductModal');
+      if (modal) modal.remove();
     }
 
     async function saveNewProductToBatch(batchId, styleNumber, variant) {
