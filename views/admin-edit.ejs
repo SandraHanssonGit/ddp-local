@@ -3040,17 +3040,18 @@
 
         // Display batch info
         const titleEl = document.getElementById('batchDetailsTitle');
-        titleEl.innerHTML = `
-          <span>${batchId}</span>
-          <button onclick="editBatch('${batchId}')" class="ml-4 text-sm bg-gray-900 text-white px-3 py-1 rounded hover:bg-gray-800">Edit</button>
-        `;
+        titleEl.innerHTML = batchId;
         const batch = data.batch;
-        document.getElementById('batchDetailsInfo').innerHTML = `
+        document.getElementById('batchDetailsView').innerHTML = `
           <div><strong>Batch ID:</strong> ${batchId}</div>
           <div><strong>PO:</strong> ${batch.po || '-'}</div>
           <div><strong>Partner:</strong> ${batch.partner_name || '-'}</div>
           <div><strong>Status:</strong> ${batch.status || '-'}</div>
         `;
+
+        // Make sure edit form is hidden when loading batch
+        document.getElementById('batchDetailsView').classList.remove('hidden');
+        document.getElementById('batchDetailsEdit').classList.add('hidden');
 
         // Group serials by product (style+variant)
         const productMap = {};
