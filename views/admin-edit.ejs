@@ -2665,7 +2665,7 @@
               Edit
             </button>
             <button onclick="deleteStyle('${p.style_number}', '${p.variant || 'null'}')"
-                    class="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 whitespace-nowrap">
+                    class="px-3 py-1 text-sm bg-gray-900 text-white rounded hover:bg-gray-800 whitespace-nowrap">
               Delete
             </button>
           </div>
@@ -3106,11 +3106,38 @@
       const variant = variantStr === 'null' ? null : variantStr;
       const display = variant ? `${styleNumber}-${variant}` : styleNumber;
 
-      if (!confirm(`Delete ${display}? This will remove all associated data.`)) {
-        return;
-      }
-
       try {
+        // Check if product is used in any batch
+        const batchRes = await authFetch(`/api/batches`);
+        const batches = await batchRes.json();
+
+        const isInBatch = batches.some(b => {
+          // This would require checking batch_style_data, but we'll check serials as proxy
+          return true; // Simplified - in real implementation, check batch_style_data
+        });
+
+        // For now, check by trying to find in any batch's data
+        let productInBatch = false;
+        for (const batch of batches) {
+          const fullRes = await authFetch(`/api/batches/${batch.batch_id}/full-data`);
+          const fullData = await fullRes.json();
+          if (fullData.batch_style_data?.some(bsd =>
+            bsd.style_number === styleNumber && (bsd.variant || null) === variant
+          )) {
+            productInBatch = true;
+            break;
+          }
+        }
+
+        if (productInBatch) {
+          showToast('Cannot delete: This product is used in batches');
+          return;
+        }
+
+        if (!confirm(`Delete ${display}? This will remove all associated data.`)) {
+          return;
+        }
+
         const endpoint = variant
           ? `/api/styles/${styleNumber}?variant=${encodeURIComponent(variant)}`
           : `/api/styles/${styleNumber}`;
