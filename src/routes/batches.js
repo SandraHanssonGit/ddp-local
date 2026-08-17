@@ -7,7 +7,7 @@ router.get('/', (req, res) => {
   const search = req.query.search || '';
   const isJsonRequest = req.headers['content-type']?.includes('application/json');
 
-  let query = 'SELECT b.*, (SELECT COUNT(*) FROM serials WHERE batch_id = b.batch_id) as serial_count FROM batches b WHERE b.deleted_at IS NULL';
+  let query = 'SELECT b.*, (SELECT COUNT(*) FROM serials WHERE batch_id = b.batch_id) as serial_count FROM batches b';
   const params = [];
 
   if (search) {
@@ -32,7 +32,7 @@ router.get('/:batch_id', (req, res) => {
   const { batch_id } = req.params;
   const isJsonRequest = req.headers['content-type']?.includes('application/json');
 
-  db.get('SELECT * FROM batches WHERE batch_id = ? AND deleted_at IS NULL', [batch_id], (err, batch) => {
+  db.get('SELECT * FROM batches WHERE batch_id = ?', [batch_id], (err, batch) => {
     if (err) {
       if (isJsonRequest) return res.status(500).json({ error: 'Database error' });
       return res.status(500).send('Database error');

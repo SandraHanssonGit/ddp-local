@@ -163,7 +163,7 @@ router.post('/batch/import', verifyToken, checkRole(['editor', 'admin', 'super_a
     // If batch doesn't exist, create it
     if (!existingBatch) {
       return db.run(
-        `INSERT INTO batches (batch_id, total_units, partner_name) VALUES (?, ?, ?)`,
+        `INSERT INTO batches (batch_id, total_units, partner_name, deleted_at) VALUES (?, ?, ?, NULL)`,
         [batch_id, total_units, partner_name],
         function(err) {
           if (err) {
@@ -744,6 +744,55 @@ router.get('/batches/:batch_id/style-composition', (req, res) => {
   });
 });
 
+// Delete product from batch (removes from batch_style_data and all associated serials)
+router.delete('/batches/:batch_id/product', verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
+  const { batch_id } = req.params;
+  let { style_number, variant } = req.body;
+
+  console.log('DELETE /batches/:batch_id/product', { batch_id, style_number, variant });
+
+  // Normalize variant: empty string or null becomes null
+  variant = (variant && typeof variant === 'string' && variant.trim() !== '') ? variant.trim() : null;
+
+  db.serialize(() => {
+    db.run('BEGIN TRANSACTION', (err) => {
+      if (err) return res.status(400).json({ error: err.message });
+
+      // Delete all serials for this product in this batch FIRST (child records)
+      const variantCondition = variant === null
+        ? 'variant IS NULL'
+        : 'variant = ?';
+      const variantParams = variant === null ? [] : [variant];
+
+      db.run(`
+        DELETE FROM serials
+        WHERE batch_id = ? AND style_number = ? AND ${variantCondition}
+      `, [batch_id, style_number, ...variantParams], (err) => {
+        if (err) {
+          db.run('ROLLBACK');
+          return res.status(400).json({ error: 'Failed to delete serials: ' + err.message });
+        }
+
+        // Then delete from batch_style_data
+        db.run(`
+          DELETE FROM batch_style_data
+          WHERE batch_id = ? AND style_number = ? AND ${variantCondition}
+        `, [batch_id, style_number, ...variantParams], (err) => {
+          if (err) {
+            db.run('ROLLBACK');
+            return res.status(400).json({ error: 'Failed to delete batch_style_data: ' + err.message });
+          }
+
+          db.run('COMMIT', (err) => {
+            if (err) return res.status(400).json({ error: 'Commit failed: ' + err.message });
+            res.json({ success: true });
+          });
+        });
+      });
+    });
+  });
+});
+
 // Get full DPP data for a batch (with all serials)
 // Get batch with metadata and style data
 router.get('/batches/:batch_id', (req, res) => {
@@ -931,6 +980,29 @@ router.delete('/batches/image/:id', verifyToken, checkRole(['editor', 'admin', '
   db.run(`DELETE FROM batch_images WHERE id = ?`, [id], function(err) {
     if (err) return res.status(400).json({ error: err.message });
     res.json({ success: true });
+  });
+});
+
+// Delete batch (hard delete - removes from database)
+// Only allowed if batch has no serials
+router.delete('/batches/:batch_id', verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
+  const { batch_id } = req.params;
+
+  // Check if batch has any serials
+  db.get(`SELECT COUNT(*) as count FROM serials WHERE batch_id = ?`, [batch_id], (err, row) => {
+    if (err) return res.status(400).json({ error: err.message });
+
+    if (row && row.count > 0) {
+      return res.status(400).json({
+        error: `Cannot delete batch: Contains ${row.count} serial(s). Remove all serials first.`
+      });
+    }
+
+    // Safe to delete
+    db.run(`DELETE FROM batches WHERE batch_id = ?`, [batch_id], function(err) {
+      if (err) return res.status(400).json({ error: err.message });
+      res.json({ success: true });
+    });
   });
 });
 

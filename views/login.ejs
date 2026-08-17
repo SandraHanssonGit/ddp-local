@@ -144,8 +144,8 @@
           // Note: The server also sets it as httpOnly cookie for server-side verification
           const token = data.token || 'authenticated'; // Server sets cookie, we just mark as authenticated
           if (data.token) localStorage.setItem('token', data.token);
-          // Redirect to DPP Hub
-          window.location.href = '/admin-edit';
+          // Redirect to DPP Hub with hard refresh (cache-bust)
+          window.location.href = '/admin-edit?t=' + Date.now();
         } else {
           document.getElementById('error').textContent = data.error || 'Login failed';
           document.getElementById('error').classList.remove('hidden');

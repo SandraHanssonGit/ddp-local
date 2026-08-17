@@ -496,19 +496,24 @@
                 <label class="block text-sm font-bold text-gray-700 mb-1">Condition (Lifecycle)</label>
                 <select id="serialCondition-product" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
                   <option value="">-- Not specified --</option>
-                  <option value="new">ðŸ†• New</option>
-                  <option value="repaired">ðŸ”§ Repaired</option>
-                  <option value="reused">â™»ï¸ Reused</option>
-                  <option value="recycled">ðŸ—‘ï¸ Recycled</option>
+                  <option value="new">New</option>
+                  <option value="repaired">Repaired</option>
+                  <option value="reused">Reused</option>
+                  <option value="recycled">Recycled</option>
                 </select>
               </div>
             </div>
             <input type="text" id="serialLocation-product" placeholder="Location" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
             <input type="text" id="serialOwner-product" placeholder="Owner/Customer ID" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
             <textarea id="serialNotes-product" placeholder="Notes" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
-            <button onclick="saveSerialMetadata()" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
-              Save
-            </button>
+            <div class="flex gap-2">
+              <button onclick="saveSerialMetadata()" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+                Save
+              </button>
+              <button onclick="toggleSerialMetadataEdit()" class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
 
@@ -558,7 +563,12 @@
 
     <!-- BATCHES LIST (shown by default) -->
     <div id="batchesListContainer" class="bg-white rounded-lg shadow-md p-8 mb-8">
-      <h2 class="text-2xl font-bold text-gray-900 mb-6">All Batches</h2>
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">All Batches</h2>
+        <button onclick="createNewBatch()" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+          + Create Batch
+        </button>
+      </div>
       <div id="batchesList" class="space-y-2 max-h-96 overflow-y-auto">
         <div class="text-center text-gray-500 py-8">Loading batches...</div>
       </div>
@@ -577,9 +587,11 @@
       <div id="batchDetailsCard" class="bg-white rounded-lg shadow-md p-8 mb-8">
         <div class="flex justify-between items-start mb-6">
           <h2 class="text-3xl font-bold text-gray-900">Batch: <span id="batchDetailsTitle"></span></h2>
-          <button onclick="editBatch(document.getElementById('batchDetailsTitle').textContent)" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
-            Edit
-          </button>
+          <div class="flex gap-2">
+            <button id="editBatchBtn" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+              Edit
+            </button>
+          </div>
         </div>
         <!-- Batch View -->
         <div id="batchDetailsView" class="grid grid-cols-2 gap-4 text-sm mb-6">
@@ -917,19 +929,24 @@
                 <label class="block text-sm font-bold text-gray-700 mb-1">Condition (Lifecycle)</label>
                 <select id="serialCondition" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
                   <option value="">-- Not specified --</option>
-                  <option value="new">ðŸ†• New</option>
-                  <option value="repaired">ðŸ”§ Repaired</option>
-                  <option value="reused">â™»ï¸ Reused</option>
-                  <option value="recycled">ðŸ—‘ï¸ Recycled</option>
+                  <option value="new">New</option>
+                  <option value="repaired">Repaired</option>
+                  <option value="reused">Reused</option>
+                  <option value="recycled">Recycled</option>
                 </select>
               </div>
             </div>
             <input type="text" id="serialLocation" placeholder="Location" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
             <input type="text" id="serialOwner" placeholder="Owner/Customer ID" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
             <textarea id="serialNotes" placeholder="Notes" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
-            <button onclick="saveSerialMetadata()" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
-              Save
-            </button>
+            <div class="flex gap-2">
+              <button onclick="saveSerialMetadata()" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+                Save
+              </button>
+              <button onclick="toggleSerialMetadataEdit()" class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1123,29 +1140,10 @@
   <div id="newBatchModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
     <div class="bg-white rounded-lg shadow-lg p-8 max-w-2xl w-full my-8">
       <h2 class="text-2xl font-semibold text-gray-900 mb-4">New Batch</h2>
-      <p class="text-sm text-gray-600 mb-4" id="newBatchStyle"></p>
       <div class="space-y-4">
         <div>
           <label class="block text-sm font-bold text-gray-700 mb-1">Batch ID</label>
-          <input type="text" id="newBatchId" placeholder="e.g., 114519-BATCH002" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Total Units</label>
-            <input type="number" id="newBatchUnits" placeholder="100" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
-          </div>
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Production Date</label>
-            <input type="date" id="newBatchProdDate" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm font-bold text-gray-700 mb-1">Manufacturing Details</label>
-          <textarea id="newBatchManufacturing" rows="2" placeholder="Factory, QC status, certifications..." class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
-        </div>
-        <div>
-          <label class="block text-sm font-bold text-gray-700 mb-1">Serial Numbers (comma-separated)</label>
-          <textarea id="newBatchSerials" rows="3" placeholder="114519-001-AA, 114519-001-AB, 114519-001-AC..." class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900 text-sm"></textarea>
+          <input type="text" id="newBatchId" placeholder="e.g., BATCH002" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
         </div>
         <div class="flex gap-2">
           <button onclick="closeNewBatchModal()" class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
@@ -1212,6 +1210,18 @@
     // Track the currently active tab
     let currentActiveTab = 'dashboard';
     let currentBatchId = null;
+
+    // Safe fetch helper for batch data
+    async function fetchBatchFullData(batchId) {
+      try {
+        const res = await authFetch(`/api/batches/${batchId}/full-data`);
+        if (!res.ok) return null;
+        return await res.json();
+      } catch (err) {
+        console.error(`Failed to fetch batch ${batchId}:`, err);
+        return null;
+      }
+    }
 
     // Helper function to get the correct element ID based on the active tab
     function getElementId(baseId) {
@@ -1407,7 +1417,9 @@
     // Logout function
     function logout() {
       localStorage.clear();
-      window.location.href = '/login';
+      sessionStorage.clear();
+      // Hard refresh to clear all cache
+      window.location.href = '/login?t=' + Date.now();
     }
 
     // Setup tab buttons
@@ -1484,10 +1496,18 @@
     function toggleSerialMetadataEdit() {
       // For Design tab (edit), don't use suffixes
       const isSuffixTab = currentActiveTab !== 'edit';
-      const editEl = document.getElementById(isSuffixTab ? getElementId('serialMetadataEdit') : 'serialMetadataEdit');
-      const viewEl = document.getElementById(isSuffixTab ? getElementId('serialMetadataView') : 'serialMetadataView');
+      const editElId = isSuffixTab ? getElementId('serialMetadataEdit') : 'serialMetadataEdit';
+      const viewElId = isSuffixTab ? getElementId('serialMetadataView') : 'serialMetadataView';
+
+      const editEl = document.getElementById(editElId);
+      const viewEl = document.getElementById(viewElId);
+
       if (editEl) {
         editEl.classList.toggle('hidden');
+        if (!editEl.classList.contains('hidden')) {
+          // Scroll slightly to show the beginning of the form
+          editEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
       }
       if (viewEl) {
         viewEl.classList.toggle('hidden');
@@ -2843,6 +2863,10 @@
       try {
         // Load batch data for editing
         const res = await authFetch(`/api/batches/${batchId}/full-data`);
+        if (!res.ok) {
+          showToast('Error: Batch not found');
+          return;
+        }
         const data = await res.json();
         const batch = data.batch;
 
@@ -2866,6 +2890,53 @@
     function toggleBatchEdit() {
       document.getElementById('batchDetailsView').classList.toggle('hidden');
       document.getElementById('batchDetailsEdit').classList.toggle('hidden');
+    }
+
+    function showDeleteConfirm(batchId) {
+      const modal = document.createElement('div');
+      modal.id = 'deleteConfirmModal';
+      modal.innerHTML = `
+        <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 50;">
+          <div style="background: white; border-radius: 8px; padding: 24px; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600;">Delete Batch</h3>
+            <p style="margin: 0 0 24px 0; color: #666;">Are you sure you want to delete batch <strong>${batchId}</strong>? This cannot be undone.</p>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+              <button onclick="document.getElementById('deleteConfirmModal').remove()" style="padding: 8px 16px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer;">
+                Cancel
+              </button>
+              <button onclick="confirmDeleteBatch('${batchId}')" style="padding: 8px 16px; border: none; border-radius: 4px; background: #1f2937; color: white; cursor: pointer;">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    async function confirmDeleteBatch(batchId) {
+      document.getElementById('deleteConfirmModal').remove();
+      const token = localStorage.getItem('token');
+      try {
+        const res = await fetch(`/api/batches/${batchId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+          showToast('✓ Batch deleted');
+          loadAllBatches();
+        } else {
+          const data = await res.json();
+          showToast('❌ ' + (data.error || 'Failed to delete batch'));
+        }
+      } catch (err) {
+        showToast('Error: ' + err.message);
+      }
+    }
+
+    function deleteBatchDirect(batchId) {
+      showDeleteConfirm(batchId);
     }
 
     async function saveBatchEditDesign() {
@@ -3068,13 +3139,36 @@
       window.currentEditingProduct = null;
     }
 
-    async function deleteProduct(batchId, styleNumber, variantStr) {
+    function showDeleteProductConfirm(batchId, styleNumber, variantStr) {
       const variant = variantStr === 'null' ? null : variantStr;
       const display = variant ? `${styleNumber}-${variant}` : styleNumber;
 
-      if (!confirm(`Delete product ${display} from this batch?`)) {
-        return;
-      }
+      const modal = document.createElement('div');
+      modal.id = 'deleteProductConfirmModal';
+      modal.innerHTML = `
+        <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 50;">
+          <div style="background: white; border-radius: 8px; padding: 24px; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600;">Delete Product</h3>
+            <p style="margin: 0 0 24px 0; color: #666;">Are you sure you want to delete <strong>${display}</strong> from this batch? This cannot be undone.</p>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+              <button onclick="document.getElementById('deleteProductConfirmModal').remove()" style="padding: 8px 16px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer;">
+                Cancel
+              </button>
+              <button onclick="confirmDeleteProduct('${batchId}', '${styleNumber}', '${variantStr}')" style="padding: 8px 16px; border: none; border-radius: 4px; background: #1f2937; color: white; cursor: pointer;">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    async function confirmDeleteProduct(batchId, styleNumber, variantStr) {
+      document.getElementById('deleteProductConfirmModal').remove();
+
+      const variant = variantStr === 'null' ? null : variantStr;
+      const display = variant ? `${styleNumber}-${variant}` : styleNumber;
 
       try {
         const res = await authFetch(`/api/batches/${batchId}/style-composition`, {
@@ -3134,9 +3228,40 @@
           return;
         }
 
-        if (!confirm(`Delete ${display}? This will remove all associated data.`)) {
-          return;
-        }
+        // Show custom confirmation modal
+        const modal = document.createElement('div');
+        modal.id = 'deleteStyleConfirmModal';
+        modal.innerHTML = `
+          <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 50;">
+            <div style="background: white; border-radius: 8px; padding: 24px; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+              <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600;">Delete Product</h3>
+              <p style="margin: 0 0 24px 0; color: #666;">Are you sure you want to delete <strong>${display}</strong>? This will remove all associated data. This cannot be undone.</p>
+              <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button onclick="document.getElementById('deleteStyleConfirmModal').remove()" style="padding: 8px 16px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer;">
+                  Cancel
+                </button>
+                <button onclick="confirmDeleteStyle('${styleNumber}', '${variantStr}')" style="padding: 8px 16px; border: none; border-radius: 4px; background: #1f2937; color: white; cursor: pointer;">
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+      } catch (err) {
+        console.error('Error showing delete confirmation:', err);
+        showToast('Error: ' + err.message);
+      }
+    }
+
+    async function confirmDeleteStyle(styleNumber, variantStr) {
+      const variant = variantStr === 'null' ? null : variantStr;
+      const display = variant ? `${styleNumber}-${variant}` : styleNumber;
+
+      try {
+        // Remove modal
+        const modal = document.getElementById('deleteStyleConfirmModal');
+        if (modal) modal.remove();
 
         const endpoint = variant
           ? `/api/styles/${styleNumber}?variant=${encodeURIComponent(variant)}`
@@ -3150,6 +3275,61 @@
         } else {
           const result = await res.json();
           showToast('Error: ' + (result.error || 'Failed to delete'));
+        }
+      } catch (err) {
+        console.error('Error deleting product:', err);
+        showToast('Error deleting product: ' + err.message);
+      }
+    }
+
+    function deleteProductFromBatch(batchId, styleNumber, variantStr) {
+      const variant = (variantStr === 'null' || variantStr === '') ? null : variantStr;
+      const display = variant ? `${styleNumber}-${variant}` : styleNumber;
+
+      const modal = document.createElement('div');
+      modal.id = 'deleteProductBatchModal';
+      modal.innerHTML = `
+        <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 50;">
+          <div style="background: white; border-radius: 8px; padding: 24px; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600;">Delete Product</h3>
+            <p style="margin: 0 0 24px 0; color: #666;">Are you sure you want to delete <strong>${display}</strong> from this batch? This cannot be undone.</p>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+              <button onclick="document.getElementById('deleteProductBatchModal').remove()" style="padding: 8px 16px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer;">
+                Cancel
+              </button>
+              <button onclick="confirmDeleteProductFromBatch('${batchId}', '${styleNumber}', '${variantStr}')" style="padding: 8px 16px; border: none; border-radius: 4px; background: #1f2937; color: white; cursor: pointer;">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    async function confirmDeleteProductFromBatch(batchId, styleNumber, variantStr) {
+      const variant = (variantStr === 'null' || variantStr === '') ? null : variantStr;
+
+      try {
+        // Remove modal
+        const modal = document.getElementById('deleteProductBatchModal');
+        if (modal) modal.remove();
+
+        const payload = { style_number: styleNumber, variant: variant };
+        console.log('Delete product payload:', payload);
+
+        const res = await authFetch(`/api/batches/${batchId}/product`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          showToast('✓ Product deleted from batch!');
+          await loadBatchForDesignTab(batchId);
+        } else {
+          const errorData = await res.json().catch(() => ({}));
+          showToast('Error: ' + (errorData.error || 'Failed to delete product'));
         }
       } catch (err) {
         console.error('Error deleting product:', err);
@@ -3358,8 +3538,12 @@
         document.getElementById('batchesListContainer').classList.remove('hidden');
         document.getElementById('batchDetailsContainer').classList.add('hidden');
 
-        const res = await authFetch('/api/batches');
-        const batches = await res.json();
+        const res = await authFetch('/batches');
+        if (!res.ok) {
+          throw new Error('Failed to fetch batches: ' + res.status);
+        }
+        const data = await res.json();
+        const batches = data.batches || [];
 
         const container = document.getElementById('batchesList');
         if (!Array.isArray(batches) || batches.length === 0) {
@@ -3370,21 +3554,20 @@
         // Sort by batch_id descending (newest first)
         batches.sort((a, b) => b.batch_id.localeCompare(a.batch_id));
 
-        // Render batches as clickable cards
+        // Render batches as clickable cards with delete button
         container.innerHTML = batches.map(b => `
-          <button onclick="loadBatchInDesignTab('${b.batch_id}')" class="w-full text-left p-4 bg-gray-50 hover:bg-blue-50 border border-gray-200 rounded transition cursor-pointer">
-            <div class="flex justify-between items-start">
-              <div>
-                <div class="font-semibold text-gray-900">${b.batch_id}</div>
-                ${b.po ? `<div class="text-sm text-gray-600 mt-1">PO: ${b.po}</div>` : ''}
-              </div>
-              <div class="text-xs text-gray-500">${b.partner_name || '-'}</div>
+          <div class="flex gap-2 items-start p-4 bg-gray-50 hover:bg-blue-50 border border-gray-200 rounded transition">
+            <div onclick="loadBatchInDesignTab('${b.batch_id}')" class="flex-1 cursor-pointer">
+              <div class="font-semibold text-gray-900">${b.batch_id}</div>
+              ${b.po ? `<div class="text-sm text-gray-600 mt-1">PO: ${b.po}</div>` : ''}
             </div>
-          </button>
+            <div class="text-xs text-gray-500 whitespace-nowrap pt-1">${b.partner_name || '-'}</div>
+            <button onclick="deleteBatchDirect('${b.batch_id}')" class="px-3 py-1 bg-gray-900 text-white text-sm rounded hover:bg-gray-800 whitespace-nowrap">Delete</button>
+          </div>
         `).join('');
       } catch (err) {
         console.error('Error loading batches:', err);
-        document.getElementById('batchesList').innerHTML = '<div class="text-center text-red-500 py-8">Error loading batches</div>';
+        document.getElementById('batchesList').innerHTML = '<div class="text-center text-red-500 py-8">Error loading batches: ' + err.message + '</div>';
       }
     }
 
@@ -3396,6 +3579,9 @@
 
         // Load batch data
         const res = await authFetch(`/api/batches/${batchId}/full-data`);
+        if (!res.ok) {
+          throw new Error(`Batch not found (${res.status})`);
+        }
         const data = await res.json();
 
         // Display batch info
@@ -3414,6 +3600,9 @@
         // Make sure edit form is hidden when loading batch
         document.getElementById('batchDetailsView').classList.remove('hidden');
         document.getElementById('batchDetailsEdit').classList.add('hidden');
+
+        // Setup button event listeners
+        document.getElementById('editBatchBtn').onclick = () => editBatch(batchId);
 
         // Group serials by product (style+variant)
         const productMap = {};
@@ -3456,7 +3645,8 @@
                   <div class="font-semibold text-gray-900">${displayName}</div>
                   <div class="text-sm text-gray-600 mt-1">${product.serials.length} serials</div>
                 </button>
-                <button onclick="editProduct('${product.style_number}', '${product.variant || ''}')" class="px-4 py-2 text-sm bg-gray-900 text-white hover:bg-gray-800">Edit</button>
+                <button onclick="editProduct('${product.style_number}', '${product.variant || ''}')" class="px-4 py-2 text-sm bg-gray-900 text-white hover:bg-gray-800 rounded">Edit</button>
+                <button onclick="deleteProductFromBatch('${batchId}', '${product.style_number}', '${product.variant || ''}')" class="ml-2 px-4 py-2 text-sm bg-gray-900 text-white hover:bg-gray-800 rounded">Delete</button>
                 <span class="px-4 text-gray-500">▼</span>
               </div>
               <!-- Serials List (expandable) -->
@@ -3509,6 +3699,10 @@
       document.getElementById(getElementId('serialSection')).classList.add('hidden');
 
       const res = await authFetch(`/api/batches/${batchId}/full-data`);
+      if (!res.ok) {
+        showToast('Error: Batch not found');
+        return;
+      }
       const data = await res.json();
       currentData.batch = data;
 
@@ -3722,22 +3916,28 @@
     }
 
     async function loadSerial(serialNumber) {
-      // Clear old data before loading new serial
-      const elementIds = ['serialInfo', 'serialBatchInfo', 'serialStyleInfo', 'serialMetadataView', 'serialMetadataEdit', 'eventsTimeline'];
-      elementIds.forEach(id => {
-        const el = document.getElementById(getElementId(id));
-        if (el) el.innerHTML = '';
-      });
+      try {
+        // Clear old data before loading new serial (but NOT serialMetadataEdit as it has the form structure)
+        const elementIds = ['serialInfo', 'serialBatchInfo', 'serialStyleInfo', 'serialMetadataView', 'eventsTimeline'];
+        elementIds.forEach(id => {
+          const el = document.getElementById(getElementId(id));
+          if (el) el.innerHTML = '';
+        });
 
-      document.getElementById(getElementId('styleSection')).classList.add('hidden');
-      document.getElementById(getElementId('batchSection')).classList.add('hidden');
-      document.getElementById(getElementId('serialSection')).classList.remove('hidden');
+        const styleSection = document.getElementById(getElementId('styleSection'));
+        const batchSection = document.getElementById(getElementId('batchSection'));
+        const serialSection = document.getElementById(getElementId('serialSection'));
 
-      const res = await authFetch(`/api/serials/${serialNumber}/full-data`);
-      const data = await res.json();
-      currentData.serial = data;
+        if (styleSection) styleSection.classList.add('hidden');
+        if (batchSection) batchSection.classList.add('hidden');
+        if (serialSection) serialSection.classList.remove('hidden');
 
-      document.getElementById(getElementId('serialTitle')).textContent = serialNumber;
+        const res = await authFetch(`/api/serials/${serialNumber}/full-data`);
+        const data = await res.json();
+        currentData.serial = data;
+
+        const titleEl = document.getElementById(getElementId('serialTitle'));
+        if (titleEl) titleEl.textContent = serialNumber;
 
       const serial = data.serial;
       document.getElementById(getElementId('serialInfo')).innerHTML = `
@@ -3752,7 +3952,7 @@
       if (data.batch) {
         document.getElementById(getElementId('serialBatchInfo')).innerHTML = `
           <div><strong>Batch:</strong> ${data.batch.batch_id}</div>
-          <div><strong>Units:</strong> ${data.batch.total_units || '-'}</div>
+          <div><strong>PO:</strong> ${data.batch.po || '-'}</div>
         `;
       }
 
@@ -3855,7 +4055,6 @@
       if (serialNotes) serialNotes.value = metadata.notes || '';
 
       // Events
-      console.log('Loading events:', data.events);
       const eventsHTML = data.events.map(e => {
         try {
           const eventDataJson = e.event_data && typeof e.event_data === 'string' ? JSON.parse(e.event_data) : e.event_data;
@@ -3895,6 +4094,10 @@
 
       document.getElementById(getElementId('eventsTimeline')).innerHTML = eventsHTML || '<div class="text-gray-500 text-sm">No events yet</div>';
       attachEventListeners();
+      } catch (error) {
+        console.error('Error loading serial:', error);
+        showToast('Error loading serial data: ' + error.message);
+      }
     }
 
     function showBatchDetailsEdit() {
@@ -3957,8 +4160,9 @@
 
     async function saveProductInfo() {
       try {
-        // Always read from the input field to avoid stale data
-        const styleNumber = document.getElementById(getElementId('styleNumber'))?.value?.trim();
+        // Read from dataset or value attribute
+        const styleNumberEl = document.getElementById(getElementId('styleNumber'));
+        const styleNumber = (styleNumberEl?.dataset?.styleNumber || styleNumberEl?.value || '').trim();
         const isNewStyle = !currentData.style?.style?.style_number;
         const rawProductType = (document.getElementById(getElementId('productType'))?.value || '').trim().toLowerCase();
         const selectedProductType = rawProductType === 'tops' ? 'Tops' : 'Jeans';
@@ -4057,6 +4261,10 @@
 
     async function saveTransparency() {
       try {
+        if (!currentData.style || !currentData.style.style) {
+          showToast('No style selected');
+          return;
+        }
         const styleNumber = currentData.style.style.style_number;
         const variant = currentData.style.style.variant || null;
 
@@ -4102,6 +4310,10 @@
     }
 
     async function saveNudieValues() {
+      if (!currentData.style || !currentData.style.style) {
+        showToast('No style selected');
+        return;
+      }
       const styleNumber = currentData.style.style.style_number;
       const variant = currentData.style.style.variant || null;
       const res = await authFetch(`/api/styles/${styleNumber}/nudie-values`, {
@@ -4533,64 +4745,68 @@
       }
     }
 
+    function createNewBatch() {
+      // Clear Batch ID field only
+      document.getElementById('newBatchId').value = '';
+
+      // Open modal
+      document.getElementById('newBatchModal').classList.remove('hidden');
+    }
+
     function closeNewBatchModal() {
       document.getElementById('newBatchModal').classList.add('hidden');
     }
 
     async function performNewBatch() {
-      const styleNumber = currentData.style.style.style_number;
       const batchId = document.getElementById('newBatchId').value.trim();
-      const totalUnits = parseInt(document.getElementById('newBatchUnits').value) || 0;
-      const prodDate = document.getElementById('newBatchProdDate').value;
-      const manufacturing = document.getElementById('newBatchManufacturing').value;
-      const serialsInput = document.getElementById('newBatchSerials').value.trim();
 
       if (!batchId) {
         showToast('Please enter a Batch ID');
         return;
       }
 
-      // Serial numbers are optional - can be added later via scanning
-      const serials = serialsInput
-        ? serialsInput.split(',').map(s => s.trim()).filter(s => s.length > 0)
-        : [];
-
       try {
-        // Step 1: Create batch
-        const batchRes = await authFetch('/api/batch/import', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        // First check if batch exists
+        const checkRes = await authFetch(`/api/batches/${batchId}/full-data`);
+        let batchExists = checkRes.ok;
+
+        if (!batchExists) {
+          // Create batch if it doesn't exist
+          const styleNumber = currentData.style?.style?.style_number || null;
+          const batchPayload = {
             batch_id: batchId,
-            style_number: styleNumber,
-            total_units: totalUnits,
-            partner_name: '',
-            serials: serials
-          })
-        });
+            total_units: 0,
+            partner_name: ''
+          };
 
-        if (!batchRes.ok) {
-          showToast('Error creating batch: ' + (await batchRes.json()).error);
-          return;
-        }
+          if (styleNumber) {
+            batchPayload.style_number = styleNumber;
+          }
 
-        // Step 2: Save batch metadata if provided
-        if (prodDate || manufacturing) {
-          await authFetch('/api/batch/metadata', {
+          const createRes = await authFetch('/api/batch/import', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              batch_id: batchId,
-              production_date: prodDate,
-              manufacturing_details: manufacturing
-            })
+            body: JSON.stringify(batchPayload)
           });
+
+          if (!createRes.ok) {
+            showToast('Error creating batch: ' + (await createRes.json()).error);
+            return;
+          }
         }
 
-        showToast(`✓ Batch created with ${serials.length} serials!`);
         closeNewBatchModal();
-        // Reload current style to show new batch
-        await loadStyle(styleNumber);
+
+        // Load and open batch in edit mode
+        await loadBatchForDesignTab(batchId);
+
+        // Open edit form
+        const editEl = document.getElementById('batchDetailsEdit');
+        const viewEl = document.getElementById('batchDetailsView');
+        if (editEl && viewEl) {
+          editEl.classList.remove('hidden');
+          viewEl.classList.add('hidden');
+        }
       } catch (err) {
         showToast('Error: ' + err.message);
       }
@@ -4980,7 +5196,7 @@
 
     // Delete Batch function
     async function deleteBatch(batchId) {
-      if (!confirm(`Delete batch ${batchId}? (This will soft-delete it)`)) return;
+      if (!confirm(`Are you sure you want to delete batch ${batchId}? This cannot be undone.`)) return;
 
       try {
         const res = await authFetch(`/api/batches/${batchId}/delete`, {

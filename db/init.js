@@ -151,7 +151,8 @@ db.serialize(() => {
       sgtin_uri TEXT,
       rfid TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY(batch_id) REFERENCES batches(batch_id),
+      deleted_at DATETIME,
+      FOREIGN KEY(batch_id) REFERENCES batches(batch_id) ON DELETE CASCADE,
       FOREIGN KEY(style_number) REFERENCES styles(style_number)
     )
   `);
@@ -266,6 +267,30 @@ db.serialize(() => {
   db.run(`CREATE INDEX IF NOT EXISTS idx_page_views_page_type ON page_views(page_type)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_page_views_page_id ON page_views(page_id)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_page_views_created_at ON page_views(created_at)`);
+
+  // Clean up orphaned serials (serials pointing to non-existent batches)
+  db.run(`
+    DELETE FROM serials
+    WHERE batch_id NOT IN (SELECT batch_id FROM batches)
+  `, (err) => {
+    if (!err) console.log('✓ Cleaned up orphaned serials');
+  });
+
+  // Clean up orphaned events (events pointing to non-existent serials)
+  db.run(`
+    DELETE FROM events
+    WHERE serial_id NOT IN (SELECT id FROM serials)
+  `, (err) => {
+    if (!err) console.log('✓ Cleaned up orphaned events');
+  });
+
+  // Clean up orphaned serial_data (serial_data pointing to non-existent serials)
+  db.run(`
+    DELETE FROM serial_data
+    WHERE serial_id NOT IN (SELECT id FROM serials)
+  `, (err) => {
+    if (!err) console.log('✓ Cleaned up orphaned serial_data');
+  });
 });
 
 // Seed test data
