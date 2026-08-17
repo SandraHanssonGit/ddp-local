@@ -139,11 +139,12 @@ router.post('/:batch_id', (req, res) => {
 
           db.run(
             `UPDATE batches SET batch_number = ?, production_date = ?, quantity = ?, material_composition = ?, supplier = ?, recycling_info = ?, passport_url = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE batch_id = ?`,
-            [batch_number, production_date, quantity, material_composition || null, supplier || null, recycling_info, passport_url, status, batch_id],
+            [batch_number, production_date || null, quantity || null, material_composition || null, supplier || null, recycling_info || null, passport_url, status || null, batch_id],
             (err) => {
               if (err) {
+                console.error('Batch update error:', err);
                 if (isJsonRequest) return res.status(500).json({ error: 'Error updating batch: ' + err.message });
-                return res.status(500).send('Error updating batch');
+                return res.status(500).send('Error updating batch: ' + err.message);
               }
 
               // Log change
