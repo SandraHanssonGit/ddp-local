@@ -64,11 +64,11 @@ router.get('/:batch_id', (req, res) => {
 // POST update batch
 router.post('/:batch_id', (req, res) => {
   const { batch_id } = req.params;
-  const { total_units, partner_name, ...dataFields } = req.body;
+  const { total_units, partner_name, po, production_date, manufacturing_details } = req.body;
   const isJsonRequest = req.headers['content-type']?.includes('application/json');
 
   // First check if batch exists
-  db.get('SELECT * FROM batches WHERE batch_id = ? AND deleted_at IS NULL', [batch_id], (err, batch) => {
+  db.get('SELECT * FROM batches WHERE batch_id = ?', [batch_id], (err, batch) => {
     if (err) {
       if (isJsonRequest) return res.status(500).json({ error: 'Database error' });
       return res.status(500).send('Database error');
@@ -79,18 +79,33 @@ router.post('/:batch_id', (req, res) => {
       return res.status(404).send('Batch not found');
     }
 
-    // Update batch main fields
+    // Update batch fields
     const updates = [];
     const values = [];
 
-    if (total_units !== undefined) {
+    if (total_units !== undefined && total_units !== null) {
       updates.push('total_units = ?');
       values.push(total_units);
     }
 
-    if (partner_name !== undefined) {
+    if (partner_name !== undefined && partner_name !== null) {
       updates.push('partner_name = ?');
       values.push(partner_name);
+    }
+
+    if (po !== undefined && po !== null) {
+      updates.push('po = ?');
+      values.push(po);
+    }
+
+    if (production_date !== undefined && production_date !== null) {
+      updates.push('production_date = ?');
+      values.push(production_date);
+    }
+
+    if (manufacturing_details !== undefined && manufacturing_details !== null) {
+      updates.push('manufacturing_details = ?');
+      values.push(manufacturing_details);
     }
 
     if (updates.length > 0) {
@@ -105,61 +120,10 @@ router.post('/:batch_id', (req, res) => {
             if (isJsonRequest) return res.status(500).json({ error: 'Error updating batch' });
             return res.status(500).send('Error updating batch');
           }
-
-          updateBatchData();
+          res.json({ success: true, batch_id });
         }
       );
     } else {
-      updateBatchData();
-    }
-
-    // Update batch data (key-value)
-    function updateBatchData() {
-      if (Object.keys(dataFields).length === 0) {
-        return sendResponse();
-      }
-
-      let completed = 0;
-      const errors = [];
-
-      Object.entries(dataFields).forEach(([key, value]) => {
-        if (value === null || value === '' || value === undefined) {
-          // Delete the entry if empty
-          db.run('DELETE FROM batch_data WHERE batch_id = ? AND key = ?', [batch_id, key], (err) => {
-            if (err) errors.push(err);
-            completed++;
-            if (completed === Object.keys(dataFields).length) {
-              if (errors.length > 0) {
-                console.error('Batch data update errors:', errors);
-                if (isJsonRequest) return res.status(500).json({ error: 'Error updating batch data' });
-                return res.status(500).send('Error updating batch data');
-              }
-              sendResponse();
-            }
-          });
-        } else {
-          // Insert or update the entry
-          db.run(
-            'INSERT OR REPLACE INTO batch_data (batch_id, key, value) VALUES (?, ?, ?)',
-            [batch_id, key, String(value)],
-            (err) => {
-              if (err) errors.push(err);
-              completed++;
-              if (completed === Object.keys(dataFields).length) {
-                if (errors.length > 0) {
-                  console.error('Batch data update errors:', errors);
-                  if (isJsonRequest) return res.status(500).json({ error: 'Error updating batch data' });
-                  return res.status(500).send('Error updating batch data');
-                }
-                sendResponse();
-              }
-            }
-          );
-        }
-      });
-    }
-
-    function sendResponse() {
       res.json({ success: true, batch_id });
     }
   });

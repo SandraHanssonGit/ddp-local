@@ -548,13 +548,13 @@
     <!-- SEARCH SECTION -->
     <div id="designSearchSection" class="bg-white rounded-lg shadow-md p-8 mb-8">
       <h2 class="text-2xl font-bold text-gray-900 mb-6">Search</h2>
-      <form id="searchForm" class="flex gap-4">
-        <input type="text" id="searchQuery" placeholder="Search by Batch ID or PO..." class="flex-1 border border-gray-300 rounded px-4 py-3">
+      <form id="batchSearchForm" class="flex gap-4">
+        <input type="text" id="batchSearchQuery" placeholder="Search by Batch ID or PO..." class="flex-1 border border-gray-300 rounded px-4 py-3">
         <button type="submit" class="bg-gray-900 text-white px-8 py-3 rounded font-semibold hover:bg-gray-800">
           Search
         </button>
       </form>
-      <div id="searchStatus" class="mt-4 text-sm text-gray-600"></div>
+      <div id="batchSearchStatus" class="mt-4 text-sm text-gray-600"></div>
     </div>
 
     <!-- BATCHES LIST (shown by default) -->
@@ -1151,6 +1151,12 @@
       const searchForm = document.getElementById('searchForm');
       if (searchForm) {
         searchForm.addEventListener('submit', handleSearch);
+      }
+
+      // Setup search form for batch tab (Design tab)
+      const batchSearchForm = document.getElementById('batchSearchForm');
+      if (batchSearchForm) {
+        batchSearchForm.addEventListener('submit', handleBatchSearch);
       }
 
       // Setup search form for product tab (dynamic filtering)
@@ -2804,24 +2810,14 @@
         const data = await res.json();
         const batch = data.batch;
 
-        // Get batch metadata
-        let prodDate = '';
-        let mfgDetails = '';
-        if (data.batch_data && data.batch_data.length > 0) {
-          const pd = data.batch_data.find(d => d.key === 'production_date');
-          const mfg = data.batch_data.find(d => d.key === 'manufacturing_details');
-          if (pd) prodDate = pd.value;
-          if (mfg) mfgDetails = mfg.value;
-        }
-
         // Store batch data for save
         currentBatchId = batchId;
 
         // Fill form fields
         document.getElementById('batchEditPO').value = batch.po || '';
         document.getElementById('batchEditPartner').value = batch.partner_name || '';
-        document.getElementById('batchEditProdDate').value = prodDate;
-        document.getElementById('batchEditMfgDetails').value = mfgDetails;
+        document.getElementById('batchEditProdDate').value = batch.production_date || '';
+        document.getElementById('batchEditMfgDetails').value = batch.manufacturing_details || '';
 
         // Show edit form
         toggleBatchEdit();
@@ -2844,36 +2840,31 @@
         const prodDate = document.getElementById('batchEditProdDate').value;
         const mfgDetails = document.getElementById('batchEditMfgDetails').value;
 
-        if (!po || po.trim() === '') {
-          showToast('PO is required');
+        if (!batchId || batchId.trim() === '') {
+          showToast('Batch ID not found');
           return;
         }
 
-        // Build payload with only non-empty fields
+        // Save all batch fields directly to batches table
         const payload = {
-          batch_number: po,
-          supplier: partner || null,
-          recycling_info: mfgDetails || null
+          po: po || null,
+          partner_name: partner || null,
+          production_date: prodDate || null,
+          manufacturing_details: mfgDetails || null
         };
 
-        // Only add production_date if it has a value
-        if (prodDate && prodDate.trim() !== '') {
-          payload.production_date = prodDate;
-        }
-
-        // Save batch details
         const res = await authFetch(`/batches/${batchId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
 
-        const result = await res.json();
         if (res.ok) {
           showToast('✓ Batch saved!');
           toggleBatchEdit();
           await loadBatchForDesignTab(batchId);
         } else {
+          const result = await res.json();
           showToast('Error: ' + (result.error || 'Failed to save batch'));
         }
       } catch (err) {
@@ -3009,6 +3000,59 @@
       loadAllBatches();
     }
 
+    // Design Tab: Search batches by ID or PO
+    async function handleBatchSearch(e) {
+      e.preventDefault();
+      const q = document.getElementById('batchSearchQuery').value.trim().toLowerCase();
+      const status = document.getElementById('batchSearchStatus');
+
+      if (!q) {
+        status.textContent = '';
+        loadAllBatches();
+        return;
+      }
+
+      try {
+        const res = await authFetch('/api/batches');
+        const allBatches = await res.json();
+
+        // Filter batches by batch_id or po
+        const filtered = allBatches.filter(b => {
+          const batchId = (b.batch_id || '').toLowerCase();
+          const po = (b.po || '').toLowerCase();
+          const partner = (b.partner_name || '').toLowerCase();
+          return batchId.includes(q) || po.includes(q) || partner.includes(q);
+        });
+
+        if (filtered.length === 0) {
+          status.textContent = `No batches found matching "${q}"`;
+          document.getElementById('batchesList').innerHTML = '<div class="text-center text-gray-500 py-8">No batches found</div>';
+          return;
+        }
+
+        status.textContent = `Found ${filtered.length} batch(es)`;
+        renderBatchesList(filtered);
+      } catch (err) {
+        console.error('Error searching batches:', err);
+        status.textContent = 'Error searching batches';
+      }
+    }
+
+    function renderBatchesList(batches) {
+      const container = document.getElementById('batchesList');
+      container.innerHTML = batches.map(b => `
+        <button onclick="loadBatchInDesignTab('${b.batch_id}')" class="w-full text-left p-4 bg-gray-50 hover:bg-blue-50 border border-gray-200 rounded transition cursor-pointer">
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="font-semibold text-gray-900">${b.batch_id}</div>
+              ${b.po ? `<div class="text-sm text-gray-600 mt-1">PO: ${b.po}</div>` : ''}
+            </div>
+            <div class="text-xs text-gray-500">${b.partner_name || '-'}</div>
+          </div>
+        </button>
+      `).join('');
+    }
+
     // Design Tab: Load all batches for display
     async function loadAllBatches() {
       try {
@@ -3060,11 +3104,13 @@
         const titleEl = document.getElementById('batchDetailsTitle');
         titleEl.innerHTML = batchId;
         const batch = data.batch;
+
         document.getElementById('batchDetailsView').innerHTML = `
           <div><strong>Batch ID:</strong> ${batchId}</div>
           <div><strong>PO:</strong> ${batch.po || '-'}</div>
           <div><strong>Partner:</strong> ${batch.partner_name || '-'}</div>
-          <div><strong>Status:</strong> ${batch.status || '-'}</div>
+          <div><strong>Production Date:</strong> ${batch.production_date || '-'}</div>
+          <div><strong>Manufacturing Details:</strong> ${batch.manufacturing_details ? batch.manufacturing_details.substring(0, 100) + (batch.manufacturing_details.length > 100 ? '...' : '') : '-'}</div>
         `;
 
         // Make sure edit form is hidden when loading batch

@@ -129,8 +129,11 @@ db.serialize(() => {
     CREATE TABLE IF NOT EXISTS batches (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       batch_id TEXT UNIQUE NOT NULL,
+      po TEXT,
       total_units INTEGER,
       partner_name TEXT,
+      production_date DATE,
+      manufacturing_details TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
