@@ -2728,8 +2728,10 @@
           `).join('')
           : '<div class="text-gray-500">No batches yet</div>';
 
-        document.getElementById(getElementId('sidebarRecentBatches')).innerHTML = html;
-        document.getElementById(getElementId('defaultRecentBatches')).innerHTML = html;
+        const sidebarEl = document.getElementById(getElementId('sidebarRecentBatches'));
+        const defaultEl = document.getElementById(getElementId('defaultRecentBatches'));
+        if (sidebarEl) sidebarEl.innerHTML = html;
+        if (defaultEl) defaultEl.innerHTML = html;
       } catch (err) {
         console.error('Error loading recent batches:', err);
       }
@@ -2751,8 +2753,10 @@
           }).join('')
           : '<div class="text-gray-500">No styles yet</div>';
 
-        document.getElementById(getElementId('sidebarRecentStyles')).innerHTML = html;
-        document.getElementById(getElementId('defaultRecentStyles')).innerHTML = html;
+        const sidebarEl = document.getElementById(getElementId('sidebarRecentStyles'));
+        const defaultEl = document.getElementById(getElementId('defaultRecentStyles'));
+        if (sidebarEl) sidebarEl.innerHTML = html;
+        if (defaultEl) defaultEl.innerHTML = html;
       } catch (err) {
         console.error('Error loading recent styles:', err);
       }
