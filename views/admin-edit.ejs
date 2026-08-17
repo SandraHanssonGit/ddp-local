@@ -2834,13 +2834,14 @@
 
     async function saveBatchEditDesign() {
       try {
+        const batchId = document.getElementById('batchDetailsTitle').textContent.trim();
         const po = document.getElementById('batchEditPO').value;
         const partner = document.getElementById('batchEditPartner').value;
         const prodDate = document.getElementById('batchEditProdDate').value;
         const mfgDetails = document.getElementById('batchEditMfgDetails').value;
 
         // Save batch details
-        const res = await authFetch(`/api/batches/${currentBatchId}`, {
+        const res = await authFetch(`/api/batches/${batchId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -2854,7 +2855,7 @@
         if (res.ok) {
           showToast('✓ Batch saved!');
           toggleBatchEdit();
-          await loadBatchForDesignTab(currentBatchId);
+          await loadBatchForDesignTab(batchId);
         } else {
           showToast('Error saving batch');
         }
