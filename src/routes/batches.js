@@ -133,7 +133,14 @@ router.post('/:batch_id', (req, res) => {
               db.run(
                 'INSERT INTO change_log (batch_id, change_type, change_description) VALUES (?, ?, ?)',
                 [batch_id, 'update', 'Batch updated'],
-                () => res.redirect(`/batches/${batch_id}`)
+                () => {
+                  // Return JSON if this is a JSON request, otherwise redirect
+                  if (req.headers['content-type'] && req.headers['content-type'].includes('application/json')) {
+                    res.json({ success: true, batch_id: batch_id });
+                  } else {
+                    res.redirect(`/batches/${batch_id}`);
+                  }
+                }
               );
             }
           );
