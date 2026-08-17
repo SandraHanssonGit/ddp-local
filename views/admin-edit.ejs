@@ -3703,8 +3703,11 @@
         const hasData = Object.keys(suppliers).length > 0 || Object.keys(certs).length > 0 ||
                        Object.keys(env).length > 0 || Object.keys(social).length > 0;
 
+        // Close edit form regardless of whether there's data
+        toggleEdit('transparency');
+
+        // Only save if there's actual data
         if (!hasData) {
-          showToast('No data to save');
           return;
         }
 
@@ -3722,7 +3725,6 @@
         const result = await res.json();
         if (res.ok) {
           showToast('Saved!');
-          toggleEdit('transparency');
           await loadStyle(styleNumber, variant);
         } else {
           showToast('Error: ' + result.error);
