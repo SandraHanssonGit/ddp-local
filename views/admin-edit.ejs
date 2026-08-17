@@ -3965,7 +3965,7 @@
               if (res.ok) {
                 showToast('✓ Image uploaded!');
                 document.getElementById(getElementId('styleImageUpload')).value = '';
-                await loadStyleImages(styleNumber);
+                await loadStyleImages(styleNumber, variant);
               } else {
                 showToast('Error: ' + (result.error || 'Upload failed'));
               }
