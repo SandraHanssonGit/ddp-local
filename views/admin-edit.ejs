@@ -3165,7 +3165,12 @@
         }
 
         const { batchId, styleNumber, variant } = window.currentEditingProduct;
-        const composition = document.getElementById('productEditComposition')?.value || '';
+        const compositionElement = document.getElementById('productEditComposition');
+        if (!compositionElement) {
+          showToast('Error: Form element not found');
+          return;
+        }
+        const composition = compositionElement.value || '';
 
         // Save to batch_style_data
         const res = await authFetch(`/api/batches/${batchId}/style-composition`, {
