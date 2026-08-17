@@ -3259,33 +3259,6 @@
       if (modal) modal.remove();
     }
 
-    async function saveProductEdit(batchId, styleNumber, variant) {
-      try {
-        const composition = document.getElementById('editProductComposition').value;
-
-        // Save product composition
-        const res = await authFetch(`/api/batches/${batchId}/style-composition`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            style_number: styleNumber,
-            variant: variant || null,
-            composition: composition
-          })
-        });
-
-        if (res.ok) {
-          showToast('✓ Product saved!');
-          closeProductEditModal();
-          await loadBatchForDesignTab(batchId);
-        } else {
-          showToast('Error saving product');
-        }
-      } catch (err) {
-        console.error('Error saving product:', err);
-        showToast('Error saving product');
-      }
-    }
 
     async function loadSerialDesignTab(serialNumber) {
       try {
