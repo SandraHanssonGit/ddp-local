@@ -3887,7 +3887,8 @@
 
     async function saveProductInfo() {
       try {
-        const styleNumber = currentData.style?.style?.style_number || document.getElementById(getElementId('styleNumber'))?.dataset?.styleNumber;
+        // Always read from the input field to avoid stale data
+        const styleNumber = document.getElementById(getElementId('styleNumber'))?.value?.trim();
         const isNewStyle = !currentData.style?.style?.style_number;
         const rawProductType = (document.getElementById(getElementId('productType'))?.value || '').trim().toLowerCase();
         const selectedProductType = rawProductType === 'tops' ? 'Tops' : 'Jeans';
