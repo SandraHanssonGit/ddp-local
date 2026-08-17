@@ -2849,10 +2849,10 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            po: po,
-            partner_name: partner,
+            batch_number: po,
+            supplier: partner,
             production_date: prodDate,
-            manufacturing_details: mfgDetails
+            recycling_info: mfgDetails
           })
         });
 
