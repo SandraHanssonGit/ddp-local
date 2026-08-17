@@ -2845,7 +2845,7 @@
         const mfgDetails = document.getElementById('batchEditMfgDetails').value;
 
         // Save batch details
-        const res = await authFetch(`/api/batches/${batchId}`, {
+        const res = await authFetch(`/batches/${batchId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
