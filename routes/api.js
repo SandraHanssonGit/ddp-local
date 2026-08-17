@@ -582,7 +582,15 @@ router.get('/styles/:style_number/full-data', (req, res) => {
     db.all(`SELECT * FROM transparency_data WHERE style_number = ? AND variant ${normalizedVariant ? '= ?' : 'IS NULL'}`, normalizedVariant ? [style_number, normalizedVariant] : [style_number], (err, transparency) => {
       db.all(`SELECT * FROM nudie_values WHERE style_number = ? AND variant ${normalizedVariant ? '= ?' : 'IS NULL'}`, normalizedVariant ? [style_number, normalizedVariant] : [style_number], (err, nudieValues) => {
         db.all(`SELECT * FROM storytelling WHERE style_number = ? AND variant ${normalizedVariant ? '= ?' : 'IS NULL'}`, normalizedVariant ? [style_number, normalizedVariant] : [style_number], (err, storytelling) => {
-          db.all(`SELECT DISTINCT b.*, (SELECT COUNT(*) FROM serials WHERE batch_id = b.batch_id AND style_number = ? AND variant ${normalizedVariant ? '= ?' : 'IS NULL'}) as serial_count FROM batches b INNER JOIN serials s ON b.batch_id = s.batch_id WHERE s.style_number = ? AND s.variant ${normalizedVariant ? '= ?' : 'IS NULL'}`, normalizedVariant ? [style_number, normalizedVariant, style_number, normalizedVariant] : [style_number, style_number], (err, batches) => {
+          db.all(`
+            SELECT DISTINCT b.*, (SELECT COUNT(*) FROM serials WHERE batch_id = b.batch_id AND style_number = ? AND variant ${normalizedVariant ? '= ?' : 'IS NULL'}) as serial_count
+            FROM batches b
+            WHERE b.batch_id IN (
+              SELECT DISTINCT batch_id FROM serials WHERE style_number = ? AND variant ${normalizedVariant ? '= ?' : 'IS NULL'}
+              UNION
+              SELECT DISTINCT batch_id FROM batch_style_data WHERE style_number = ? AND variant ${normalizedVariant ? '= ?' : 'IS NULL'}
+            )
+          `, normalizedVariant ? [style_number, normalizedVariant, style_number, normalizedVariant, style_number, normalizedVariant] : [style_number, style_number, style_number], (err, batches) => {
             let transData = null;
             if (transparency && transparency.length > 0) {
               const trans = transparency[0];
