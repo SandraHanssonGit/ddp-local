@@ -2653,12 +2653,18 @@
         const name = p.product_name ? `<div class="text-xs text-gray-600 truncate">${p.product_name}</div>` : '';
 
         return `
-          <button onclick="loadStyle('${p.style_number}'${p.variant ? `, '${p.variant}'` : ''})"
-                  class="w-full text-left p-3 bg-gray-50 hover:bg-blue-50 border border-gray-200 rounded transition cursor-pointer">
-            <div class="font-semibold text-gray-900 text-sm">${display}</div>
-            ${name}
-            <div class="text-xs text-gray-500 mt-1">${type}</div>
-          </button>
+          <div class="flex items-center gap-2 bg-gray-50 hover:bg-blue-50 border border-gray-200 rounded transition p-3">
+            <button onclick="loadStyle('${p.style_number}'${p.variant ? `, '${p.variant}'` : ''})"
+                    class="flex-1 text-left cursor-pointer">
+              <div class="font-semibold text-gray-900 text-sm">${display}</div>
+              ${name}
+              <div class="text-xs text-gray-500 mt-1">${type}</div>
+            </button>
+            <button onclick="deleteStyle('${p.style_number}', '${p.variant || 'null'}')"
+                    class="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 whitespace-nowrap">
+              Delete
+            </button>
+          </div>
         `;
       }).join('');
     }
@@ -3063,6 +3069,60 @@
       document.getElementById('productEditContainer').classList.add('hidden');
       document.getElementById('productsInBatchContainer').classList.remove('hidden');
       window.currentEditingProduct = null;
+    }
+
+    async function deleteProduct(batchId, styleNumber, variantStr) {
+      const variant = variantStr === 'null' ? null : variantStr;
+      const display = variant ? `${styleNumber}-${variant}` : styleNumber;
+
+      if (!confirm(`Delete product ${display} from this batch?`)) {
+        return;
+      }
+
+      try {
+        const res = await authFetch(`/api/batches/${batchId}/style-composition`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ style_number: styleNumber, variant: variant })
+        });
+
+        if (res.ok) {
+          showToast('✓ Product deleted!');
+          await loadBatchForDesignTab(batchId);
+        } else {
+          showToast('Error deleting product');
+        }
+      } catch (err) {
+        console.error('Error deleting product:', err);
+        showToast('Error deleting product');
+      }
+    }
+
+    async function deleteStyle(styleNumber, variantStr) {
+      const variant = variantStr === 'null' ? null : variantStr;
+      const display = variant ? `${styleNumber}-${variant}` : styleNumber;
+
+      if (!confirm(`Delete ${display}? This will remove all associated data.`)) {
+        return;
+      }
+
+      try {
+        const endpoint = variant
+          ? `/api/styles/${styleNumber}?variant=${encodeURIComponent(variant)}`
+          : `/api/styles/${styleNumber}`;
+
+        const res = await authFetch(endpoint, { method: 'DELETE' });
+
+        if (res.ok) {
+          showToast('✓ Product deleted!');
+          await loadAllProducts();
+        } else {
+          showToast('Error deleting product');
+        }
+      } catch (err) {
+        console.error('Error deleting product:', err);
+        showToast('Error deleting product');
+      }
     }
 
     async function saveProductEdit() {
