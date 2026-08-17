@@ -2660,6 +2660,10 @@
               ${name}
               <div class="text-xs text-gray-500 mt-1">${type}</div>
             </button>
+            <button onclick="loadStyle('${p.style_number}'${p.variant ? `, '${p.variant}'` : ''})"
+                    class="px-3 py-1 text-sm bg-gray-900 text-white rounded hover:bg-gray-800 whitespace-nowrap">
+              Edit
+            </button>
             <button onclick="deleteStyle('${p.style_number}', '${p.variant || 'null'}')"
                     class="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 whitespace-nowrap">
               Delete
