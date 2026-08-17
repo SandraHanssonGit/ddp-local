@@ -2932,17 +2932,18 @@
           return;
         }
 
-        // Check if style exists
-        const styleRes = await authFetch(`/api/styles/${styleNumber}`);
+        // Check if style exists using full-data endpoint
+        const styleRes = await authFetch(`/api/styles/${styleNumber}/full-data`);
         if (!styleRes.ok) {
           showToast('Style not found');
           return;
         }
 
         const styleData = await styleRes.json();
+        const productType = (styleData.style?.product_type || '').toLowerCase();
 
         // Validate variant for Tops
-        if (styleData.product_type?.toLowerCase() === 'tops' && !variant) {
+        if (productType === 'tops' && !variant) {
           showToast('Variant is required for Tops');
           return;
         }
