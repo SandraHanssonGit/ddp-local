@@ -877,6 +877,21 @@ router.delete('/styles/image/:id', verifyToken, checkRole(['editor', 'admin', 's
   });
 });
 
+// Delete style (soft delete with variant support)
+router.delete('/styles/:style_number', verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
+  const { style_number } = req.params;
+  const { variant } = req.query;
+
+  // Soft delete using deleted_at
+  const variantClause = variant ? 'AND variant = ?' : 'AND variant IS NULL';
+  const params = variant ? [style_number, variant] : [style_number];
+
+  db.run(`UPDATE styles SET deleted_at = CURRENT_TIMESTAMP WHERE style_number = ? ${variantClause}`, params, function(err) {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ success: true });
+  });
+});
+
 // Get batch images
 router.get('/batches/:batch_id/images', (req, res) => {
   const { batch_id } = req.params;
