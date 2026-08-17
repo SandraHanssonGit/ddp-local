@@ -3107,22 +3107,29 @@
       const display = variant ? `${styleNumber}-${variant}` : styleNumber;
 
       try {
+        showToast('Checking if product is in use...');
+
         // Check if product is used in any batch
         const batchRes = await authFetch(`/api/batches`);
         const batches = await batchRes.json();
 
-        const isInBatch = batches.some(b => {
-          // This would require checking batch_style_data, but we'll check serials as proxy
-          return true; // Simplified - in real implementation, check batch_style_data
-        });
-
-        // For now, check by trying to find in any batch's data
+        // Check all batches for this product
         let productInBatch = false;
         for (const batch of batches) {
           const fullRes = await authFetch(`/api/batches/${batch.batch_id}/full-data`);
           const fullData = await fullRes.json();
+
+          // Check batch_style_data
           if (fullData.batch_style_data?.some(bsd =>
             bsd.style_number === styleNumber && (bsd.variant || null) === variant
+          )) {
+            productInBatch = true;
+            break;
+          }
+
+          // Also check serials
+          if (fullData.serials?.some(s =>
+            s.style_number === styleNumber && (s.variant || null) === variant
           )) {
             productInBatch = true;
             break;
@@ -3130,7 +3137,7 @@
         }
 
         if (productInBatch) {
-          showToast('Cannot delete: This product is used in batches');
+          showToast('❌ Cannot delete: This product is used in batches');
           return;
         }
 
@@ -3148,11 +3155,12 @@
           showToast('✓ Product deleted!');
           await loadAllProducts();
         } else {
-          showToast('Error deleting product');
+          const result = await res.json();
+          showToast('Error: ' + (result.error || 'Failed to delete'));
         }
       } catch (err) {
         console.error('Error deleting product:', err);
-        showToast('Error deleting product');
+        showToast('Error deleting product: ' + err.message);
       }
     }
 
