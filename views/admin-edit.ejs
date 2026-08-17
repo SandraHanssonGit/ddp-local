@@ -3692,15 +3692,31 @@
       try {
         const styleNumber = currentData.style.style.style_number;
         const variant = currentData.style.style.variant || null;
+
+        // Parse all fields
+        const suppliers = JSON.parse(document.getElementById(getElementId('transparencySuppliers')).value || '{}');
+        const certs = JSON.parse(document.getElementById(getElementId('transparencyCerts')).value || '{}');
+        const env = JSON.parse(document.getElementById(getElementId('transparencyEnv')).value || '{}');
+        const social = JSON.parse(document.getElementById(getElementId('transparencySocial')).value || '{}');
+
+        // Check if any field has actual data
+        const hasData = Object.keys(suppliers).length > 0 || Object.keys(certs).length > 0 ||
+                       Object.keys(env).length > 0 || Object.keys(social).length > 0;
+
+        if (!hasData) {
+          showToast('No data to save');
+          return;
+        }
+
         const res = await authFetch(`/api/styles/${styleNumber}/transparency`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             variant: variant,
-            suppliers_chain: JSON.parse(document.getElementById(getElementId('transparencySuppliers')).value || '{}'),
-            certifications: JSON.parse(document.getElementById(getElementId('transparencyCerts')).value || '{}'),
-            environmental_data: JSON.parse(document.getElementById(getElementId('transparencyEnv')).value || '{}'),
-            social_data: JSON.parse(document.getElementById(getElementId('transparencySocial')).value || '{}')
+            suppliers_chain: suppliers,
+            certifications: certs,
+            environmental_data: env,
+            social_data: social
           })
         });
         const result = await res.json();
