@@ -613,7 +613,12 @@
 
       <!-- Products in Batch -->
       <div id="productsInBatchContainer" class="bg-white rounded-lg shadow-md p-8">
-        <h3 class="text-2xl font-bold text-gray-900 mb-6">Products</h3>
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-2xl font-bold text-gray-900">Products</h3>
+          <button onclick="addProductToBatch()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+            + Add Product
+          </button>
+        </div>
         <div id="productsInBatchList" class="space-y-4">
           <!-- Products will be filled here -->
         </div>
@@ -2870,6 +2875,107 @@
       } catch (err) {
         console.error('Error saving batch:', err);
         showToast('Error saving batch');
+      }
+    }
+
+    async function addProductToBatch() {
+      try {
+        const batchId = document.getElementById('batchDetailsTitle').textContent.trim();
+
+        // Prompt for style number
+        const styleNumber = prompt('Enter Style Number (e.g., 114519):');
+        if (!styleNumber || !styleNumber.trim()) return;
+
+        const trimmedStyle = styleNumber.trim();
+
+        // Check if style exists
+        const styleRes = await authFetch(`/api/styles/${trimmedStyle}`);
+        if (!styleRes.ok) {
+          showToast('Style not found');
+          return;
+        }
+
+        const styleData = await styleRes.json();
+        let variant = null;
+
+        // For Tops, ask for variant
+        if (styleData.product_type?.toLowerCase() === 'tops') {
+          variant = prompt('Enter Variant (e.g., B20):');
+          if (!variant || !variant.trim()) {
+            showToast('Variant required for Tops');
+            return;
+          }
+          variant = variant.trim().toUpperCase();
+        }
+
+        const productDisplay = variant ? `${trimmedStyle}-${variant}` : trimmedStyle;
+
+        // Create modal for product composition
+        const modalHTML = `
+          <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-8 max-w-2xl w-full">
+              <h2 class="text-2xl font-bold text-gray-900 mb-6">Add Product to Batch: ${productDisplay}</h2>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-2">Product</label>
+                  <input type="text" value="${productDisplay}" disabled class="w-full border border-gray-300 rounded-lg px-4 py-3 bg-gray-100 text-gray-600">
+                </div>
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-2">Material Composition (optional)</label>
+                  <textarea id="newProductComposition" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900" placeholder="e.g., 95% Organic Cotton, 5% Elastane"></textarea>
+                </div>
+                <div class="flex gap-2 pt-4">
+                  <button onclick="saveNewProductToBatch('${batchId}', '${trimmedStyle}', '${variant || 'null'}')" class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+                    Add Product
+                  </button>
+                  <button onclick="closeProductAddModal()" class="flex-1 bg-gray-300 text-gray-900 px-4 py-2 rounded hover:bg-gray-400">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+      } catch (err) {
+        console.error('Error adding product:', err);
+        showToast('Error adding product');
+      }
+    }
+
+    function closeProductAddModal() {
+      const modal = document.querySelector('.fixed.inset-0.bg-black');
+      if (modal) modal.parentElement.removeChild(modal);
+    }
+
+    async function saveNewProductToBatch(batchId, styleNumber, variantStr) {
+      try {
+        const composition = document.getElementById('newProductComposition')?.value || '';
+        const variant = variantStr === 'null' ? null : variantStr;
+
+        // Save to batch_style_data
+        const res = await authFetch(`/api/batches/${batchId}/style-composition`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            style_number: styleNumber,
+            variant: variant,
+            composition: composition
+          })
+        });
+
+        if (res.ok) {
+          showToast('✓ Product added!');
+          closeProductAddModal();
+          await loadBatchForDesignTab(batchId);
+        } else {
+          const result = await res.json();
+          showToast('Error: ' + (result.error || 'Failed to add product'));
+        }
+      } catch (err) {
+        console.error('Error saving product:', err);
+        showToast('Error adding product');
       }
     }
 
