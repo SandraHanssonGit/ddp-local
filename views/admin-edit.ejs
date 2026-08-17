@@ -2849,16 +2849,23 @@
           return;
         }
 
+        // Build payload with only non-empty fields
+        const payload = {
+          batch_number: po,
+          supplier: partner || null,
+          recycling_info: mfgDetails || null
+        };
+
+        // Only add production_date if it has a value
+        if (prodDate && prodDate.trim() !== '') {
+          payload.production_date = prodDate;
+        }
+
         // Save batch details
         const res = await authFetch(`/batches/${batchId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            batch_number: po,
-            supplier: partner,
-            production_date: prodDate,
-            recycling_info: mfgDetails
-          })
+          body: JSON.stringify(payload)
         });
 
         const result = await res.json();
