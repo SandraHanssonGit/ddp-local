@@ -578,9 +578,36 @@
       <div id="batchDetailsCard" class="bg-white rounded-lg shadow-md p-8 mb-8">
         <div class="flex justify-between items-start mb-6">
           <h2 class="text-3xl font-bold text-gray-900">Batch: <span id="batchDetailsTitle"></span></h2>
+          <button onclick="toggleBatchEdit()" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+            Edit
+          </button>
         </div>
-        <div id="batchDetailsInfo" class="grid grid-cols-2 gap-4 text-sm mb-6">
+        <!-- Batch View -->
+        <div id="batchDetailsView" class="grid grid-cols-2 gap-4 text-sm mb-6">
           <!-- Batch info will be filled here -->
+        </div>
+        <!-- Batch Edit Form -->
+        <div id="batchDetailsEdit" class="hidden space-y-4">
+          <div>
+            <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">PO</label>
+            <input type="text" id="batchEditPO" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Partner</label>
+            <input type="text" id="batchEditPartner" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Production Date</label>
+            <input type="date" id="batchEditProdDate" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Manufacturing Details</label>
+            <textarea id="batchEditMfgDetails" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
+          </div>
+          <div class="flex gap-2 pt-4">
+            <button onclick="saveBatchEditDesign()" class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">Save</button>
+            <button onclick="toggleBatchEdit()" class="flex-1 bg-gray-300 text-gray-900 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
+          </div>
         </div>
       </div>
 
@@ -1147,6 +1174,7 @@
 
     // Track the currently active tab
     let currentActiveTab = 'dashboard';
+    let currentBatchId = null;
 
     // Helper function to get the correct element ID based on the active tab
     function getElementId(baseId) {
@@ -2782,62 +2810,37 @@
           if (mfg) mfgDetails = mfg.value;
         }
 
-        // Create and show edit modal
-        const modalHTML = `
-          <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-white rounded-lg p-8 max-w-md w-full">
-              <h2 class="text-2xl font-bold text-gray-900 mb-6">Edit Batch: ${batchId}</h2>
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-bold text-gray-700 mb-2">PO</label>
-                  <input type="text" id="editBatchPO" value="${batch.po || ''}" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
-                </div>
-                <div>
-                  <label class="block text-sm font-bold text-gray-700 mb-2">Partner</label>
-                  <input type="text" id="editBatchPartner" value="${batch.partner_name || ''}" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
-                </div>
-                <div>
-                  <label class="block text-sm font-bold text-gray-700 mb-2">Production Date</label>
-                  <input type="date" id="editBatchProdDate" value="${prodDate}" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
-                </div>
-                <div>
-                  <label class="block text-sm font-bold text-gray-700 mb-2">Manufacturing Details</label>
-                  <textarea id="editBatchMfgDetails" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">${mfgDetails}</textarea>
-                </div>
-                <div class="flex gap-2 pt-4">
-                  <button onclick="saveBatchEditDesign('${batchId}')" class="flex-1 bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">Save</button>
-                  <button onclick="closeBatchEditModal()" class="flex-1 bg-gray-300 text-gray-900 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        `;
+        // Store batch data for save
+        currentBatchId = batchId;
 
-        // Insert modal into DOM
-        const modalContainer = document.createElement('div');
-        modalContainer.id = 'batchEditModal';
-        modalContainer.innerHTML = modalHTML;
-        document.body.appendChild(modalContainer);
+        // Fill form fields
+        document.getElementById('batchEditPO').value = batch.po || '';
+        document.getElementById('batchEditPartner').value = batch.partner_name || '';
+        document.getElementById('batchEditProdDate').value = prodDate;
+        document.getElementById('batchEditMfgDetails').value = mfgDetails;
+
+        // Show edit form
+        toggleBatchEdit();
       } catch (err) {
         console.error('Error loading batch for edit:', err);
         showToast('Error loading batch data');
       }
     }
 
-    function closeBatchEditModal() {
-      const modal = document.getElementById('batchEditModal');
-      if (modal) modal.remove();
+    function toggleBatchEdit() {
+      document.getElementById('batchDetailsView').classList.toggle('hidden');
+      document.getElementById('batchDetailsEdit').classList.toggle('hidden');
     }
 
-    async function saveBatchEditDesign(batchId) {
+    async function saveBatchEditDesign() {
       try {
-        const po = document.getElementById('editBatchPO').value;
-        const partner = document.getElementById('editBatchPartner').value;
-        const prodDate = document.getElementById('editBatchProdDate').value;
-        const mfgDetails = document.getElementById('editBatchMfgDetails').value;
+        const po = document.getElementById('batchEditPO').value;
+        const partner = document.getElementById('batchEditPartner').value;
+        const prodDate = document.getElementById('batchEditProdDate').value;
+        const mfgDetails = document.getElementById('batchEditMfgDetails').value;
 
         // Save batch details
-        const res = await authFetch(`/api/batches/${batchId}`, {
+        const res = await authFetch(`/api/batches/${currentBatchId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -2850,8 +2853,8 @@
 
         if (res.ok) {
           showToast('✓ Batch saved!');
-          closeBatchEditModal();
-          await loadBatchForDesignTab(batchId);
+          toggleBatchEdit();
+          await loadBatchForDesignTab(currentBatchId);
         } else {
           showToast('Error saving batch');
         }
