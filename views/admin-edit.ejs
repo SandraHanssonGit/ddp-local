@@ -1896,7 +1896,7 @@
         if (issues.length > 0) {
           issuesEl.innerHTML = issues.map((i, idx) => `
             <div class="text-gray-700">
-              â€¢ <a href="javascript:void(0)" class="text-blue-600 hover:underline cursor-pointer" data-issue-index="${idx}">${i.text}</a>
+              • <a href="javascript:void(0)" class="text-blue-600 hover:underline cursor-pointer" data-issue-index="${idx}">${i.text}</a>
             </div>
           `).join('');
 
