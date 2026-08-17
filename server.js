@@ -54,6 +54,7 @@ const requireAuth = (req, res, next) => {
 
 // Routes
 app.use('/api', require('./routes/api'));
+app.use('/batches', require('./src/routes/batches'));
 app.use('/p', require('./routes/public'));
 
 // Login page
