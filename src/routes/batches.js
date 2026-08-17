@@ -87,13 +87,13 @@ router.post('/', (req, res) => {
   });
 });
 
-// POST update batch
-router.post('/:batch_id', (req, res) => {
-  const batch_id = req.params.batch_id;
-  const { batch_number, production_date, quantity, material_composition, supplier, recycling_info, status } = req.body;
+// POST update batch (by batch_number)
+router.post('/:batch_number', (req, res) => {
+  const batch_number_param = req.params.batch_number;
+  const { production_date, quantity, material_composition, supplier, recycling_info, status } = req.body;
   const isJsonRequest = req.headers['content-type'] && req.headers['content-type'].includes('application/json');
 
-  if (!batch_number) {
+  if (!batch_number_param) {
     if (isJsonRequest) {
       return res.status(400).json({ error: 'Batch number is required' });
     }
@@ -105,8 +105,8 @@ router.post('/:batch_id', (req, res) => {
     `SELECT b.*, s.style_number, s.style_name, v.variant_code, v.variant_name FROM batches b
      JOIN styles s ON b.style_id = s.style_id
      LEFT JOIN variants v ON b.variant_id = v.variant_id
-     WHERE b.batch_id = ?`,
-    [batch_id],
+     WHERE b.batch_number = ?`,
+    [batch_number_param],
     (err, batch) => {
       if (err) {
         if (isJsonRequest) return res.status(500).json({ error: 'Database error' });
@@ -117,29 +117,18 @@ router.post('/:batch_id', (req, res) => {
         return res.status(404).send('Batch not found');
       }
 
-      // Check if batch number is unique (excluding current batch)
-      db.get(
-        'SELECT batch_id FROM batches WHERE batch_number = ? AND batch_id != ?',
-        [batch_number, batch_id],
-        (err, existing) => {
-          if (err) {
-            if (isJsonRequest) return res.status(500).json({ error: 'Database error' });
-            return res.status(500).send('Database error');
-          }
-          if (existing) {
-            if (isJsonRequest) return res.status(400).json({ error: 'Batch number already exists' });
-            return res.render('batch-edit', { batch, error: 'Batch number already exists' });
-          }
+          // Get batch_id for logging and updates
+          const batch_id = batch.batch_id;
 
           // Generate passport URL
-          let passport_url = `/p/${batch.style_number}-${batch_number}`;
+          let passport_url = `/p/${batch.style_number}-${batch_number_param}`;
           if (batch.variant_code) {
-            passport_url = `/p/${batch.style_number}-${batch.variant_code}-${batch_number}`;
+            passport_url = `/p/${batch.style_number}-${batch.variant_code}-${batch_number_param}`;
           }
 
           db.run(
-            `UPDATE batches SET batch_number = ?, production_date = ?, quantity = ?, material_composition = ?, supplier = ?, recycling_info = ?, passport_url = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE batch_id = ?`,
-            [batch_number, production_date || null, quantity || null, material_composition || null, supplier || null, recycling_info || null, passport_url, status || null, batch_id],
+            `UPDATE batches SET production_date = ?, quantity = ?, material_composition = ?, supplier = ?, recycling_info = ?, passport_url = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE batch_number = ?`,
+            [production_date || null, quantity || null, material_composition || null, supplier || null, recycling_info || null, passport_url, status || null, batch_number_param],
             (err) => {
               if (err) {
                 console.error('Batch update error:', err);
@@ -154,7 +143,7 @@ router.post('/:batch_id', (req, res) => {
                 () => {
                   // Return JSON if this is a JSON request, otherwise redirect
                   if (req.headers['content-type'] && req.headers['content-type'].includes('application/json')) {
-                    res.json({ success: true, batch_id: batch_id });
+                    res.json({ success: true, batch_number: batch_number_param });
                   } else {
                     res.redirect(`/batches/${batch_id}`);
                   }
