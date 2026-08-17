@@ -91,8 +91,12 @@ router.post('/', (req, res) => {
 router.post('/:batch_id', (req, res) => {
   const batch_id = req.params.batch_id;
   const { batch_number, production_date, quantity, material_composition, supplier, recycling_info, status } = req.body;
+  const isJsonRequest = req.headers['content-type'] && req.headers['content-type'].includes('application/json');
 
   if (!batch_number) {
+    if (isJsonRequest) {
+      return res.status(400).json({ error: 'Batch number is required' });
+    }
     return res.status(400).send('Batch number is required');
   }
 
@@ -104,16 +108,26 @@ router.post('/:batch_id', (req, res) => {
      WHERE b.batch_id = ?`,
     [batch_id],
     (err, batch) => {
-      if (err) return res.status(500).send('Database error');
-      if (!batch) return res.status(404).send('Batch not found');
+      if (err) {
+        if (isJsonRequest) return res.status(500).json({ error: 'Database error' });
+        return res.status(500).send('Database error');
+      }
+      if (!batch) {
+        if (isJsonRequest) return res.status(404).json({ error: 'Batch not found' });
+        return res.status(404).send('Batch not found');
+      }
 
       // Check if batch number is unique (excluding current batch)
       db.get(
         'SELECT batch_id FROM batches WHERE batch_number = ? AND batch_id != ?',
         [batch_number, batch_id],
         (err, existing) => {
-          if (err) return res.status(500).send('Database error');
+          if (err) {
+            if (isJsonRequest) return res.status(500).json({ error: 'Database error' });
+            return res.status(500).send('Database error');
+          }
           if (existing) {
+            if (isJsonRequest) return res.status(400).json({ error: 'Batch number already exists' });
             return res.render('batch-edit', { batch, error: 'Batch number already exists' });
           }
 
@@ -127,7 +141,10 @@ router.post('/:batch_id', (req, res) => {
             `UPDATE batches SET batch_number = ?, production_date = ?, quantity = ?, material_composition = ?, supplier = ?, recycling_info = ?, passport_url = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE batch_id = ?`,
             [batch_number, production_date, quantity, material_composition || null, supplier || null, recycling_info, passport_url, status, batch_id],
             (err) => {
-              if (err) return res.status(500).send('Error updating batch');
+              if (err) {
+                if (isJsonRequest) return res.status(500).json({ error: 'Error updating batch: ' + err.message });
+                return res.status(500).send('Error updating batch');
+              }
 
               // Log change
               db.run(

@@ -2844,6 +2844,11 @@
         const prodDate = document.getElementById('batchEditProdDate').value;
         const mfgDetails = document.getElementById('batchEditMfgDetails').value;
 
+        if (!po || po.trim() === '') {
+          showToast('PO is required');
+          return;
+        }
+
         // Save batch details
         const res = await authFetch(`/batches/${batchId}`, {
           method: 'POST',
@@ -2856,12 +2861,13 @@
           })
         });
 
+        const result = await res.json();
         if (res.ok) {
           showToast('✓ Batch saved!');
           toggleBatchEdit();
           await loadBatchForDesignTab(batchId);
         } else {
-          showToast('Error saving batch');
+          showToast('Error: ' + (result.error || 'Failed to save batch'));
         }
       } catch (err) {
         console.error('Error saving batch:', err);
