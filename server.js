@@ -52,26 +52,26 @@ const requireAuth = (req, res, next) => {
   }
 };
 
-// Routes
+// Routes (order matters - specific routes first)
 app.use('/api', require('./routes/api'));
 app.use('/batches', require('./src/routes/batches'));
-app.use('/p', require('./routes/public'));  // Legacy: /p/:style/:batch/:serial
-app.use(require('./routes/public'));        // GS1 at root: /01/:gtin/21/:serial
 
-// Login page
+// Auth routes (before generic public routes)
 app.get('/login', (req, res) => {
   res.render('login');
 });
 
-// DPP Hub (admin) - requires authentication
 app.get('/admin-edit', requireAuth, (req, res) => {
   res.render('admin-edit');
 });
 
-// Home redirect
 app.get('/', (req, res) => {
   res.redirect('/login');
 });
+
+// Public passport routes (generic, matches everything after)
+app.use('/p', require('./routes/public'));  // Legacy: /p/:style/:batch/:serial
+app.use(require('./routes/public'));        // GS1 at root: /01/:gtin/21/:serial
 
 // Start server
 app.listen(PORT, () => {

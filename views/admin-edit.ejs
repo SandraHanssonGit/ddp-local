@@ -316,6 +316,11 @@
                 <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Size, Material & Composition</label>
                 <textarea id="productMaterial-product" rows="2" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
               </div>
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">GTIN-14 (GS1 Product Identifier)</label>
+                <input type="text" id="productGTIN-product" placeholder="e.g., 05707141145391" class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono focus:outline-none focus:border-gray-900">
+                <p class="text-xs text-gray-500 mt-1">14-digit GS1 identifier for this product</p>
+              </div>
               <button onclick="saveProductInfo()" class="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 font-semibold">
                 Save
               </button>
@@ -740,6 +745,11 @@
               <div>
                 <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Size, Material & Composition</label>
                 <textarea id="productMaterial" rows="2" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900"></textarea>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">GTIN-14 (GS1 Product Identifier)</label>
+                <input type="text" id="productGTIN" placeholder="e.g., 05707141145391" class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono focus:outline-none focus:border-gray-900">
+                <p class="text-xs text-gray-500 mt-1">14-digit GS1 identifier for this product</p>
               </div>
               <button onclick="saveProductInfo()" class="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 font-semibold">
                 Save
@@ -2614,6 +2624,7 @@
         <div><strong>Style #:</strong> ${style.style_number}</div>
         <div><strong>Type:</strong> ${style.product_type || 'jeans'} ${variantBadge}</div>
         <div><strong>Name:</strong> ${style.product_name || '-'}</div>
+        ${style.gtin_14 ? `<div><strong>GTIN-14:</strong> <span class="font-mono">${style.gtin_14}</span></div>` : ''}
         <div><strong>Description:</strong> ${style.description || '-'}</div>
         <div><strong>Care:</strong> ${style.care_instructions || '-'}</div>
         <div><strong>Delivery & Returns:</strong> ${style.delivery_returns || '-'}</div>
@@ -2635,6 +2646,9 @@
       document.getElementById(getElementId('productCare')).value = style.care_instructions || '';
       document.getElementById(getElementId('productDelivery')).value = style.delivery_returns || '';
       document.getElementById(getElementId('productMaterial')).value = style.size_material_composition || '';
+      if (document.getElementById(getElementId('productGTIN'))) {
+        document.getElementById(getElementId('productGTIN')).value = style.gtin_14 || '';
+      }
       if (document.getElementById(getElementId('productVariant'))) {
         const variantVal = (style.variant && style.variant !== 'null') ? style.variant : '';
         document.getElementById(getElementId('productVariant')).value = variantVal;
@@ -4036,6 +4050,7 @@
       const serial = data.serial;
       document.getElementById(getElementId('serialInfo')).innerHTML = `
         <div><strong>Serial:</strong> ${serial.serial_number}</div>
+        <div><strong>GTIN-14:</strong> <span class="font-mono">${serial.gtin_14 || '—'}</span></div>
         <div><strong>SGTIN:</strong> ${serial.sgtin_numeric || '-'}</div>
         <div><strong>RFID:</strong> ${serial.rfid || '-'}</div>
         <div class="pt-2 border-t border-gray-300">
@@ -4089,6 +4104,7 @@
       }
 
       document.getElementById(getElementId('serialMetadataView')).innerHTML = `
+        <div><strong>GTIN-14:</strong> <span class="font-mono">${serial.gtin_14 || '—'}</span></div>
         <div><strong>Public URL:</strong> <span class="font-mono text-xs break-all">${publicUrl}</span></div>
         <div><strong>Size:</strong> ${metadata.size || '-'}</div>
         <div><strong>Condition:</strong> ${conditionDisplay}</div>
@@ -4254,9 +4270,12 @@
 
     async function saveProductInfo() {
       try {
-        // Read from dataset or value attribute
-        const styleNumberEl = document.getElementById(getElementId('styleNumber'));
-        const styleNumber = (styleNumberEl?.dataset?.styleNumber || styleNumberEl?.value || '').trim();
+        // Get style number from currentData or DOM
+        let styleNumber = currentData.style?.style?.style_number || '';
+        if (!styleNumber) {
+          const styleNumberEl = document.getElementById(getElementId('styleNumber'));
+          styleNumber = (styleNumberEl?.dataset?.styleNumber || styleNumberEl?.value || '').trim();
+        }
         const isNewStyle = !currentData.style?.style?.style_number;
         const rawProductType = (document.getElementById(getElementId('productType'))?.value || '').trim().toLowerCase();
         const selectedProductType = rawProductType === 'tops' ? 'Tops' : 'Jeans';
@@ -4319,7 +4338,8 @@
           description: document.getElementById(getElementId('productDescription')).value,
           care_instructions: document.getElementById(getElementId('productCare')).value,
           delivery_returns: document.getElementById(getElementId('productDelivery')).value,
-          size_material_composition: document.getElementById(getElementId('productMaterial')).value
+          size_material_composition: document.getElementById(getElementId('productMaterial')).value,
+          gtin_14: (document.getElementById(getElementId('productGTIN'))?.value || '').trim() || null
         };
 
         const res = await authFetch(`/api/styles/${styleNumber}/product-info`, {

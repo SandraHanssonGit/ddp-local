@@ -9,18 +9,15 @@
 <body class="bg-white">
   <!-- Header -->
   <div class="border-b border-gray-200">
-    <div class="max-w-7xl mx-auto py-6 px-4">
-      <div class="flex items-center gap-3">
-        <h1 class="text-2xl font-bold text-gray-900">Product Passport</h1>
-        <span class="text-sm text-gray-500">|</span>
-        <p class="text-gray-600" id="styleTitle"><%= serial.style_number %></p>
-      </div>
+    <div class="max-w-5xl mx-auto py-6 px-4">
+      <h1 class="text-sm font-bold text-gray-900 uppercase tracking-wide">Product Passport</h1>
+      <p class="text-xs text-gray-600 mt-1" id="styleTitle"><%= serial.style_number %></p>
     </div>
   </div>
 
-  <div class="max-w-7xl mx-auto py-12 px-4">
+  <div class="max-w-5xl mx-auto py-12 px-4">
     <!-- Two Column Layout: Image + Info -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-16">
 
       <!-- Left: Product Image & Gallery -->
       <div class="sticky top-8">
@@ -47,36 +44,46 @@
 
         <!-- Serial Info -->
         <div>
-          <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Serial Information</h2>
-          <div class="bg-gray-50 rounded-lg p-6">
-            <div class="space-y-4">
-              <div>
-                <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Serial Number</p>
-                <p class="text-xl font-mono font-bold text-gray-900"><%= serial.serial_number %></p>
-              </div>
-              <div>
-                <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Style</p>
-                <p class="text-lg text-gray-900"><%= serial.style_number %></p>
-              </div>
-              <div>
-                <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Created</p>
-                <p class="text-gray-700"><%= new Date(serial.created_at).toLocaleDateString('sv-SE') %></p>
-              </div>
+          <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4">Serial Information</h2>
+          <div class="space-y-4">
+            <div class="border-b border-gray-200 pb-3">
+              <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Serial Number</p>
+              <p class="text-lg font-mono font-bold text-gray-900"><%= serial.serial_number %></p>
+            </div>
+            <div class="border-b border-gray-200 pb-3">
+              <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Style</p>
+              <p class="text-gray-900"><%= serial.style_number %></p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Created</p>
+              <p class="text-gray-700"><%= new Date(serial.created_at).toLocaleDateString('sv-SE') %></p>
             </div>
           </div>
         </div>
 
         <!-- Product Name & Description -->
         <div id="productInfo">
-          <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Product</h2>
-          <div id="productName" class="text-2xl font-bold text-gray-900 mb-2"></div>
-          <div id="productDesc" class="text-gray-600 text-sm"></div>
+          <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4">Product</h2>
+          <div class="space-y-3">
+            <div>
+              <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Name</p>
+              <div id="productName" class="text-lg font-bold text-gray-900"></div>
+            </div>
+            <div id="gtin14Section" class="hidden">
+              <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">GTIN-14</p>
+              <p id="productGTIN14" class="text-gray-900 font-mono"></p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Description</p>
+              <div id="productDesc" class="text-gray-600 text-sm leading-relaxed"></div>
+            </div>
+          </div>
         </div>
 
         <!-- Batch Data -->
         <% if (batchData.length > 0) { %>
           <div>
-            <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Batch Information</h2>
+            <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4">Batch Information</h2>
             <div class="space-y-3">
               <% batchData.forEach(item => { %>
                 <div class="border-b border-gray-200 pb-3 last:border-0">
@@ -91,7 +98,7 @@
         <!-- Unit Data -->
         <% if (serialData.length > 0) { %>
           <div>
-            <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Unit Information</h2>
+            <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4">Unit Information</h2>
             <div class="space-y-3">
               <% serialData.forEach(item => { %>
                 <div class="border-b border-gray-200 pb-3 last:border-0">
@@ -107,66 +114,57 @@
 
     <!-- Full Width Sections -->
 
-    <!-- ✨ Material Composition (with Pass Versioning) -->
-    <div id="compositionSection" class="border-t border-gray-200 pt-16 mb-16 hidden">
-      <div class="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-8 border border-blue-200">
-        <div class="flex items-start justify-between mb-6">
-          <div>
-            <h2 class="text-2xl font-bold text-gray-900">Material Composition</h2>
-            <p id="compositionVersion" class="text-xs text-gray-600 mt-2">Pass version: <span id="passVersion" class="font-mono font-bold">-</span></p>
-          </div>
-          <span id="auditBadge" class="text-sm font-semibold px-3 py-1 bg-green-100 text-green-800 rounded-full hidden">
-            ✓ Audited
-          </span>
-        </div>
+    <!-- ✨ Material Composition (Minimalist, Production-style) -->
+    <div id="compositionSection" class="border-t border-gray-200 pt-12 mb-16 hidden">
+      <h2 class="text-lg font-bold text-gray-900 uppercase tracking-wide mb-6">Material Composition</h2>
 
-        <p id="compositionContent" class="text-gray-900 text-lg leading-relaxed mb-4"></p>
+      <div class="space-y-6">
+        <p id="compositionContent" class="text-gray-700 leading-relaxed"></p>
 
-        <div id="passVersionNote" class="hidden mt-4 p-3 bg-amber-50 border border-amber-200 rounded text-sm text-amber-900">
-          <strong>Data Correction:</strong> <span id="changeNoteContent"></span>
+        <!-- Pass Versioning Info (subtle) -->
+        <div id="passVersionInfo" class="hidden text-xs text-gray-500 space-y-1">
+          <p>Pass version: <span id="passVersion" class="font-mono font-semibold text-gray-900">-</span></p>
+          <p id="passVersionTime" class="hidden">Issued: <span id="passIssuedAt"></span></p>
+          <p id="changeNoteRow" class="hidden">Correction: <span id="changeNoteContent" class="text-gray-700"></span></p>
         </div>
       </div>
     </div>
 
     <!-- Care Instructions -->
-    <div id="careSection" class="border-t border-gray-200 pt-16 mb-16 hidden">
-      <h2 class="text-2xl font-bold text-gray-900 mb-8">Care Instructions</h2>
+    <div id="careSection" class="border-t border-gray-200 pt-12 mb-16 hidden">
+      <h2 class="text-lg font-bold text-gray-900 uppercase tracking-wide mb-6">Care Instructions</h2>
       <div id="careContent"></div>
     </div>
 
     <!-- Transparency -->
-    <div id="transparencySection" class="border-t border-gray-200 pt-16 mb-16 hidden">
-      <h2 class="text-2xl font-bold text-gray-900 mb-8">Transparency</h2>
-      <div id="transparencyContent" class="grid grid-cols-1 md:grid-cols-2 gap-8"></div>
+    <div id="transparencySection" class="border-t border-gray-200 pt-12 mb-16 hidden">
+      <h2 class="text-lg font-bold text-gray-900 uppercase tracking-wide mb-6">Transparency</h2>
+      <div id="transparencyContent" class="space-y-8"></div>
     </div>
 
     <!-- Nudie Values -->
-    <div id="nudieSection" class="border-t border-gray-200 pt-16 mb-16 hidden">
-      <h2 class="text-2xl font-bold text-gray-900 mb-8">Nudie Values</h2>
+    <div id="nudieSection" class="border-t border-gray-200 pt-12 mb-16 hidden">
+      <h2 class="text-lg font-bold text-gray-900 uppercase tracking-wide mb-6">Nudie Values</h2>
       <div id="nudieContent" class="space-y-6"></div>
     </div>
 
     <!-- Storytelling -->
-    <div id="storySection" class="border-t border-gray-200 pt-16 mb-16 hidden">
-      <h2 class="text-2xl font-bold text-gray-900 mb-8">Our Story</h2>
+    <div id="storySection" class="border-t border-gray-200 pt-12 mb-16 hidden">
+      <h2 class="text-lg font-bold text-gray-900 uppercase tracking-wide mb-6">Our Story</h2>
       <div id="storyContent"></div>
     </div>
 
     <!-- Events Timeline -->
     <% if (events.length > 0) { %>
-      <div class="border-t border-gray-200 pt-16 mb-16">
-        <h2 class="text-2xl font-bold text-gray-900 mb-8">Lifecycle Events</h2>
-        <div class="space-y-4">
+      <div class="border-t border-gray-200 pt-12 mb-16">
+        <h2 class="text-lg font-bold text-gray-900 uppercase tracking-wide mb-6">Lifecycle Events</h2>
+        <div class="space-y-6">
           <% events.forEach(event => { %>
-            <div class="border-l-4 border-blue-600 bg-blue-50 p-6 rounded-r">
-              <div class="flex items-start justify-between">
-                <div>
-                  <p class="font-bold text-gray-900 uppercase text-sm"><%= event.event_type %></p>
-                  <p class="text-sm text-gray-600 mt-1"><%= new Date(event.created_at).toLocaleDateString('sv-SE') %></p>
-                </div>
-              </div>
+            <div class="border-b border-gray-200 pb-6 last:border-0">
+              <p class="text-xs text-gray-500 uppercase tracking-wide mb-1"><%= event.event_type %></p>
+              <p class="text-sm text-gray-600"><%= new Date(event.created_at).toLocaleDateString('sv-SE') %></p>
               <% if (Object.keys(event.event_data).length > 0) { %>
-                <div class="mt-3 text-sm space-y-1">
+                <div class="mt-2 text-sm space-y-1">
                   <% Object.entries(event.event_data).forEach(([key, value]) => { %>
                     <p class="text-gray-700"><strong><%= key %>:</strong> <%= JSON.stringify(value) %></p>
                   <% }) %>
@@ -180,8 +178,8 @@
 
     <!-- Footer -->
     <div class="border-t border-gray-200 pt-12">
-      <p class="text-sm text-gray-600 text-center">
-        This is a digital product passport managed by Nudie Jeans
+      <p class="text-xs text-gray-500 text-center">
+        Digital Product Passport managed by Nudie Jeans
       </p>
     </div>
   </div>
@@ -230,6 +228,11 @@
         if (data.style) {
           document.getElementById('productName').textContent = data.style.product_name || '';
           document.getElementById('productDesc').textContent = data.style.description || '';
+
+          if (data.style.gtin_14) {
+            document.getElementById('gtin14Section').classList.remove('hidden');
+            document.getElementById('productGTIN14').textContent = data.style.gtin_14;
+          }
         }
 
         // Load image - prefer batch image first, then style
@@ -273,6 +276,7 @@
         // ✨ Material Composition with Pass Versioning
         const composition = '<%= pass?.material_composition || '' %>';
         const passVersion = '<%= pass?.version || 0 %>';
+        const passIssuedAt = '<%= pass?.issued_at || '' %>';
         const changeType = '<%= pass?.change_type || '' %>';
         const changeNote = '<%= pass?.change_note || '' %>';
 
@@ -280,11 +284,16 @@
           document.getElementById('compositionSection').classList.remove('hidden');
           document.getElementById('compositionContent').textContent = composition;
           document.getElementById('passVersion').textContent = passVersion || '1';
+          document.getElementById('passVersionInfo').classList.remove('hidden');
 
-          if (passVersion > 1 && changeType === 'correction') {
-            document.getElementById('passVersionNote').classList.remove('hidden');
-            document.getElementById('changeNoteContent').textContent = changeNote || 'Data was corrected for accuracy';
-            document.getElementById('auditBadge').classList.remove('hidden');
+          if (passIssuedAt) {
+            document.getElementById('passVersionTime').classList.remove('hidden');
+            document.getElementById('passIssuedAt').textContent = new Date(passIssuedAt).toLocaleDateString('sv-SE');
+          }
+
+          if (changeNote) {
+            document.getElementById('changeNoteRow').classList.remove('hidden');
+            document.getElementById('changeNoteContent').textContent = changeNote;
           }
         }
 
@@ -303,25 +312,20 @@
           let transHTML = '';
 
           if (trans.environmental_data && trans.environmental_data.PEF) {
-            let waterHTML = '';
-            if (trans.environmental_data.water_usage) {
-              waterHTML = `
-                <div>
-                  <p class="text-sm text-gray-500 uppercase tracking-wide mb-1">Water Usage</p>
-                  <p class="text-gray-700">${trans.environmental_data.water_usage}</p>
-                </div>
-              `;
-            }
-
             transHTML += `
-              <div class="bg-gray-50 rounded-lg p-6">
-                <h3 class="font-bold text-gray-900 mb-4">Environmental Impact</h3>
+              <div>
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Environmental Impact</h3>
                 <div class="space-y-3">
-                  <div>
-                    <p class="text-sm text-gray-500 uppercase tracking-wide mb-1">CO2 Emission</p>
+                  <div class="border-b border-gray-200 pb-3">
+                    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">CO2 Emission</p>
                     <p class="text-gray-700">${trans.environmental_data.PEF}</p>
                   </div>
-                  ${waterHTML}
+                  ${trans.environmental_data.water_usage ? `
+                    <div>
+                      <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Water Usage</p>
+                      <p class="text-gray-700">${trans.environmental_data.water_usage}</p>
+                    </div>
+                  ` : ''}
                 </div>
               </div>
             `;
@@ -329,8 +333,8 @@
 
           if (trans.certifications && Object.keys(trans.certifications).length > 0) {
             transHTML += `
-              <div class="bg-gray-50 rounded-lg p-6">
-                <h3 class="font-bold text-gray-900 mb-4">Certifications</h3>
+              <div>
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Certifications</h3>
                 <div class="space-y-2">
                   ${Object.entries(trans.certifications).map(([cert, val]) =>
                     `<p class="text-gray-700">✓ ${cert}</p>`
@@ -347,8 +351,8 @@
         if (data.nudie_values && data.nudie_values.repair_info) {
           document.getElementById('nudieSection').classList.remove('hidden');
           document.getElementById('nudieContent').innerHTML = `
-            <div class="bg-blue-50 rounded-lg p-6 border border-blue-200">
-              <h3 class="font-bold text-gray-900 mb-2">🔧 Repair</h3>
+            <div>
+              <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Repair</h3>
               <p class="text-gray-700 text-sm">${data.nudie_values.repair_info}</p>
             </div>
           `;
