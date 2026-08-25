@@ -40,6 +40,7 @@ db.serialize(() => {
       delivery_returns TEXT,
       size_material_composition TEXT,
       images TEXT,
+      gtin_14 TEXT UNIQUE,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(style_number, variant)
@@ -194,6 +195,11 @@ db.serialize(() => {
       composition TEXT,
       version INTEGER DEFAULT 1,
       updated_by TEXT,
+      pass_version INTEGER DEFAULT 1,
+      pass_issued_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      pass_change_type TEXT,
+      pass_change_note TEXT,
+      pass_supersedes INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(batch_id, style_number, variant),
@@ -219,7 +225,10 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       table_name TEXT NOT NULL,
       record_id TEXT NOT NULL,
+      pass_version INTEGER,
       action TEXT NOT NULL,
+      change_type TEXT,
+      change_note TEXT,
       old_value TEXT,
       new_value TEXT,
       changed_by TEXT,
@@ -233,6 +242,7 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       page_type TEXT NOT NULL,
       page_id TEXT NOT NULL,
+      pass_version_viewed INTEGER,
       username TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -259,6 +269,30 @@ db.serialize(() => {
   db.run(`ALTER TABLE serials ADD COLUMN gtin_14 TEXT`, () => {});
   db.run(`ALTER TABLE batch_style_data ADD COLUMN version INTEGER DEFAULT 1`, () => {});
   db.run(`ALTER TABLE batch_style_data ADD COLUMN updated_by TEXT`, () => {});
+});
+
+// ✨ PHASE 1: Pass Versioning Schema (ESPR Compliance)
+db.serialize(() => {
+  // Create archive table for historical pass versions
+  db.run(`
+    CREATE TABLE IF NOT EXISTS batch_style_data_archive (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      pass_version INTEGER NOT NULL,
+      batch_id TEXT NOT NULL,
+      style_number TEXT NOT NULL,
+      variant TEXT,
+      composition TEXT,
+      pass_issued_at DATETIME,
+      pass_change_type TEXT,
+      pass_change_note TEXT,
+      pass_supersedes INTEGER,
+      archived_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(batch_id, style_number, variant, pass_version),
+      FOREIGN KEY(batch_id) REFERENCES batches(batch_id)
+    )
+  `, (err) => {
+    if (!err) console.log('✓ Pass versioning tables initialized');
+  });
 });
 
 // Add database indexes for performance
@@ -288,6 +322,12 @@ db.serialize(() => {
   db.run(`CREATE INDEX IF NOT EXISTS idx_page_views_page_type ON page_views(page_type)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_page_views_page_id ON page_views(page_id)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_page_views_created_at ON page_views(created_at)`);
+
+  // ✨ Pass versioning indexes
+  db.run(`CREATE INDEX IF NOT EXISTS idx_batch_style_data_pass_version ON batch_style_data(batch_id, style_number, pass_version)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_batch_style_data_archive_version ON batch_style_data_archive(batch_id, style_number, pass_version)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_audit_log_pass_version ON audit_log(table_name, record_id, pass_version)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_serials_gtin_serial ON serials(gtin_14, serial_number)`);
 
   // Clean up orphaned serials (serials pointing to non-existent batches)
   db.run(`
