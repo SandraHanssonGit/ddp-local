@@ -1544,35 +1544,129 @@
       });
     }
 
+    // ✨ PHASE 3: Updated save with pass versioning
     async function saveStyleCompositionInline(batchId, styleNumber, variant, styleKeyId) {
       try {
-        console.log('saveStyleCompositionInline called:', {batchId, styleNumber, variant, styleKeyId});
         const composition = document.getElementById(`composition-${styleKeyId}`).value;
-        console.log('Composition value:', composition);
+        if (!composition.trim()) {
+          showToast('❌ Composition cannot be empty');
+          return;
+        }
 
-        const res = await authFetch(`/api/batches/${batchId}/style-composition`, {
+        // Store context for modal callback
+        window.compositionSaveContext = {
+          batchId, styleNumber, variant, styleKeyId, composition
+        };
+
+        // Open change details modal
+        showCompositionChangeModal();
+      } catch (err) {
+        console.error('Error:', err);
+        showToast('Error: ' + err.message);
+      }
+    }
+
+    function showCompositionChangeModal() {
+      const modal = document.getElementById('compositionChangeModal');
+      if (!modal) {
+        // Create modal if it doesn't exist
+        createCompositionChangeModal();
+      } else {
+        modal.classList.remove('hidden');
+      }
+    }
+
+    function createCompositionChangeModal() {
+      const modal = document.createElement('div');
+      modal.id = 'compositionChangeModal';
+      modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden';
+      modal.innerHTML = `
+        <div class="bg-white rounded-lg max-w-md w-full mx-4 p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">Data Change Details</h3>
+
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-semibold text-gray-900 mb-2">Type of change</label>
+              <select id="changeType" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+                <option value="update">Update (normal edit)</option>
+                <option value="correction">Correction (fix error)</option>
+                <option value="clarification">Clarification</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-900 mb-2">
+                Why are you changing this?
+                <span class="text-xs text-gray-500">(for compliance)</span>
+              </label>
+              <textarea
+                id="changeNote"
+                rows="3"
+                placeholder="e.g., Lab test confirmed higher organic content"
+                class="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="flex gap-2 mt-6">
+            <button
+              onclick="submitCompositionChange()"
+              class="flex-1 bg-blue-600 text-white px-4 py-2 rounded font-semibold hover:bg-blue-700"
+            >
+              Save
+            </button>
+            <button
+              onclick="document.getElementById('compositionChangeModal').classList.add('hidden')"
+              class="flex-1 bg-gray-300 text-gray-900 px-4 py-2 rounded font-semibold hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    async function submitCompositionChange() {
+      try {
+        const ctx = window.compositionSaveContext;
+        const changeType = document.getElementById('changeType').value;
+        const changeNote = document.getElementById('changeNote').value;
+
+        if (!changeType) {
+          showToast('❌ Please select a change type');
+          return;
+        }
+
+        const res = await authFetch(`/api/batches/${ctx.batchId}/style-composition/correct`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            style_number: styleNumber,
-            variant: variant || null,
-            composition: composition
+            style_number: ctx.styleNumber,
+            variant: ctx.variant || null,
+            composition: ctx.composition.trim(),
+            change_type: changeType,
+            change_note: changeNote.trim()
           })
         });
 
-        console.log('Response status:', res.status, 'ok:', res.ok);
         const resData = await res.json();
-        console.log('Response data:', resData);
 
         if (res.ok) {
-          showToast('✓ Composition saved!');
-          await loadBatch(batchId);
-          // Form is already filled with fresh data from loadBatch
+          const msg = `✓ Saved - Pass version ${resData.pass_version} (${resData.pass_version > 1 ? 'updated' : 'created'})`;
+          showToast(msg);
+
+          // Close modal
+          document.getElementById('compositionChangeModal').classList.add('hidden');
+          window.compositionSaveContext = null;
+
+          // Reload batch to show updated version
+          setTimeout(() => loadBatch(ctx.batchId), 1000);
         } else {
-          showToast('Error saving composition: ' + (resData.error || 'Unknown error'));
+          showToast('❌ ' + (resData.error || 'Error saving'));
         }
       } catch (err) {
-        console.error('Error in saveStyleCompositionInline:', err);
+        console.error('Error:', err);
         showToast('Error: ' + err.message);
       }
     }

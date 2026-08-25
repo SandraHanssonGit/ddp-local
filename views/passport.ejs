@@ -107,6 +107,27 @@
 
     <!-- Full Width Sections -->
 
+    <!-- ✨ Material Composition (with Pass Versioning) -->
+    <div id="compositionSection" class="border-t border-gray-200 pt-16 mb-16 hidden">
+      <div class="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-8 border border-blue-200">
+        <div class="flex items-start justify-between mb-6">
+          <div>
+            <h2 class="text-2xl font-bold text-gray-900">Material Composition</h2>
+            <p id="compositionVersion" class="text-xs text-gray-600 mt-2">Pass version: <span id="passVersion" class="font-mono font-bold">-</span></p>
+          </div>
+          <span id="auditBadge" class="text-sm font-semibold px-3 py-1 bg-green-100 text-green-800 rounded-full hidden">
+            ✓ Audited
+          </span>
+        </div>
+
+        <p id="compositionContent" class="text-gray-900 text-lg leading-relaxed mb-4"></p>
+
+        <div id="passVersionNote" class="hidden mt-4 p-3 bg-amber-50 border border-amber-200 rounded text-sm text-amber-900">
+          <strong>Data Correction:</strong> <span id="changeNoteContent"></span>
+        </div>
+      </div>
+    </div>
+
     <!-- Care Instructions -->
     <div id="careSection" class="border-t border-gray-200 pt-16 mb-16 hidden">
       <h2 class="text-2xl font-bold text-gray-900 mb-8">Care Instructions</h2>
@@ -247,6 +268,24 @@
             <img src="data:image/jpeg;base64,${allImages[0].image_data}" alt="${allImages[0].image_name}" class="w-full h-auto object-cover rounded-lg">
           `;
           // No gallery thumbnails - single image only
+        }
+
+        // ✨ Material Composition with Pass Versioning
+        const composition = '<%= pass?.material_composition || '' %>';
+        const passVersion = '<%= pass?.version || 0 %>';
+        const changeType = '<%= pass?.change_type || '' %>';
+        const changeNote = '<%= pass?.change_note || '' %>';
+
+        if (composition) {
+          document.getElementById('compositionSection').classList.remove('hidden');
+          document.getElementById('compositionContent').textContent = composition;
+          document.getElementById('passVersion').textContent = passVersion || '1';
+
+          if (passVersion > 1 && changeType === 'correction') {
+            document.getElementById('passVersionNote').classList.remove('hidden');
+            document.getElementById('changeNoteContent').textContent = changeNote || 'Data was corrected for accuracy';
+            document.getElementById('auditBadge').classList.remove('hidden');
+          }
         }
 
         // Care instructions
