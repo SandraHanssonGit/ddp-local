@@ -804,14 +804,17 @@ router.post('/batches/:batch_id/style-composition/correct', verifyToken, checkRo
 // GET /batches/:batch_id/style-composition/history - Get version history
 router.get('/batches/:batch_id/style-composition/history', verifyToken, (req, res) => {
   const { batch_id } = req.params;
-  const { style_number, variant } = req.query;
+  let { style_number, variant } = req.query;
 
   if (!style_number) {
     return res.status(400).json({ error: 'style_number query parameter required' });
   }
 
-  const variantCondition = variant === null || variant === 'null' ? 'IS NULL' : '= ?';
-  const selectParams = variantCondition === 'IS NULL'
+  // Normalize variant: null, 'null', or undefined all become null
+  variant = (variant && variant !== 'null' && variant.trim()) ? variant.trim() : null;
+
+  const variantCondition = variant === null ? 'IS NULL' : '= ?';
+  const selectParams = variant === null
     ? [batch_id, style_number]
     : [batch_id, style_number, variant];
 
@@ -837,9 +840,16 @@ router.get('/batches/:batch_id/style-composition/history', verifyToken, (req, re
           return res.status(400).json({ error: err.message });
         }
 
-        // Combine and format
+        // Combine and format (archive rows have pass_version, current has pass_version)
         const history = [
-          ...(archived || []),
+          ...(archived || []).map(row => ({
+            version: row.pass_version,
+            issued_at: row.pass_issued_at,
+            change_type: row.pass_change_type,
+            change_note: row.pass_change_note,
+            composition: row.composition,
+            supersedes: row.pass_supersedes
+          })),
           current && {
             version: current.pass_version,
             issued_at: current.pass_issued_at,
@@ -854,7 +864,7 @@ router.get('/batches/:batch_id/style-composition/history', verifyToken, (req, re
         res.json({
           batch_id,
           style_number,
-          variant: variant || null,
+          variant,
           current_version: current?.pass_version || 0,
           history
         });
