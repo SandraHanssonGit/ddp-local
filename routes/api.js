@@ -683,79 +683,100 @@ router.post('/batch/metadata', verifyToken, checkRole(['editor', 'admin', 'super
   });
 });
 
-// Save batch style composition (with versioning and audit logging)
-router.post('/batches/:batch_id/style-composition', verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
+// ✨ PHASE 2: Save batch style composition with pass-versioning
+// POST /batches/:batch_id/style-composition/correct - Creates new pass version (for corrections)
+router.post('/batches/:batch_id/style-composition/correct', verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
   const { batch_id } = req.params;
-  let { style_number, variant, composition } = req.body;
+  let { style_number, variant, composition, change_type, change_note } = req.body;
   const changed_by = req.user?.username || 'system';
 
-  // Normalize variant: "" or false or undefined becomes NULL
+  // Validate inputs
+  if (!composition || !composition.trim()) {
+    return res.status(400).json({ error: 'Composition cannot be empty' });
+  }
+  if (!change_type || !['correction', 'update', 'clarification'].includes(change_type)) {
+    return res.status(400).json({ error: 'Valid change_type required: correction, update, or clarification' });
+  }
+
   variant = (variant && variant.trim()) ? variant.trim() : null;
 
-  // Use transaction for atomic operation
+  // Transaction: Archive old version + create new version + log to audit
   db.serialize(() => {
     db.run('BEGIN TRANSACTION', (err) => {
       if (err) return res.status(400).json({ error: err.message });
 
-      // Check if record exists
       const variantCondition = variant === null ? 'IS NULL' : '= ?';
-      const params = variant === null ? [batch_id, style_number] : [batch_id, style_number, variant];
+      const selectParams = variant === null ? [batch_id, style_number] : [batch_id, style_number, variant];
 
+      // 1. Get current record (if exists)
       db.get(`
-        SELECT id, composition, version FROM batch_style_data
+        SELECT id, composition, pass_version FROM batch_style_data
         WHERE batch_id = ? AND style_number = ? AND variant ${variantCondition}
-      `, params, (err, existing) => {
+      `, selectParams, (err, current) => {
         if (err) {
           db.run('ROLLBACK');
           return res.status(400).json({ error: err.message });
         }
 
-        if (existing) {
-          // Update existing record - increment version
-          const newVersion = existing.version + 1;
-          const updateParams = variant === null
-            ? [composition, newVersion, changed_by, batch_id, style_number]
-            : [composition, newVersion, changed_by, batch_id, style_number, variant];
+        const newPassVersion = (current?.pass_version || 0) + 1;
+        const recordId = `${batch_id}/${style_number}${variant ? '/' + variant : ''}`;
 
+        // 2. Archive old version (if exists)
+        if (current) {
           db.run(`
-            UPDATE batch_style_data
-            SET composition = ?, version = ?, updated_by = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE batch_id = ? AND style_number = ? AND variant ${variantCondition}
-          `, updateParams, (err) => {
+            INSERT INTO batch_style_data_archive
+            (pass_version, batch_id, style_number, variant, composition, pass_issued_at, pass_change_type, pass_change_note, pass_supersedes)
+            SELECT pass_version, batch_id, style_number, variant, composition, pass_issued_at, pass_change_type, pass_change_note, pass_supersedes
+            FROM batch_style_data
+            WHERE id = ?
+          `, [current.id], (err) => {
             if (err) {
               db.run('ROLLBACK');
               return res.status(400).json({ error: err.message });
             }
+            updateOrInsert();
+          });
+        } else {
+          updateOrInsert();
+        }
 
-            // Log to audit_log
-            const recordId = `${batch_id}/${style_number}${variant ? '/' + variant : ''}`;
+        function updateOrInsert() {
+          // 3. Update or insert with new pass version
+          if (current) {
             db.run(`
-              INSERT INTO audit_log (table_name, record_id, action, old_value, new_value, changed_by)
-              VALUES ('batch_style_data', ?, 'composition_updated', ?, ?, ?)
-            `, [recordId, existing.composition, composition, changed_by], (err) => {
+              UPDATE batch_style_data
+              SET composition = ?, pass_version = ?, pass_issued_at = CURRENT_TIMESTAMP,
+                  pass_change_type = ?, pass_change_note = ?, pass_supersedes = ?, updated_by = ?, updated_at = CURRENT_TIMESTAMP
+              WHERE id = ?
+            `, [composition, newPassVersion, change_type, change_note, current.id, changed_by, current.id], (err) => {
               if (err) {
                 db.run('ROLLBACK');
                 return res.status(400).json({ error: err.message });
               }
-
-              db.run('COMMIT', (err) => {
-                if (err) return res.status(400).json({ error: err.message });
-                res.json({
-                  success: true,
-                  batch_id,
-                  style_number,
-                  version: newVersion,
-                  message: 'Composition updated (data corrected)'
-                });
-              });
+              auditLog();
             });
-          });
-        } else {
-          // Create new record
+          } else {
+            db.run(`
+              INSERT INTO batch_style_data
+              (batch_id, style_number, variant, composition, pass_version, pass_issued_at, pass_change_type, pass_change_note, updated_by, created_at, updated_at)
+              VALUES (?, ?, ?, ?, 1, CURRENT_TIMESTAMP, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            `, [batch_id, style_number, variant, composition, change_type, change_note, changed_by], (err) => {
+              if (err) {
+                db.run('ROLLBACK');
+                return res.status(400).json({ error: err.message });
+              }
+              auditLog();
+            });
+          }
+        }
+
+        function auditLog() {
+          // 4. Log to audit_log with full pass versioning info
           db.run(`
-            INSERT INTO batch_style_data (batch_id, style_number, variant, composition, version, updated_by, created_at, updated_at)
-            VALUES (?, ?, ?, ?, 1, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-          `, [...params, composition, changed_by], (err) => {
+            INSERT INTO audit_log
+            (table_name, record_id, pass_version, action, change_type, change_note, old_value, new_value, changed_by)
+            VALUES ('batch_style_data', ?, ?, 'composition_updated', ?, ?, ?, ?, ?)
+          `, [recordId, newPassVersion, change_type, change_note, current?.composition || null, composition, changed_by], (err) => {
             if (err) {
               db.run('ROLLBACK');
               return res.status(400).json({ error: err.message });
@@ -767,8 +788,10 @@ router.post('/batches/:batch_id/style-composition', verifyToken, checkRole(['edi
                 success: true,
                 batch_id,
                 style_number,
-                version: 1,
-                message: 'Composition created'
+                variant,
+                pass_version: newPassVersion,
+                pass_issued_at: new Date().toISOString(),
+                message: `Pass version ${newPassVersion} issued (${change_type})`
               });
             });
           });
@@ -776,6 +799,103 @@ router.post('/batches/:batch_id/style-composition', verifyToken, checkRole(['edi
       });
     });
   });
+});
+
+// GET /batches/:batch_id/style-composition/history - Get version history
+router.get('/batches/:batch_id/style-composition/history', verifyToken, (req, res) => {
+  const { batch_id } = req.params;
+  const { style_number, variant } = req.query;
+
+  if (!style_number) {
+    return res.status(400).json({ error: 'style_number query parameter required' });
+  }
+
+  const variantCondition = variant === null || variant === 'null' ? 'IS NULL' : '= ?';
+  const selectParams = variantCondition === 'IS NULL'
+    ? [batch_id, style_number]
+    : [batch_id, style_number, variant];
+
+  db.serialize(() => {
+    // Get current version
+    db.get(`
+      SELECT id, pass_version, composition, pass_issued_at, pass_change_type, pass_change_note, pass_supersedes, updated_by
+      FROM batch_style_data
+      WHERE batch_id = ? AND style_number = ? AND variant ${variantCondition}
+    `, selectParams, (err, current) => {
+      if (err) {
+        return res.status(400).json({ error: err.message });
+      }
+
+      // Get archive
+      db.all(`
+        SELECT pass_version, composition, pass_issued_at, pass_change_type, pass_change_note, pass_supersedes, archived_at
+        FROM batch_style_data_archive
+        WHERE batch_id = ? AND style_number = ? AND variant ${variantCondition}
+        ORDER BY pass_version ASC
+      `, selectParams, (err, archived) => {
+        if (err) {
+          return res.status(400).json({ error: err.message });
+        }
+
+        // Combine and format
+        const history = [
+          ...(archived || []),
+          current && {
+            version: current.pass_version,
+            issued_at: current.pass_issued_at,
+            change_type: current.pass_change_type,
+            change_note: current.pass_change_note,
+            composition: current.composition,
+            supersedes: current.pass_supersedes,
+            issued_by: current.updated_by
+          }
+        ].filter(Boolean).sort((a, b) => a.version - b.version);
+
+        res.json({
+          batch_id,
+          style_number,
+          variant: variant || null,
+          current_version: current?.pass_version || 0,
+          history
+        });
+      });
+    });
+  });
+});
+
+// GET /audit-log - Get audit trail for compliance tracking
+router.get('/audit-log', verifyToken, (req, res) => {
+  const { table_name, record_id } = req.query;
+
+  if (!table_name || !record_id) {
+    return res.status(400).json({ error: 'table_name and record_id query parameters required' });
+  }
+
+  db.all(`
+    SELECT id, table_name, record_id, pass_version, action, change_type, change_note, old_value, new_value, changed_by, created_at
+    FROM audit_log
+    WHERE table_name = ? AND record_id = ?
+    ORDER BY created_at ASC
+  `, [table_name, record_id], (err, rows) => {
+    if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+
+    res.json({
+      table_name,
+      record_id,
+      entries: rows || [],
+      total: (rows || []).length
+    });
+  });
+});
+
+// Legacy: Save batch style composition (backward compat, redirects to /correct)
+router.post('/batches/:batch_id/style-composition', verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
+  // Forward to /correct endpoint with default change_type
+  const { style_number, variant, composition } = req.body;
+
+  return res.redirect(307, `/api/batches/${req.params.batch_id}/style-composition/correct`);
 });
 
 // Get batch style composition

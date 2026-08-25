@@ -271,7 +271,7 @@ db.serialize(() => {
   db.run(`ALTER TABLE batch_style_data ADD COLUMN updated_by TEXT`, () => {});
 });
 
-// ✨ PHASE 1: Pass Versioning Schema (ESPR Compliance)
+// ✨ PHASE 1 & 2: Pass Versioning Schema (ESPR Compliance)
 db.serialize(() => {
   // Create archive table for historical pass versions
   db.run(`
@@ -288,7 +288,7 @@ db.serialize(() => {
       pass_supersedes INTEGER,
       archived_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(batch_id, style_number, variant, pass_version),
-      FOREIGN KEY(batch_id) REFERENCES batches(batch_id)
+      FOREIGN KEY(batch_id) REFERENCES batches(batch_id) ON DELETE CASCADE
     )
   `, (err) => {
     if (!err) console.log('✓ Pass versioning tables initialized');
