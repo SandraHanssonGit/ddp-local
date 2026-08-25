@@ -55,7 +55,8 @@ const requireAuth = (req, res, next) => {
 // Routes
 app.use('/api', require('./routes/api'));
 app.use('/batches', require('./src/routes/batches'));
-app.use('/p', require('./routes/public'));
+app.use('/p', require('./routes/public'));  // Legacy: /p/:style/:batch/:serial
+app.use(require('./routes/public'));        // GS1 at root: /01/:gtin/21/:serial
 
 // Login page
 app.get('/login', (req, res) => {
