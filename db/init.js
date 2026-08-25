@@ -147,11 +147,13 @@ db.serialize(() => {
       variant TEXT,
       serial_number TEXT UNIQUE NOT NULL,
       gtin TEXT,
+      gtin_14 TEXT,
       sgtin_numeric TEXT,
       sgtin_uri TEXT,
       rfid TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       deleted_at DATETIME,
+      view_count INTEGER DEFAULT 0,
       FOREIGN KEY(batch_id) REFERENCES batches(batch_id) ON DELETE CASCADE,
       FOREIGN KEY(style_number) REFERENCES styles(style_number)
     )
@@ -190,6 +192,8 @@ db.serialize(() => {
       style_number TEXT NOT NULL,
       variant TEXT,
       composition TEXT,
+      version INTEGER DEFAULT 1,
+      updated_by TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(batch_id, style_number, variant),
@@ -206,6 +210,20 @@ db.serialize(() => {
       event_data TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(serial_id) REFERENCES serials(id)
+    )
+  `);
+
+  // Audit log (tracks all data corrections and changes)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS audit_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      table_name TEXT NOT NULL,
+      record_id TEXT NOT NULL,
+      action TEXT NOT NULL,
+      old_value TEXT,
+      new_value TEXT,
+      changed_by TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
@@ -238,6 +256,9 @@ db.serialize(() => {
   db.run(`ALTER TABLE batches ADD COLUMN deleted_at DATETIME`, () => {});
   db.run(`ALTER TABLE serials ADD COLUMN deleted_at DATETIME`, () => {});
   db.run(`ALTER TABLE serials ADD COLUMN view_count INTEGER DEFAULT 0`, () => {});
+  db.run(`ALTER TABLE serials ADD COLUMN gtin_14 TEXT`, () => {});
+  db.run(`ALTER TABLE batch_style_data ADD COLUMN version INTEGER DEFAULT 1`, () => {});
+  db.run(`ALTER TABLE batch_style_data ADD COLUMN updated_by TEXT`, () => {});
 });
 
 // Add database indexes for performance
