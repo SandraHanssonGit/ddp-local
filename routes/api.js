@@ -902,10 +902,50 @@ router.get('/audit-log', verifyToken, (req, res) => {
 
 // Legacy: Save batch style composition (backward compat, redirects to /correct)
 router.post('/batches/:batch_id/style-composition', verifyToken, checkRole(['editor', 'admin', 'super_admin']), (req, res) => {
-  // Forward to /correct endpoint with default change_type
-  const { style_number, variant, composition } = req.body;
+  // Create new batch style composition or update existing
+  const { batch_id } = req.params;
+  let { style_number, variant, composition } = req.body;
 
-  return res.redirect(307, `/api/batches/${req.params.batch_id}/style-composition/correct`);
+  if (!style_number) {
+    return res.status(400).json({ error: 'style_number is required' });
+  }
+
+  const changed_by = req.user?.username || 'system';
+  variant = (variant && variant.trim()) ? variant.trim() : null;
+  composition = (composition && composition.trim()) || null;  // Allow null/empty composition
+
+  // Insert new batch_style_data record (initial creation)
+  db.run(`
+    INSERT INTO batch_style_data
+    (batch_id, style_number, variant, composition, pass_version, pass_issued_at, pass_change_type, pass_change_note, updated_by, created_at, updated_at)
+    VALUES (?, ?, ?, ?, 1, CURRENT_TIMESTAMP, 'initial', 'Initial product added to batch', ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+  `, [batch_id, style_number, variant, composition || null, changed_by], function(err) {
+    if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+
+    // Log to audit_log
+    const recordId = `${batch_id}/${style_number}${variant ? '/' + variant : ''}`;
+    db.run(`
+      INSERT INTO audit_log
+      (table_name, record_id, pass_version, action, change_type, change_note, old_value, new_value, changed_by)
+      VALUES ('batch_style_data', ?, 1, 'composition_created', 'initial', 'Initial product added to batch', NULL, ?, ?)
+    `, [recordId, composition, changed_by], (err) => {
+      if (err) {
+        return res.status(400).json({ error: err.message });
+      }
+
+      res.json({
+        success: true,
+        batch_id,
+        style_number,
+        variant,
+        pass_version: 1,
+        pass_issued_at: new Date().toISOString(),
+        message: 'Product added to batch'
+      });
+    });
+  });
 });
 
 // Get batch style composition

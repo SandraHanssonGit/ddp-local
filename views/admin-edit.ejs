@@ -4050,7 +4050,6 @@
       const serial = data.serial;
       document.getElementById(getElementId('serialInfo')).innerHTML = `
         <div><strong>Serial:</strong> ${serial.serial_number}</div>
-        <div><strong>GTIN-14:</strong> <span class="font-mono">${serial.gtin_14 || '—'}</span></div>
         <div><strong>SGTIN:</strong> ${serial.sgtin_numeric || '-'}</div>
         <div><strong>RFID:</strong> ${serial.rfid || '-'}</div>
         <div class="pt-2 border-t border-gray-300">
@@ -4104,7 +4103,6 @@
       }
 
       document.getElementById(getElementId('serialMetadataView')).innerHTML = `
-        <div><strong>GTIN-14:</strong> <span class="font-mono">${serial.gtin_14 || '—'}</span></div>
         <div><strong>Public URL:</strong> <span class="font-mono text-xs break-all">${publicUrl}</span></div>
         <div><strong>Size:</strong> ${metadata.size || '-'}</div>
         <div><strong>Condition:</strong> ${conditionDisplay}</div>

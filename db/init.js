@@ -140,6 +140,7 @@ db.serialize(() => {
   `);
 
   // Serials table (belongs to both a batch AND a style)
+  // Note: GTIN-14 is stored on styles table (product-level), not here
   db.run(`
     CREATE TABLE IF NOT EXISTS serials (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -147,8 +148,6 @@ db.serialize(() => {
       style_number TEXT NOT NULL,
       variant TEXT,
       serial_number TEXT UNIQUE NOT NULL,
-      gtin TEXT,
-      gtin_14 TEXT,
       sgtin_numeric TEXT,
       sgtin_uri TEXT,
       rfid TEXT,
