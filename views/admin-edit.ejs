@@ -545,7 +545,6 @@
             <div class="space-y-4">
               <select id="eventType-product" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
                 <option value="">-- Select Event Type --</option>
-                <option value="service">Service</option>
                 <option value="repair">Repair</option>
                 <option value="reuse">Reuse (Trade-in)</option>
                 <option value="recycling">Recycling</option>
@@ -983,7 +982,6 @@
             <div class="space-y-4">
               <select id="eventType" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
                 <option value="">-- Select Event Type --</option>
-                <option value="service">Service</option>
                 <option value="repair">Repair</option>
                 <option value="reuse">Reuse (Trade-in)</option>
                 <option value="recycling">Recycling</option>
@@ -2071,7 +2069,6 @@
               'repair': 'repaired',
               'reuse': 'reused',
               'recycling': 'recycled',
-              'service': 'new',
               'scanned': 'new'
             };
             cond = eventConditionMap[latestEvent.event_type.toLowerCase()] || 'new';
