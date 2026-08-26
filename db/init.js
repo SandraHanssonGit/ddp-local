@@ -501,8 +501,9 @@ const queries = {
 
   getSerial: (serial_number, callback) => {
     db.all(`
-      SELECT s.*
+      SELECT s.*, st.gtin_14
       FROM serials s
+      LEFT JOIN styles st ON s.style_number = st.style_number
       WHERE s.serial_number = ?
     `, [serial_number], callback);
   },

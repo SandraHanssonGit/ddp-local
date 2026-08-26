@@ -96,10 +96,12 @@ const renderPassport = (res, serial, batch_id) => {
 router.get('/01/:gtin_14/21/:serial', (req, res) => {
   const { gtin_14, serial } = req.params;
 
-  // Find serial by gtin_14 and serial_number
+  // Find serial by serial_number and verify gtin_14 matches style
   db.get(
-    `SELECT * FROM serials WHERE gtin_14 = ? AND serial_number = ?`,
-    [gtin_14, serial],
+    `SELECT s.*, st.gtin_14 FROM serials s
+     LEFT JOIN styles st ON s.style_number = st.style_number
+     WHERE s.serial_number = ? AND st.gtin_14 = ?`,
+    [serial, gtin_14],
     (err, serial_row) => {
       if (err || !serial_row) {
         return res.status(404).render('passport-not-found', {
@@ -118,9 +120,11 @@ router.get('/01/:gtin_14/21/:serial', (req, res) => {
 router.get('/p/:style_number/:batch_id/:serial_number', (req, res) => {
   const { style_number, batch_id, serial_number } = req.params;
 
-  // Get serial by all three identifiers
+  // Get serial by all three identifiers, including GTIN from styles table
   db.get(
-    `SELECT * FROM serials WHERE style_number = ? AND batch_id = ? AND serial_number = ?`,
+    `SELECT s.*, st.gtin_14 FROM serials s
+     LEFT JOIN styles st ON s.style_number = st.style_number
+     WHERE s.style_number = ? AND s.batch_id = ? AND s.serial_number = ?`,
     [style_number, batch_id, serial_number],
     (err, serial) => {
       if (err || !serial) {
@@ -152,7 +156,7 @@ router.get('/:serial_number', (req, res) => {
     const serial = serials[0];
     const batch_id = serial.batch_id;
 
-    // Redirect to GS1 format if gtin_14 is available
+    // Redirect to GS1 format if gtin_14 is available from styles table
     if (serial.gtin_14) {
       return res.redirect(`/01/${serial.gtin_14}/21/${serial_number}`);
     }
