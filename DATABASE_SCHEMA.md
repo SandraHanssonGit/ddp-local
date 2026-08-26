@@ -81,15 +81,15 @@ Individual serial numbers (unique product instance)
 ## Data Hierarchy
 
 ```
-Style (Product)
+Product (style_number + variant)
   ├── GTIN-14 (stored here, product-level)
   ├── Product Info (name, description, care, etc.)
-  └── Variants (topps only)
+  └── Variants (topps only; jeans have variant = NULL)
 
 Batch
-  └── Multiple Styles (batch can contain jeans + topps mixed)
+  └── Multiple Products (batch can contain jeans + topps mixed)
       └── Serial Numbers
-          ├── SGTIN (auto-generated from style.gtin_14 + serial)
+          ├── SGTIN (auto-generated from product.gtin_14 + serial)
           └── Serial-specific Data (size, condition, location)
 ```
 
