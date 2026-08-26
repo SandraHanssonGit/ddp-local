@@ -334,7 +334,7 @@ router.post('/styles/:style_number/product-info', verifyToken, checkRole(['edito
   if (!style_number || typeof style_number !== 'string' || style_number.length === 0 || style_number.length > 50) {
     return res.status(400).json({ error: 'Invalid style number' });
   }
-  const { product_type, variant, product_name, description, care_instructions, delivery_returns, size_material_composition } = req.body;
+  const { product_type, variant, product_name, description, care_instructions, delivery_returns, size_material_composition, gtin_14 } = req.body;
   console.log('API received care_instructions:', care_instructions, 'length:', care_instructions ? care_instructions.length : 0);
   // Normalize product_type to standard format: 'Jeans' or 'Tops'
   let normalizedProductType = String(product_type || 'Jeans').trim();
@@ -369,9 +369,9 @@ router.post('/styles/:style_number/product-info', verifyToken, checkRole(['edito
         }
 
         db.run(`
-          INSERT INTO styles (style_number, variant, product_type, product_name, description, care_instructions, delivery_returns, size_material_composition)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `, [style_number, normalizedVariant, normalizedProductType, product_name, description, care_instructions, delivery_returns, size_material_composition], function(err) {
+          INSERT INTO styles (style_number, variant, product_type, product_name, description, care_instructions, delivery_returns, size_material_composition, gtin_14)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [style_number, normalizedVariant, normalizedProductType, product_name, description, care_instructions, delivery_returns, size_material_composition, gtin_14], function(err) {
           if (err) {
             db.run('ROLLBACK');
             return res.status(400).json({ error: 'Insert failed: ' + err.message });
