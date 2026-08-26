@@ -55,11 +55,17 @@
 
     <!-- DASHBOARD TAB -->
     <div id="dashboardTab" class="space-y-6">
+      <!-- Search Bar -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <input type="text" id="dashboardSearch" placeholder="Search product, batch, serial, or GTIN..."
+          class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900 text-lg">
+      </div>
+
       <!-- KPI Cards -->
-      <div class="grid grid-cols-4 gap-4">
+      <div class="grid grid-cols-5 gap-4">
         <div class="bg-white rounded-lg shadow-md p-6 text-center">
           <div class="text-3xl font-bold text-gray-900" id="statsStyles">0</div>
-          <div class="text-sm text-gray-600 mt-2">Styles</div>
+          <div class="text-sm text-gray-600 mt-2">Products</div>
         </div>
         <div class="bg-white rounded-lg shadow-md p-6 text-center">
           <div class="text-3xl font-bold text-gray-900" id="statsBatches">0</div>
@@ -69,9 +75,13 @@
           <div class="text-3xl font-bold text-gray-900" id="statsSerials">0</div>
           <div class="text-sm text-gray-600 mt-2">Serials</div>
         </div>
-        <div class="bg-white rounded-lg shadow-md p-6 text-center">
-          <div class="text-3xl font-bold text-gray-900" id="statsEvents">0</div>
-          <div class="text-sm text-gray-600 mt-2">Events</div>
+        <div class="bg-white rounded-lg shadow-md p-6 text-center border-l-4 border-blue-500">
+          <div class="text-3xl font-bold text-blue-600" id="gtinCoverage">0%</div>
+          <div class="text-sm text-gray-600 mt-2">GTIN-14 Coverage</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6 text-center border-l-4 border-green-500">
+          <div class="text-3xl font-bold text-green-600" id="dataQualityScore">0%</div>
+          <div class="text-sm text-gray-600 mt-2">Data Quality</div>
         </div>
       </div>
 
@@ -1461,6 +1471,22 @@
       });
     }
 
+    // Dashboard search
+    const dashboardSearch = document.getElementById('dashboardSearch');
+    if (dashboardSearch) {
+      dashboardSearch.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          const query = dashboardSearch.value.trim().toLowerCase();
+          if (query.length < 2) {
+            showToast('Please enter at least 2 characters');
+            return;
+          }
+          // Try to detect what type: if starts with digit, could be GTIN/serial, else product/batch
+          // For now, use a universal search - just redirect to lookup with query
+          goToSearch(query);
+        }
+      });
+    }
 
     // Setup add event button with delegation (button might be recreated)
     document.addEventListener('click', (e) => {
@@ -1996,7 +2022,35 @@
         document.getElementById('statsStyles').textContent = styles.length;
         document.getElementById('statsBatches').textContent = batches.length;
         document.getElementById('statsSerials').textContent = serials.length;
-        document.getElementById('statsEvents').textContent = events.length;
+
+        // Calculate GTIN-14 coverage
+        const productsWithGTIN = styles.filter(s => s.gtin_14).length;
+        const gtinCoverage = styles.length > 0 ? Math.round((productsWithGTIN / styles.length) * 100) : 0;
+        document.getElementById('gtinCoverage').textContent = gtinCoverage + '%';
+
+        // Calculate data quality score
+        let qualityPoints = 0;
+        let maxPoints = 0;
+
+        styles.forEach(s => {
+          const isTopp = (s.product_type || '').toLowerCase() === 'tops';
+          // Product fields: name, description, care, composition, gtin (if critical)
+          if (s.product_name) qualityPoints++;
+          if (s.description) qualityPoints++;
+          if (s.care_instructions) qualityPoints++;
+          if (s.size_material_composition) qualityPoints++;
+          if (s.gtin_14) qualityPoints++;
+          maxPoints += 5;
+        });
+
+        batches.forEach(b => {
+          // Batch fields: partner_name
+          if (b.partner_name) qualityPoints++;
+          maxPoints += 1;
+        });
+
+        const dataQualityScore = maxPoints > 0 ? Math.round((qualityPoints / maxPoints) * 100) : 0;
+        document.getElementById('dataQualityScore').textContent = dataQualityScore + '%';
 
         // Count conditions - calculate from events
         const conditions = { new: 0, repaired: 0, reused: 0, recycled: 0 };
@@ -2064,25 +2118,29 @@
         // Data quality issues - check Style, Batch, and Serial data
         const issues = [];
 
-        // Check Styles
+        // Check Styles (prioritize GTIN-14)
         styles.forEach(s => {
           const isTopp = (s.product_type || '').toLowerCase() === 'tops';
           const styleDisplay = isTopp && s.variant ? `${s.style_number}-${s.variant}` : s.style_number;
-          if (!s.product_name || s.product_name.trim() === '') issues.push({ type: 'style', target: s.style_number, text: `Style ${styleDisplay}: missing product name` });
-          if (!s.description || s.description.trim() === '') issues.push({ type: 'style', target: s.style_number, text: `Style ${styleDisplay}: missing description` });
-          if (!s.care_instructions || s.care_instructions.trim() === '') issues.push({ type: 'style', target: s.style_number, text: `Style ${styleDisplay}: missing care instructions` });
-          if (!s.size_material_composition || s.size_material_composition.trim() === '') issues.push({ type: 'style', target: s.style_number, text: `Style ${styleDisplay}: missing material composition` });
+          if (!s.gtin_14) issues.push({ type: 'style', target: s.style_number, text: `🔴 Product ${styleDisplay}: missing GTIN-14`, priority: 1 });
+          if (!s.product_name || s.product_name.trim() === '') issues.push({ type: 'style', target: s.style_number, text: `Product ${styleDisplay}: missing product name`, priority: 2 });
+          if (!s.description || s.description.trim() === '') issues.push({ type: 'style', target: s.style_number, text: `Product ${styleDisplay}: missing description`, priority: 3 });
+          if (!s.care_instructions || s.care_instructions.trim() === '') issues.push({ type: 'style', target: s.style_number, text: `Product ${styleDisplay}: missing care instructions`, priority: 3 });
+          if (!s.size_material_composition || s.size_material_composition.trim() === '') issues.push({ type: 'style', target: s.style_number, text: `Product ${styleDisplay}: missing material composition`, priority: 3 });
         });
 
         // Check Batches (partner_name)
         batches.forEach(b => {
-          if (!b.partner_name || b.partner_name.trim() === '') issues.push({ type: 'batch', target: b.batch_id, text: `Batch ${b.batch_id}: missing partner/manufacturer` });
+          if (!b.partner_name || b.partner_name.trim() === '') issues.push({ type: 'batch', target: b.batch_id, text: `Batch ${b.batch_id}: missing partner/manufacturer`, priority: 2 });
           // Check serials in this batch
           const batchSerials = serials.filter(s => s.batch_id === b.batch_id);
           batchSerials.forEach(s => {
-            if (!s.condition || s.condition === '-') issues.push({ type: 'serial', target: s.serial_number, text: `Serial ${s.serial_number}: missing condition` });
+            if (!s.condition || s.condition === '-') issues.push({ type: 'serial', target: s.serial_number, text: `Serial ${s.serial_number}: missing condition`, priority: 3 });
           });
         });
+
+        // Sort by priority (1=highest)
+        issues.sort((a, b) => (a.priority || 999) - (b.priority || 999));
 
         const issuesEl = document.getElementById('dataQualityIssues');
         if (issues.length > 0) {
@@ -5472,6 +5530,33 @@
     }
 
     // Navigate from Dashboard to Lookup & Edit
+    async function goToSearch(query) {
+      // Universal search across products, batches, and serials
+      try {
+        const res = await fetch('/api/search?q=' + encodeURIComponent(query));
+        const results = await res.json();
+
+        if (!results.results || results.results.length === 0) {
+          showToast('❌ No results found for: ' + query);
+          return;
+        }
+
+        // Use first result
+        const result = results.results[0];
+        if (result.result_type === 'product') {
+          goToLookup('style', result.style_number);
+        } else if (result.result_type === 'batch') {
+          goToLookup('batch', result.batch_id);
+        } else if (result.result_type === 'serial') {
+          goToLookup('serial', result.serial_number);
+        }
+
+        showToast('✓ Found: ' + (result.product_name || result.batch_id || result.serial_number));
+      } catch (err) {
+        showToast('Search error: ' + err.message);
+      }
+    }
+
     function goToLookup(type, target) {
       // Open Design tab and load the data directly
       if (type === 'style') {
