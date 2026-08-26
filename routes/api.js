@@ -1898,6 +1898,25 @@ router.get('/recent/batches', (req, res) => {
   });
 });
 
+// Get batches for a specific style
+router.get('/styles/:style_number/batches', (req, res) => {
+  const { style_number } = req.params;
+
+  db.all(`
+    SELECT DISTINCT b.batch_id, b.partner_name, b.po, COUNT(s.id) as unit_count
+    FROM batches b
+    LEFT JOIN serials s ON b.batch_id = s.batch_id AND s.style_number = ?
+    WHERE b.batch_id IN (
+      SELECT DISTINCT batch_id FROM serials WHERE style_number = ?
+    )
+    GROUP BY b.batch_id
+    ORDER BY b.batch_id
+  `, [style_number, style_number], (err, batches) => {
+    if (err) return res.status(400).json({ error: err.message });
+    res.json({ batches: batches || [] });
+  });
+});
+
 // Get recent styles (5 latest)
 router.get('/recent/styles', (req, res) => {
   db.all(`

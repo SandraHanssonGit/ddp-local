@@ -155,10 +155,13 @@
             </select>
           </div>
 
-          <!-- Batch Input -->
+          <!-- Batch Input (Searchable Dropdown) -->
           <div>
             <label class="block text-sm font-bold text-gray-700 mb-2">Batch ID</label>
-            <input type="text" id="scanBatch" placeholder="e.g., 114519-BATCH001" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+            <select id="scanBatch" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-gray-900">
+              <option value="">-- Select Batch --</option>
+            </select>
+            <p class="text-xs text-gray-500 mt-1">💡 Tip: Start typing to filter batches</p>
           </div>
 
           <!-- Serial Number Input -->
@@ -5495,8 +5498,54 @@
           option.textContent = `${label} - ${style.product_name || 'Unnamed'}`;
           select.appendChild(option);
         });
+
+        // Add event listener for batch loading
+        select.addEventListener('change', loadBatchesForStyle);
       } catch (err) {
         showToast('Error loading styles: ' + err.message);
+      }
+    }
+
+    async function loadBatchesForStyle() {
+      const styleSelect = document.getElementById('scanStyle');
+      const batchSelect = document.getElementById('scanBatch');
+
+      if (!styleSelect.value) {
+        batchSelect.innerHTML = '<option value="">-- Select Batch --</option>';
+        return;
+      }
+
+      try {
+        const styleData = JSON.parse(styleSelect.value);
+        const res = await fetch(`/api/styles/${styleData.style_number}/batches`);
+        const data = await res.json();
+        const batches = data.batches || [];
+
+        batchSelect.innerHTML = '<option value="">-- Select Batch --</option>';
+        batches.forEach(batch => {
+          const option = document.createElement('option');
+          option.value = batch.batch_id;
+          const label = batch.partner_name ? `${batch.batch_id} (${batch.partner_name})` : batch.batch_id;
+          option.textContent = label;
+          batchSelect.appendChild(option);
+        });
+
+        // Add search capability using native HTML5
+        batchSelect.addEventListener('input', filterBatchOptions);
+      } catch (err) {
+        console.error('Error loading batches:', err);
+        batchSelect.innerHTML = '<option value="">-- Error loading batches --</option>';
+      }
+    }
+
+    function filterBatchOptions(e) {
+      const input = e.target.value.toLowerCase();
+      const options = document.getElementById('scanBatch').options;
+
+      for (let i = 1; i < options.length; i++) {
+        const option = options[i];
+        const text = option.textContent.toLowerCase();
+        option.style.display = text.includes(input) ? '' : 'none';
       }
     }
 
