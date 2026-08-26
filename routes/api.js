@@ -1829,12 +1829,12 @@ router.post('/scan', (req, res) => {
           if (err) return res.status(400).json({ error: err.message });
 
           if (existingSerial) {
-            // Serial already exists - register as re-scan event
+            // Serial already exists - register as scan event
             db.run(
               `INSERT INTO events (serial_id, event_type, event_data) VALUES (?, ?, ?)`,
-              [existingSerial.id, 'scanned', JSON.stringify({ action: 're_scan', timestamp: new Date().toISOString() })],
+              [existingSerial.id, 'scanned', JSON.stringify({ action: 'scanned', timestamp: new Date().toISOString() })],
               (err) => {
-                if (err) console.error('Error adding re-scan event:', err);
+                if (err) console.error('Error adding scan event:', err);
                 return returnSerialData(existingSerial.id, res, false);
               }
             );
@@ -1861,7 +1861,7 @@ router.post('/scan', (req, res) => {
               // Add event for scan
               db.run(
                 `INSERT INTO events (serial_id, event_type, event_data) VALUES (?, ?, ?)`,
-                [this.lastID, 'scanned', JSON.stringify({ action: 'first_scan', timestamp: new Date().toISOString() })],
+                [this.lastID, 'scanned', JSON.stringify({ action: 'scanned', timestamp: new Date().toISOString() })],
                 (err) => {
                   if (err) console.error('Error adding scan event:', err);
                   returnSerialData(this.lastID, res, true);
