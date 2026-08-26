@@ -129,12 +129,13 @@
               <thead>
                 <tr class="bg-gray-100 border-b border-gray-300">
                   <th class="px-4 py-2 text-left font-semibold text-gray-900">Product</th>
-                  <th class="px-4 py-2 text-right font-semibold text-gray-900">Total Views</th>
+                  <th class="px-4 py-2 text-right font-semibold text-gray-900">Scans</th>
+                  <th class="px-4 py-2 text-right font-semibold text-gray-900">Views</th>
                   <th class="px-4 py-2 text-right font-semibold text-gray-900">Serials</th>
                 </tr>
               </thead>
               <tbody id="mostViewedTable">
-                <tr><td colspan="3" class="px-4 py-3 text-center text-gray-500">Loading...</td></tr>
+                <tr><td colspan="4" class="px-4 py-3 text-center text-gray-500">Loading...</td></tr>
               </tbody>
             </table>
           </div>
@@ -2199,23 +2200,37 @@
 
         // Load most scanned products (aggregate by product)
         const mostViewedTable = document.getElementById('mostViewedTable');
-        const productViewStats = {};
+        const productStats = {};
 
-        // Aggregate views by product
+        // Aggregate by product
         serials.forEach(s => {
           const isTopp = s.product_type && s.product_type.toLowerCase() === 'tops';
           const productKey = isTopp && s.variant ? `${s.style_number}-${s.variant}` : s.style_number;
-          if (!productViewStats[productKey]) {
-            productViewStats[productKey] = { views: 0, serials: new Set() };
+          if (!productStats[productKey]) {
+            productStats[productKey] = { scans: 0, views: 0, serials: new Set() };
           }
-          productViewStats[productKey].views += (s.view_count || 0);
-          productViewStats[productKey].serials.add(s.id);
+          productStats[productKey].views += (s.view_count || 0);
+          productStats[productKey].serials.add(s.id);
         });
 
-        const mostScannedProducts = Object.entries(productViewStats)
-          .map(([product, stats]) => ({ product, views: stats.views, serialCount: stats.serials.size }))
-          .filter(p => p.views > 0)
-          .sort((a, b) => b.views - a.views)
+        // Count scans from events
+        events.forEach(e => {
+          if (e.event_type && e.event_type.toLowerCase() === 'scanned') {
+            const serial = serials.find(s => s.id === e.serial_id);
+            if (serial) {
+              const isTopp = serial.product_type && serial.product_type.toLowerCase() === 'tops';
+              const productKey = isTopp && serial.variant ? `${serial.style_number}-${serial.variant}` : serial.style_number;
+              if (productStats[productKey]) {
+                productStats[productKey].scans++;
+              }
+            }
+          }
+        });
+
+        const mostScannedProducts = Object.entries(productStats)
+          .map(([product, stats]) => ({ product, scans: stats.scans, views: stats.views, serialCount: stats.serials.size }))
+          .filter(p => p.scans > 0)
+          .sort((a, b) => b.scans - a.scans)
           .slice(0, 10);
 
         if (mostScannedProducts.length > 0) {
@@ -2223,13 +2238,16 @@
             <tr class="border-b border-gray-200 hover:bg-gray-50 cursor-pointer" onclick="goToLookup('style', '${p.product.split('-')[0]}')">
               <td class="px-4 py-3 font-semibold text-blue-600 hover:underline">${p.product}</td>
               <td class="px-4 py-3 text-right">
+                <span class="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full font-bold">${p.scans}</span>
+              </td>
+              <td class="px-4 py-3 text-right">
                 <span class="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-bold">${p.views}</span>
               </td>
               <td class="px-4 py-3 text-right text-gray-600">${p.serialCount}</td>
             </tr>
           `).join('');
         } else {
-          mostViewedTable.innerHTML = '<tr><td colspan="3" class="px-4 py-3 text-center text-gray-500">No scans yet</td></tr>';
+          mostViewedTable.innerHTML = '<tr><td colspan="4" class="px-4 py-3 text-center text-gray-500">No scans yet</td></tr>';
         }
 
       } catch (err) {
