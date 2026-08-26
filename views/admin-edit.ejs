@@ -2672,6 +2672,12 @@
 
     async function loadStyle(styleNumber, variant = null) {
       try {
+        // Stop polling events when leaving serial view
+        if (eventsPollInterval) {
+          clearInterval(eventsPollInterval);
+          eventsPollInterval = null;
+        }
+
         // Clear old data before loading new style - only clear view sections, not edit forms
         const elementIds = ['styleImages', 'productInfoView', 'transparencyView', 'nudieValuesView', 'storytellingView', 'batchesList', 'eventsTimeline'];
         elementIds.forEach(id => {
@@ -3885,6 +3891,12 @@
     }
 
     async function loadBatch(batchId) {
+      // Stop polling events when leaving serial view
+      if (eventsPollInterval) {
+        clearInterval(eventsPollInterval);
+        eventsPollInterval = null;
+      }
+
       // Clear old data before loading new batch
       const elementIds = ['batchInfo', 'batchImages', 'eventsTimeline'];
       elementIds.forEach(id => {
@@ -4113,8 +4125,43 @@
       }
     }
 
+    let eventsPollInterval = null;
+
+    async function refreshSerialEvents(serialNumber) {
+      try {
+        const res = await authFetch(`/api/serials/${serialNumber}/full-data`);
+        const data = await res.json();
+        if (data.events && data.events.length > 0) {
+          currentData.serial.events = data.events;
+          updateEventsTimeline(data.events);
+        }
+      } catch (err) {
+        console.error('Error refreshing events:', err);
+      }
+    }
+
+    function updateEventsTimeline(events) {
+      const eventsEl = document.getElementById(getElementId('eventsTimeline'));
+      if (!eventsEl) return;
+
+      const timelineHTML = events.map((e, idx) => `
+        <div class="border-l-4 border-blue-500 pl-4 py-3 pb-3 border-b border-gray-100">
+          <div class="flex justify-between items-start mb-2">
+            <div class="font-semibold text-gray-900 capitalize">${e.event_type}</div>
+            <div class="text-xs text-gray-500">${new Date(e.created_at).toLocaleDateString('sv-SE')} ${new Date(e.created_at).toLocaleTimeString('sv-SE', {hour: '2-digit', minute:'2-digit'})}</div>
+          </div>
+          <div class="text-xs font-mono text-gray-600 whitespace-pre-wrap">${JSON.stringify(JSON.parse(e.event_data || '{}'), null, 2)}</div>
+        </div>
+      `).join('') || '<div class="text-gray-500 text-sm p-2">No events yet</div>';
+
+      eventsEl.innerHTML = timelineHTML;
+    }
+
     async function loadSerial(serialNumber) {
       try {
+        // Stop any existing polling
+        if (eventsPollInterval) clearInterval(eventsPollInterval);
+
         // Clear old data before loading new serial (but NOT serialMetadataEdit as it has the form structure)
         const elementIds = ['serialInfo', 'serialBatchInfo', 'serialStyleInfo', 'serialMetadataView', 'eventsTimeline'];
         elementIds.forEach(id => {
@@ -4133,6 +4180,11 @@
         const res = await authFetch(`/api/serials/${serialNumber}/full-data`);
         const data = await res.json();
         currentData.serial = data;
+
+        // Start polling for events updates (every 2 seconds)
+        eventsPollInterval = setInterval(() => {
+          refreshSerialEvents(serialNumber);
+        }, 2000);
 
         const titleEl = document.getElementById(getElementId('serialTitle'));
         if (titleEl) titleEl.textContent = serialNumber;
