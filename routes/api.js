@@ -1829,8 +1829,16 @@ router.post('/scan', (req, res) => {
           if (err) return res.status(400).json({ error: err.message });
 
           if (existingSerial) {
-            // Serial already exists - return it
-            return returnSerialData(existingSerial.id, res);
+            // Serial already exists - register as re-scan event
+            db.run(
+              `INSERT INTO events (serial_id, event_type, event_data) VALUES (?, ?, ?)`,
+              [existingSerial.id, 'scanned', JSON.stringify({ action: 're_scan', timestamp: new Date().toISOString() })],
+              (err) => {
+                if (err) console.error('Error adding re-scan event:', err);
+                return returnSerialData(existingSerial.id, res, false);
+              }
+            );
+            return;
           }
 
           // Create new serial (lazy-load on first scan)
