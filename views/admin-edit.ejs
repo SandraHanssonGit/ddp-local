@@ -121,16 +121,16 @@
           <div id="dataQualityIssues" class="space-y-2 text-sm max-h-64 overflow-y-auto pr-2"></div>
         </div>
 
-        <!-- Most Viewed Serials -->
+        <!-- Most Scanned Products -->
         <div class="bg-white rounded-lg shadow-md p-6">
-          <h2 class="text-xl font-semibold text-gray-900 mb-4">Most Viewed Product Passports</h2>
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Most Scanned Products</h2>
           <div class="overflow-x-auto">
             <table class="w-full text-sm border-collapse">
               <thead>
                 <tr class="bg-gray-100 border-b border-gray-300">
-                  <th class="px-4 py-2 text-left font-semibold text-gray-900">Serial Number</th>
-                  <th class="px-4 py-2 text-left font-semibold text-gray-900">Style</th>
-                  <th class="px-4 py-2 text-right font-semibold text-gray-900">Views</th>
+                  <th class="px-4 py-2 text-left font-semibold text-gray-900">Product</th>
+                  <th class="px-4 py-2 text-right font-semibold text-gray-900">Total Views</th>
+                  <th class="px-4 py-2 text-right font-semibold text-gray-900">Serials</th>
                 </tr>
               </thead>
               <tbody id="mostViewedTable">
@@ -2197,28 +2197,39 @@
 
         document.getElementById('activityTimeline').innerHTML = timelineHTML;
 
-        // Load most viewed serials
+        // Load most scanned products (aggregate by product)
         const mostViewedTable = document.getElementById('mostViewedTable');
-        const mostViewed = serials
-          .filter(s => s.view_count > 0)
-          .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
+        const productViewStats = {};
+
+        // Aggregate views by product
+        serials.forEach(s => {
+          const isTopp = s.product_type && s.product_type.toLowerCase() === 'tops';
+          const productKey = isTopp && s.variant ? `${s.style_number}-${s.variant}` : s.style_number;
+          if (!productViewStats[productKey]) {
+            productViewStats[productKey] = { views: 0, serials: new Set() };
+          }
+          productViewStats[productKey].views += (s.view_count || 0);
+          productViewStats[productKey].serials.add(s.id);
+        });
+
+        const mostScannedProducts = Object.entries(productViewStats)
+          .map(([product, stats]) => ({ product, views: stats.views, serialCount: stats.serials.size }))
+          .filter(p => p.views > 0)
+          .sort((a, b) => b.views - a.views)
           .slice(0, 10);
 
-        if (mostViewed.length > 0) {
-          mostViewedTable.innerHTML = mostViewed.map(s => {
-            const styleDisplay = s.style_number ? `${s.style_number}${s.variant ? '-' + s.variant : ''}` : 'N/A';
-            return `
-            <tr class="border-b border-gray-200 hover:bg-gray-50">
-              <td class="px-4 py-3 font-mono text-gray-900">${s.serial_number}</td>
-              <td class="px-4 py-3 text-gray-700">${styleDisplay}</td>
+        if (mostScannedProducts.length > 0) {
+          mostViewedTable.innerHTML = mostScannedProducts.map(p => `
+            <tr class="border-b border-gray-200 hover:bg-gray-50 cursor-pointer" onclick="goToLookup('style', '${p.product.split('-')[0]}')">
+              <td class="px-4 py-3 font-semibold text-blue-600 hover:underline">${p.product}</td>
               <td class="px-4 py-3 text-right">
-                <span class="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-bold">${s.view_count || 0}</span>
+                <span class="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-bold">${p.views}</span>
               </td>
+              <td class="px-4 py-3 text-right text-gray-600">${p.serialCount}</td>
             </tr>
-          `;
-          }).join('');
+          `).join('');
         } else {
-          mostViewedTable.innerHTML = '<tr><td colspan="3" class="px-4 py-3 text-center text-gray-500">No views yet</td></tr>';
+          mostViewedTable.innerHTML = '<tr><td colspan="3" class="px-4 py-3 text-center text-gray-500">No scans yet</td></tr>';
         }
 
       } catch (err) {
