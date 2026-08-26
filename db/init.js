@@ -27,7 +27,7 @@ db.serialize(() => {
 
   // Styles table (style-level metadata)
   // For jeans: style_number only, variant = NULL
-  // For topps: style_number + variant (e.g., 140929-B20)
+  // For tops: style_number + variant (e.g., 140929-B20)
   db.run(`
     CREATE TABLE IF NOT EXISTS styles (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,7 +51,7 @@ db.serialize(() => {
   db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_styles_unique ON styles(style_number, variant)`);
 
   // Style images (separate table for easier management)
-  // Supports variant for topps (e.g., style_number='101011', variant='B25')
+  // Supports variant for tops (e.g., style_number='101011', variant='B25')
   db.run(`
     CREATE TABLE IF NOT EXISTS style_images (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

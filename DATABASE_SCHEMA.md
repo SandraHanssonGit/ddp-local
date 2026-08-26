@@ -24,11 +24,11 @@ Authentication and access control
 ## Product & Batch Data
 
 ### `styles`
-Product level metadata (jeans or topps with variants)
+Product level metadata (jeans or tops with variants)
 - `id` (PK): Auto-incrementing ID
 - `style_number`: Product identifier (e.g., "114519")
-- `variant`: Optional variant code (e.g., "B20" for topps, NULL for jeans)
-- `product_type`: "jeans" or "topps"
+- `variant`: Optional variant code (e.g., "B20" for tops, NULL for jeans)
+- `product_type`: "jeans" or "tops"
 - `product_name`: Human-readable product name
 - `description`: Product description
 - `care_instructions`: Washing/care info
@@ -60,7 +60,7 @@ Individual serial numbers (unique product instance)
 - `id` (PK): Auto-incrementing ID
 - `batch_id` (FK → batches): Which batch contains this serial
 - `style_number` (FK → styles): Which style this serial belongs to
-- `variant`: Same variant as style (for jeans: NULL, for topps: variant code)
+- `variant`: Same variant as style (for jeans: NULL, for tops: variant code)
 - `serial_number` (UNIQUE): Unique serial identifier (e.g., "001AA")
 - `sgtin_numeric`: Serialized GTIN numeric format (auto-generated: `GTIN-14 + serial`)
 - `sgtin_uri`: Serialized GTIN URI format (auto-generated: `/01/GTIN-14/21/serial`)
@@ -84,10 +84,10 @@ Individual serial numbers (unique product instance)
 Product (style_number + variant)
   ├── GTIN-14 (stored here, product-level)
   ├── Product Info (name, description, care, etc.)
-  └── Variants (topps only; jeans have variant = NULL)
+  └── Variants (tops only; jeans have variant = NULL)
 
 Batch
-  └── Multiple Products (batch can contain jeans + topps mixed)
+  └── Multiple Products (batch can contain jeans + tops mixed)
       └── Serial Numbers
           ├── SGTIN (auto-generated from product.gtin_14 + serial)
           └── Serial-specific Data (size, condition, location)
