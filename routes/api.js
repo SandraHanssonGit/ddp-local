@@ -1834,9 +1834,14 @@ router.post('/scan', (req, res) => {
           }
 
           // Create new serial (lazy-load on first scan)
+          // Auto-generate SGTIN from GTIN-14 if available
+          const gtin_14 = style.gtin_14;
+          const sgtin_numeric = gtin_14 ? `${gtin_14}${serial_number}` : null;
+          const sgtin_uri = gtin_14 ? `/01/${gtin_14}/21/${serial_number}` : null;
+
           db.run(
-            `INSERT INTO serials (batch_id, style_number, variant, serial_number) VALUES (?, ?, ?, ?)`,
-            [batch_id, style_number, variant || null, serial_number],
+            `INSERT INTO serials (batch_id, style_number, variant, serial_number, sgtin_numeric, sgtin_uri) VALUES (?, ?, ?, ?, ?, ?)`,
+            [batch_id, style_number, variant || null, serial_number, sgtin_numeric, sgtin_uri],
             function(err) {
               if (err) {
                 if (err.message.includes('UNIQUE constraint failed: serials.serial_number')) {
