@@ -98,7 +98,7 @@ Batch
 ## Pass Versioning (ESPR Compliance)
 
 ### `batch_style_data`
-Current material composition for style within batch (with versioning)
+Current material composition for product within a batch (with versioning)
 - `id` (PK): Auto-incrementing ID
 - `batch_id` (FK): Which batch
 - `style_number` (FK): Which style
