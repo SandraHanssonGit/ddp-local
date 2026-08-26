@@ -1116,6 +1116,25 @@ router.get('/serials/:serial_number/full-data', (req, res) => {
   });
 });
 
+// Get events for a specific serial
+router.get('/serials/:serial_number/events', (req, res) => {
+  const { serial_number } = req.params;
+
+  db.get(`SELECT id FROM serials WHERE serial_number = ?`, [serial_number], (err, serial) => {
+    if (err) return res.status(400).json({ error: err.message });
+    if (!serial) return res.status(404).json({ error: 'Serial not found' });
+
+    db.all(
+      `SELECT * FROM events WHERE serial_id = ? ORDER BY created_at DESC LIMIT 10`,
+      [serial.id],
+      (err, events) => {
+        if (err) return res.status(400).json({ error: err.message });
+        res.json({ events: events || [] });
+      }
+    );
+  });
+});
+
 // Get style images (with variant support)
 router.get('/styles/:style_number/images', (req, res) => {
   const { style_number } = req.params;
