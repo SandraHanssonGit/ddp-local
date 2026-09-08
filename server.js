@@ -4,7 +4,10 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 const helmet = require('helmet');
 const jwt = require('jsonwebtoken');
-const db = require('./db/init');
+
+// Load appropriate database based on version
+const dbVersion = process.env.DB_VERSION || 'v1';
+const db = require(dbVersion === 'v2' ? './db/init-v2' : './db/init');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -73,9 +76,10 @@ app.get('/', (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`✓ Server running at http://localhost:${PORT}`);
+  console.log(`\n✓ DPP ${dbVersion.toUpperCase()} Server running at http://localhost:${PORT}`);
+  console.log(`✓ Database: ${process.env.DB_PATH || 'database.db'}`);
   console.log(`✓ DPP Hub: http://localhost:${PORT}/admin-edit`);
-  console.log(`✓ Public passport: http://localhost:${PORT}/p/114519-001-AA`);
+  console.log(`✓ Public passport: http://localhost:${PORT}/p/114519-001-AA\n`);
 });
 
 module.exports = app;
