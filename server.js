@@ -59,6 +59,12 @@ const requireAuth = (req, res, next) => {
 app.use('/api', require('./routes/api'));
 app.use('/p', require('./routes/public'));
 
+// V2 Admin API routes (if running v2)
+if (dbVersion === 'v2') {
+  app.use('/api/admin/styles', require('./routes/admin/styles'));
+  app.use('/api/admin/fields', require('./routes/admin/fields'));
+}
+
 // Login page
 app.get('/login', (req, res) => {
   res.render('login');
