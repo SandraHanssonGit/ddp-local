@@ -63,6 +63,7 @@ app.use('/p', require('./routes/public'));
 if (dbVersion === 'v2') {
   app.use('/api/admin/styles', require('./routes/admin/styles'));
   app.use('/api/admin/fields', require('./routes/admin/fields'));
+  app.use('/api/admin/passports', require('./routes/admin/passports'));
 }
 
 // Login page
