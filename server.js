@@ -59,6 +59,11 @@ const requireAuth = (req, res, next) => {
 app.use('/api', require('./routes/api'));
 app.use('/p', require('./routes/public'));
 
+// Consumer DPP routes (both v1 and v2)
+if (dbVersion === 'v2') {
+  app.use('/dpp', require('./routes/public/consumer'));
+}
+
 // V2 Admin API routes (if running v2)
 if (dbVersion === 'v2') {
   app.use('/api/admin/styles', require('./routes/admin/styles'));

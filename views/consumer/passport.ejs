@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= passport.style.product_name %> - <%= passport.serialNumber %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .category-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        .eu-required {
+            background-color: #dbeafe;
+            color: #0c4a6e;
+        }
+        .nudie {
+            background-color: #dcfce7;
+            color: #14532d;
+        }
+        .field-group {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .field-item {
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .field-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        .field-label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+        .field-value {
+            color: #111827;
+            font-size: 1rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .product-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            margin-bottom: 2rem;
+        }
+        .product-specs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .spec-box {
+            background: #f9fafb;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border-left: 4px solid #667eea;
+        }
+        .spec-label {
+            font-size: 0.75rem;
+            color: #6b7280;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        .spec-value {
+            font-size: 1.125rem;
+            color: #111827;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-2xl mx-auto">
+            <!-- Product Header -->
+            <div class="product-header">
+                <h1 class="text-3xl font-bold mb-2"><%= passport.style.product_name %></h1>
+                <p class="text-blue-100 mb-4"><%= passport.style.product_type %></p>
+                <div class="text-sm font-mono text-blue-100">
+                    Serial: <strong><%= passport.serialNumber %></strong>
+                </div>
+            </div>
+
+            <!-- Product Specifications -->
+            <div class="product-specs">
+                <div class="spec-box">
+                    <div class="spec-label">Style Number</div>
+                    <div class="spec-value"><%= passport.style.style_number %></div>
+                </div>
+                <div class="spec-box">
+                    <div class="spec-label">Size</div>
+                    <div class="spec-value"><%= passport.gtin.size || 'N/A' %></div>
+                </div>
+                <div class="spec-box">
+                    <div class="spec-label">Color</div>
+                    <div class="spec-value"><%= passport.gtin.color || 'N/A' %></div>
+                </div>
+                <div class="spec-box">
+                    <div class="spec-label">Production Date</div>
+                    <div class="spec-value"><%= passport.batch.production_date || 'N/A' %></div>
+                </div>
+                <div class="spec-box">
+                    <div class="spec-label">Made In</div>
+                    <div class="spec-value"><%= passport.batch.country_of_production || 'N/A' %></div>
+                </div>
+                <div class="spec-box">
+                    <div class="spec-label">Batch</div>
+                    <div class="spec-value"><%= passport.batch.batch_id %></div>
+                </div>
+            </div>
+
+            <!-- Digital Passport Sections -->
+            <% if (formattedCategories && formattedCategories.length > 0) { %>
+                <% formattedCategories.forEach(category => { %>
+                    <% if (category.fields && category.fields.length > 0) { %>
+                        <div class="field-group">
+                            <div class="mb-4 pb-4 border-b-2 border-gray-200">
+                                <span class="category-badge <%= category.category %>">
+                                    <%= category.icon %> <%= category.label %>
+                                </span>
+                                <% if (category.description) { %>
+                                    <p class="text-gray-600 text-sm mt-2"><%= category.description %></p>
+                                <% } %>
+                            </div>
+
+                            <% category.fields.forEach(field => { %>
+                                <% if (field.value) { %>
+                                    <div class="field-item">
+                                        <div class="field-label"><%= field.label %></div>
+                                        <div class="field-value"><%= field.value %></div>
+                                    </div>
+                                <% } %>
+                            <% }); %>
+                        </div>
+                    <% } %>
+                <% }); %>
+            <% } else { %>
+                <div class="field-group">
+                    <p class="text-gray-500 text-center py-8">
+                        No detailed information available for this product.
+                    </p>
+                </div>
+            <% } %>
+
+            <!-- Footer -->
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <p class="text-gray-500 text-xs text-center">
+                    Nudie Jeans Digital Product Passport<br>
+                    Made with care since 1992<br>
+                    <span class="font-mono text-gray-400">Serial: <%= passport.serialNumber %></span>
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Not Found</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen flex items-center justify-center px-4">
+        <div class="text-center">
+            <div class="text-6xl mb-4">🔍</div>
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">Product Not Found</h1>
+            <p class="text-lg text-gray-600 mb-8">
+                We couldn't find a product with serial number:<br>
+                <span class="font-mono text-gray-800 font-semibold"><%= serialNumber %></span>
+            </p>
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 text-left max-w-md mx-auto">
+                <p class="text-blue-900 text-sm">
+                    <strong>Hint:</strong> Make sure you have the correct serial number.
+                    It's usually found on the product label or your receipt.
+                </p>
+            </div>
+            <a href="/" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
+                Return to Home
+            </a>
+            <p class="text-gray-500 text-sm mt-8">
+                Nudie Jeans Digital Product Passport
+            </p>
+        </div>
+    </div>
+</body>
+</html>
