@@ -1,6 +1,7 @@
 const passportResolver = require('./passport-resolver');
 const sgtinRepository = require('../repositories/sgtins');
 const fieldRepository = require('../repositories/fields');
+const lifecycleService = require('./lifecycle-service');
 
 class ConsumerService {
   /**
@@ -35,6 +36,9 @@ class ConsumerService {
       });
     }
 
+    // Get lifecycle events
+    const events = await lifecycleService.getEventsForPassport(sgtin.id);
+
     return {
       serialNumber,
       sgtin: {
@@ -63,7 +67,9 @@ class ConsumerService {
       },
       consumerFields,
       groupedByCategory,
-      fieldCount: consumerFields.length
+      fieldCount: consumerFields.length,
+      events,
+      eventCount: events.length
     };
   }
 
