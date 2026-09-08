@@ -71,6 +71,10 @@ if (dbVersion === 'v2') {
   app.use('/api/admin/passports', require('./routes/admin/passports'));
   app.use('/api/admin/overrides', require('./routes/admin/overrides'));
   app.use('/api/admin/lifecycle', require('./routes/admin/lifecycle'));
+  app.use('/api/admin/config', require('./routes/admin/config'));
+
+  // V2 Admin UI routes
+  app.use('/admin-config', requireAuth, require('./routes/admin/config'));
 }
 
 // Login page

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DPP Field Configuration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-eu {
+            background-color: #dbeafe;
+            color: #0c4a6e;
+        }
+        .badge-nudie {
+            background-color: #dcfce7;
+            color: #14532d;
+        }
+        .badge-required {
+            background-color: #fee2e2;
+            color: #7f1d1d;
+        }
+        .badge-public {
+            background-color: #e0e7ff;
+            color: #3730a3;
+        }
+        .field-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.2s;
+        }
+        .field-card:hover {
+            border-color: #9ca3af;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-6xl mx-auto">
+            <!-- Header -->
+            <div class="mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h1 class="text-3xl font-bold text-gray-900">DPP Field Configuration</h1>
+                    <a href="/admin-config/new" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition">
+                        + New Field
+                    </a>
+                </div>
+                <p class="text-gray-600">Manage Digital Product Passport fields and categories</p>
+            </div>
+
+            <!-- Statistics -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white rounded-lg shadow p-4">
+                    <div class="text-3xl font-bold text-blue-600"><%= fieldCount %></div>
+                    <div class="text-sm text-gray-600 mt-1">Total Fields</div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-4">
+                    <div class="text-3xl font-bold text-green-600"><%= byCategory['nudie']?.length || 0 %></div>
+                    <div class="text-sm text-gray-600 mt-1">Nudie-Specific</div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-4">
+                    <div class="text-3xl font-bold text-blue-600"><%= byCategory['eu_required']?.length || 0 %></div>
+                    <div class="text-sm text-gray-600 mt-1">EU-Required</div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-4">
+                    <div class="text-3xl font-bold text-amber-600"><%= allFields.filter(f => f.required).length %></div>
+                    <div class="text-sm text-gray-600 mt-1">Required</div>
+                </div>
+            </div>
+
+            <!-- Fields by Category -->
+            <% Object.entries(byCategory).forEach(([category, fields]) => { %>
+                <div class="mb-8">
+                    <div class="flex items-center mb-4">
+                        <h2 class="text-2xl font-bold text-gray-900">
+                            <% if (category === 'eu_required') { %>
+                                🇪🇺 EU Digital Product Passport
+                            <% } else if (category === 'nudie') { %>
+                                ♻️ Nudie Jeans Story
+                            <% } else { %>
+                                📋 <%= category %>
+                            <% } %>
+                        </h2>
+                        <span class="ml-4 bg-gray-200 text-gray-800 px-3 py-1 rounded-full text-sm font-semibold">
+                            <%= fields.length %> fields
+                        </span>
+                    </div>
+
+                    <div class="space-y-3">
+                        <% fields.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)).forEach(field => { %>
+                            <div class="field-card">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-grow">
+                                        <h3 class="text-lg font-semibold text-gray-900"><%= field.label %></h3>
+                                        <p class="text-sm text-gray-600 mt-1"><strong>Key:</strong> <code class="bg-gray-100 px-2 py-1 rounded"><%= field.field_key %></code></p>
+                                        <% if (field.description) { %>
+                                            <p class="text-sm text-gray-600 mt-2"><%= field.description %></p>
+                                        <% } %>
+
+                                        <div class="flex flex-wrap gap-2 mt-3">
+                                            <span class="badge badge-<%= category === 'eu_required' ? 'eu' : 'nudie' %>">
+                                                <%= category === 'eu_required' ? '🇪🇺 EU-Required' : '♻️ Nudie' %>
+                                            </span>
+                                            <span class="badge" style="background-color: #f3e8ff; color: #581c87;">
+                                                <%= field.data_type || 'text' %>
+                                            </span>
+                                            <% if (field.required) { %>
+                                                <span class="badge badge-required">⚠️ Required</span>
+                                            <% } %>
+                                            <% if (field.consumer_visible) { %>
+                                                <span class="badge badge-public">👁️ Consumer Visible</span>
+                                            <% } %>
+                                            <% if (field.sort_order) { %>
+                                                <span class="badge" style="background-color: #fef3c7; color: #92400e;">
+                                                    Order: <%= field.sort_order %>
+                                                </span>
+                                            <% } %>
+                                        </div>
+                                    </div>
+
+                                    <div class="ml-4 flex gap-2">
+                                        <a href="/admin-config/fields/<%= field.id %>/edit" class="text-blue-600 hover:text-blue-900 font-semibold text-sm">
+                                            ✏️ Edit
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+                </div>
+            <% }); %>
+
+            <!-- Empty state -->
+            <% if (fieldCount === 0) { %>
+                <div class="text-center py-12 bg-white rounded-lg border-2 border-dashed border-gray-300">
+                    <p class="text-gray-600 mb-4">No fields configured yet</p>
+                    <a href="/admin-config/new" class="text-blue-600 hover:text-blue-900 font-semibold">
+                        Create your first field →
+                    </a>
+                </div>
+            <% } %>
+
+            <!-- Footer -->
+            <div class="mt-12 pt-8 border-t border-gray-200">
+                <p class="text-gray-500 text-sm">
+                    DPP Field Configuration • <a href="/admin-edit" class="text-blue-600 hover:underline">Back to Admin</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= mode === 'create' ? 'Create Field' : 'Edit Field' %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-2xl mx-auto">
+            <!-- Header -->
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold text-gray-900">
+                    <% if (mode === 'create') { %>
+                        Create New DPP Field
+                    <% } else { %>
+                        Edit Field: <%= field.label %>
+                    <% } %>
+                </h1>
+                <p class="text-gray-600 mt-2">
+                    <% if (mode === 'create') { %>
+                        Define a new field that can be used in Digital Product Passports
+                    <% } else { %>
+                        Modify field properties and settings
+                    <% } %>
+                </p>
+            </div>
+
+            <!-- Form -->
+            <form id="fieldForm" class="bg-white rounded-lg shadow p-6">
+                <!-- Field Key -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">
+                        Field Key <span class="text-red-600">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        name="field_key"
+                        id="field_key"
+                        value="<%= field?.field_key || '' %>"
+                        placeholder="e.g., fiber_composition"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        <% if (mode === 'edit') { %>readonly<% } %>
+                    />
+                    <p class="text-gray-600 text-xs mt-1">Unique identifier for this field (machine-readable)</p>
+                </div>
+
+                <!-- Label -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">
+                        Label <span class="text-red-600">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        name="label"
+                        value="<%= field?.label || '' %>"
+                        placeholder="e.g., Fiber Composition"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                    />
+                    <p class="text-gray-600 text-xs mt-1">Human-readable name for display</p>
+                </div>
+
+                <!-- Category -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">
+                        Category <span class="text-red-600">*</span>
+                    </label>
+                    <select
+                        name="category"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                    >
+                        <option value="">-- Select Category --</option>
+                        <% categories.forEach(cat => { %>
+                            <option value="<%= cat %>" <% if (field?.category === cat) { %>selected<% } %>>
+                                <% if (cat === 'eu_required') { %>
+                                    🇪🇺 EU Digital Product Passport
+                                <% } else if (cat === 'nudie') { %>
+                                    ♻️ Nudie Jeans Story
+                                <% } else { %>
+                                    <%= cat %>
+                                <% } %>
+                            </option>
+                        <% }); %>
+                    </select>
+                    <p class="text-gray-600 text-xs mt-1">Which category does this field belong to?</p>
+                </div>
+
+                <!-- Description -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">Description</label>
+                    <textarea
+                        name="description"
+                        rows="3"
+                        placeholder="Brief description of what this field is used for"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    ><%= field?.description || '' %></textarea>
+                </div>
+
+                <!-- Data Type -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">Data Type</label>
+                    <select
+                        name="data_type"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <% dataTypes.forEach(type => { %>
+                            <option value="<%= type %>" <% if (field?.data_type === type) { %>selected<% } %>>
+                                <%= type %>
+                            </option>
+                        <% }); %>
+                    </select>
+                    <p class="text-gray-600 text-xs mt-1">How should this value be formatted?</p>
+                </div>
+
+                <!-- Checkboxes Row -->
+                <div class="mb-6 grid grid-cols-2 gap-4">
+                    <!-- Required -->
+                    <div class="flex items-center">
+                        <input
+                            type="checkbox"
+                            name="required"
+                            id="required"
+                            value="true"
+                            <% if (field?.required) { %>checked<% } %>
+                            class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <label for="required" class="ml-2 text-sm text-gray-900">
+                            ⚠️ Required Field
+                        </label>
+                    </div>
+
+                    <!-- Consumer Visible -->
+                    <div class="flex items-center">
+                        <input
+                            type="checkbox"
+                            name="consumer_visible"
+                            id="consumer_visible"
+                            value="true"
+                            <% if (field?.consumer_visible !== false) { %>checked<% } %>
+                            class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <label for="consumer_visible" class="ml-2 text-sm text-gray-900">
+                            👁️ Consumer Visible
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Sort Order -->
+                <div class="mb-8">
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">Sort Order</label>
+                    <input
+                        type="number"
+                        name="sort_order"
+                        value="<%= field?.sort_order || 0 %>"
+                        min="0"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p class="text-gray-600 text-xs mt-1">Display order (lower numbers first)</p>
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex gap-3">
+                    <button
+                        type="submit"
+                        class="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
+                    >
+                        <% if (mode === 'create') { %>Create Field<% } else { %>Save Changes<% } %>
+                    </button>
+                    <a
+                        href="/admin-config"
+                        class="bg-gray-300 text-gray-900 px-6 py-2 rounded-lg font-semibold hover:bg-gray-400 transition"
+                    >
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('fieldForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const data = {
+                field_key: formData.get('field_key'),
+                label: formData.get('label'),
+                category: formData.get('category'),
+                description: formData.get('description'),
+                data_type: formData.get('data_type'),
+                required: formData.get('required') === 'true',
+                consumer_visible: formData.get('consumer_visible') === 'true',
+                sort_order: formData.get('sort_order')
+            };
+
+            try {
+                const url = '<% if (mode === "create") { %>/api/admin/config/fields<% } else { %>/api/admin/config/fields/<%= field.id %><% } %>';
+                const method = '<% if (mode === "create") { %>POST<% } else { %>PUT<% } %>';
+
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message || 'Field saved successfully!');
+                    window.location.href = '/admin-config';
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        });
+    </script>
+</body>
+</html>
