@@ -1,5 +1,3 @@
-require('dotenv').config();
-
 const styleRepository = require('../repositories/styles');
 const batchRepository = require('../repositories/batches');
 const gtinRepository = require('../repositories/gtins');
