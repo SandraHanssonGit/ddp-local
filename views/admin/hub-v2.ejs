@@ -161,22 +161,44 @@
             <table class="w-full border-collapse">
               <thead>
                 <tr class="bg-gray-100 border-b border-gray-300">
-                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">GTIN</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Product</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Size/Variant</th>
                   <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Batch</th>
-                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Size</th>
-                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Color</th>
                   <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">SGTINs</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">GTIN</th>
                   <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                <% gtins.forEach(gtin => { %>
+                <% gtins.forEach(gtin => {
+                  let displaySize = '-';
+                  if (gtin.product_type === 'jeans_adult' && gtin.size_value_1 && gtin.size_value_2) {
+                    displaySize = `L${gtin.size_value_1}-W${gtin.size_value_2}`;
+                  } else if (gtin.product_type === 'tshirt' && gtin.size_value_1) {
+                    displaySize = gtin.size_value_2 ? `${gtin.size_value_1} (${gtin.size_value_2})` : gtin.size_value_1;
+                  } else if (gtin.product_type === 'kids' && gtin.size_value_1) {
+                    displaySize = gtin.size_value_2 ? `K${gtin.size_value_1} (${gtin.size_value_2})` : `K${gtin.size_value_1}`;
+                  } else if (gtin.product_type === 'no_size') {
+                    displaySize = gtin.size_value_2 || 'One Size';
+                  } else if (gtin.product_type === 'legacy' || !gtin.product_type) {
+                    if (gtin.size_value_1 && gtin.size_value_2) {
+                      displaySize = `${gtin.size_value_1}-${gtin.size_value_2}`;
+                    } else if (gtin.size) {
+                      displaySize = gtin.size;
+                    }
+                  }
+                %>
                   <tr class="border-b border-gray-200 hover:bg-gray-50">
-                    <td class="px-4 py-3 font-mono text-sm"><%= gtin.gtin %></td>
-                    <td class="px-4 py-3 text-sm"><%= gtin.batch_id %></td>
-                    <td class="px-4 py-3 text-sm"><%= gtin.size || '-' %></td>
-                    <td class="px-4 py-3 text-sm"><%= gtin.color || '-' %></td>
-                    <td class="px-4 py-3 text-sm text-gray-600"><%= gtin.sgtin_count || 0 %></td>
+                    <td class="px-4 py-3 text-sm">
+                      <div class="font-semibold text-gray-900"><%= gtin.style_number %></div>
+                      <div class="text-xs text-gray-500"><%= gtin.product_name || 'Unknown' %></div>
+                    </td>
+                    <td class="px-4 py-3 text-sm font-mono font-semibold text-blue-600"><%= displaySize %></td>
+                    <td class="px-4 py-3 text-sm text-gray-600"><%= gtin.batch_id %></td>
+                    <td class="px-4 py-3 text-sm text-center font-semibold"><%= gtin.sgtin_count || 0 %></td>
+                    <td class="px-4 py-3 font-mono text-xs text-gray-500">
+                      <span title="<%= gtin.gtin %>"><%= gtin.gtin.substring(0, 8) %>...</span>
+                    </td>
                     <td class="px-4 py-3 text-sm">
                       <a href="/admin-v2/gtins/<%= gtin.id %>" class="text-blue-600 hover:underline">Edit →</a>
                     </td>
