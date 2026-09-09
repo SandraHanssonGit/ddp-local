@@ -74,7 +74,7 @@ router.get('/', async (req, res) => {
     const tab = req.query.tab || 'styles';
     const user = { username: 'demo', role: 'admin' };
 
-    let data = { tab, user, styles: [], batches: [], gtins: [], sgtins: [], fields: [] };
+    let data = { tab, user, viewType: 'master', styles: [], batches: [], gtins: [], sgtins: [], fields: [] };
 
     // Always load styles (for filters in other tabs)
     data.styles = await styleRepository.list();
