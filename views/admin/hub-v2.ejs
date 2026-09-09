@@ -141,17 +141,43 @@
     <!-- GTINs TAB -->
     <% if (tab === 'gtins') { %>
       <div class="bg-white rounded-lg shadow-md p-8">
-        <div class="flex justify-between items-center mb-6">
-          <div class="flex items-center gap-4">
+        <div class="mb-6 space-y-4">
+          <div class="flex justify-between items-start">
             <h2 class="text-2xl font-bold text-gray-900">GTINs</h2>
+            <div class="text-xs text-gray-500">
+              <% if (gtins) { %>
+                Showing <span id="gtinsCount"><%= gtins.length %></span> of <span id="gtinsTotalCount"><%= gtins.length %></span>
+              <% } %>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Search field -->
+            <div>
+              <input
+                type="text"
+                id="searchGtins"
+                placeholder="Search: product name, size, style, GTIN..."
+                class="w-full border border-gray-300 rounded px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
+                onkeyup="searchGtinsTable()">
+            </div>
+
+            <!-- Batch filter -->
             <div>
               <label class="text-sm text-gray-600 mr-2">Filter by Batch:</label>
-              <select id="filterBatch" class="border border-gray-300 rounded px-3 py-1 text-sm" onchange="filterGtins()">
+              <select id="filterBatch" class="border border-gray-300 rounded px-3 py-2 text-sm w-full" onchange="filterGtins()">
                 <option value="">All Batches</option>
                 <% if (batches) { batches.forEach(b => { %>
                   <option value="<%= b.id %>"><%= b.batch_id %></option>
                 <% }); } %>
               </select>
+            </div>
+
+            <!-- Clear search -->
+            <div class="flex items-end">
+              <button onclick="clearGtinsSearch()" class="w-full bg-gray-200 text-gray-700 px-4 py-2 rounded text-sm hover:bg-gray-300 font-medium">
+                Clear Search
+              </button>
             </div>
           </div>
         </div>
@@ -188,7 +214,7 @@
                     }
                   }
                 %>
-                  <tr class="border-b border-gray-200 hover:bg-gray-50">
+                  <tr class="border-b border-gray-200 hover:bg-gray-50 gtin-row" data-searchtext="<%= (gtin.style_number + ' ' + gtin.product_name + ' ' + gtin.gtin).toLowerCase() %>">
                     <td class="px-4 py-3 text-sm">
                       <div class="font-semibold text-gray-900"><%= gtin.style_number %></div>
                       <div class="text-xs text-gray-500"><%= gtin.product_name || 'Unknown' %></div>
@@ -367,6 +393,52 @@
       } else {
         window.location.href = `/admin-v2?tab=sgtins`;
       }
+    }
+
+    // Search GTINs table
+    function searchGtinsTable() {
+      const searchInput = document.getElementById('searchGtins');
+      const searchText = searchInput.value.toLowerCase();
+      const rows = document.querySelectorAll('.gtin-row');
+      let visibleCount = 0;
+
+      rows.forEach(row => {
+        const searchData = row.getAttribute('data-searchtext') || '';
+        if (searchText === '' || searchData.includes(searchText)) {
+          row.style.display = '';
+          visibleCount++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      // Update counter
+      const totalCount = rows.length;
+      const countElement = document.getElementById('gtinsCount');
+      if (countElement) {
+        countElement.textContent = visibleCount;
+      }
+
+      // Show/hide "no results" message
+      const table = document.querySelector('table tbody');
+      let noResultsMsg = document.getElementById('noResultsMsg');
+      if (visibleCount === 0 && table) {
+        if (!noResultsMsg) {
+          noResultsMsg = document.createElement('div');
+          noResultsMsg.id = 'noResultsMsg';
+          noResultsMsg.className = 'text-center py-8 text-gray-500';
+          noResultsMsg.innerHTML = 'No GTINs match your search';
+          table.parentElement.appendChild(noResultsMsg);
+        }
+        noResultsMsg.style.display = '';
+      } else if (noResultsMsg) {
+        noResultsMsg.style.display = 'none';
+      }
+    }
+
+    function clearGtinsSearch() {
+      document.getElementById('searchGtins').value = '';
+      searchGtinsTable();
     }
 
     function editField(idx) {
