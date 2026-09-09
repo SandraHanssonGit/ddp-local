@@ -5,6 +5,7 @@ const batchRepository = require('../../repositories/batches');
 const gtinRepository = require('../../repositories/gtins');
 const sgtinRepository = require('../../repositories/sgtins');
 const fieldService = require('../../services/field-service');
+const ProductTypeConfig = require('../../services/product-type-config');
 const db = require('../../db/init-v2').db;
 
 // Helper to get counts
@@ -302,6 +303,25 @@ router.get('/gtins/:gtinId', async (req, res) => {
     const allFields = (await fieldService.listFields()).filter(f => f.editable_at_gtin);
     const gtinValues = await fieldService.getEntityValues('gtin', gtin.id);
 
+    // Load product type configuration
+    const allProductTypes = ProductTypeConfig.listProductTypes().map(typeId => {
+      return {
+        id: typeId,
+        ...ProductTypeConfig.getProductType(typeId)
+      };
+    });
+
+    const currentProductType = gtin.product_type
+      ? ProductTypeConfig.getProductType(gtin.product_type)
+      : null;
+
+    const sizeComponentTemplate = currentProductType
+      ? ProductTypeConfig.getSizeComponentTemplate(gtin.product_type)
+      : [];
+
+    // Calculate display size
+    const displaySize = ProductTypeConfig.getDisplaySize(gtin);
+
     res.render('admin/gtin-detail', {
       gtin,
       style,
@@ -309,6 +329,10 @@ router.get('/gtins/:gtinId', async (req, res) => {
       sgtins,
       allFields,
       gtinValues,
+      allProductTypes,
+      currentProductType,
+      sizeComponentTemplate,
+      displaySize,
       user: { username: 'demo', role: 'admin' }
     });
   } catch (err) {
@@ -431,6 +455,35 @@ router.patch('/fields/:fieldId', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('[update-field]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Update GTIN product type and size values
+router.patch('/gtins/:gtinId/product-type', async (req, res) => {
+  try {
+    const gtinId = req.params.gtinId;
+    const { product_type, item_number, size_value_1, size_value_2, size_value_3 } = req.body;
+
+    // Validate product type if provided
+    if (product_type) {
+      const config = ProductTypeConfig.getProductType(product_type);
+      if (!config) {
+        return res.status(400).json({ success: false, error: 'Invalid product type' });
+      }
+    }
+
+    await gtinRepository.update(gtinId, {
+      product_type: product_type || null,
+      item_number: item_number || null,
+      size_value_1: size_value_1 || null,
+      size_value_2: size_value_2 || null,
+      size_value_3: size_value_3 || null
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[update-gtin-product-type]', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Import GTINs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+  <div class="max-w-4xl mx-auto py-12 px-4">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+      <div>
+        <h1 class="text-4xl font-bold text-gray-900">Import GTINs</h1>
+        <p class="text-gray-600 mt-2">Bulk import product data from CSV</p>
+      </div>
+      <a href="/admin-v2" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+        ← Back to Hub
+      </a>
+    </div>
+
+    <!-- Instructions -->
+    <div class="bg-white rounded-lg shadow-md p-8 mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4">Import Instructions</h2>
+      <div class="space-y-4 text-gray-700">
+        <div>
+          <h3 class="font-bold text-lg mb-2">CSV Format</h3>
+          <p>Your CSV file must have the following columns (in any order):</p>
+          <ul class="list-disc list-inside ml-2 mt-2 text-sm space-y-1">
+            <li><strong>gtin</strong> (required) - GTIN/EAN number</li>
+            <li><strong>batch_id</strong> (required) - Batch ID (numeric)</li>
+            <li><strong>style_id</strong> (required) - Style ID (numeric)</li>
+            <li><strong>item_number</strong> (optional) - Item number (e.g., 112327-L30-W24)</li>
+            <li><strong>ean</strong> (optional) - EAN code</li>
+            <li><strong>weight</strong> (optional) - Weight in grams</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="font-bold text-lg mb-2">Example CSV</h3>
+          <pre class="bg-gray-50 p-4 rounded border border-gray-300 overflow-x-auto text-sm">gtin,batch_id,style_id,item_number,ean,weight
+5707141145391,1,1,112327-L30-W24,5707141145391,650
+5707141145392,1,1,112327-L32-W24,5707141145392,660
+5707141145407,1,2,131274-B01-003,5707141145407,200</pre>
+        </div>
+
+        <div>
+          <h3 class="font-bold text-lg mb-2">Product Type Detection</h3>
+          <p>Product type will be auto-detected from the item_number pattern:</p>
+          <ul class="list-disc list-inside ml-2 mt-2 text-sm space-y-1">
+            <li><strong>Jeans:</strong> STYLE-L##-W## (e.g., 112327-L30-W24)</li>
+            <li><strong>T-Shirts:</strong> STYLE-BXX-### (e.g., 131274-B01-003)</li>
+            <li><strong>Kids:</strong> STYLE-BXX-K## (e.g., 910006-B26-K10)</li>
+            <li><strong>No-Size:</strong> STYLE or STYLE-VARIANT (e.g., 550001)</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="font-bold text-lg mb-2">Import Process</h3>
+          <ol class="list-decimal list-inside ml-2 mt-2 text-sm space-y-1">
+            <li>Paste your CSV content in the text area</li>
+            <li>Click "Preview" to validate the data (dry-run)</li>
+            <li>Review errors and row counts</li>
+            <li>Click "Import" to execute (or cancel to edit)</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- Import Form -->
+    <div class="bg-white rounded-lg shadow-md p-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">CSV Data</h2>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-2">
+            Paste CSV Content
+            <span class="text-xs font-semibold text-gray-500 ml-2 px-2 py-1 bg-gray-100 rounded">Required</span>
+          </label>
+          <textarea id="csv-content" class="w-full border border-gray-300 rounded px-4 py-3 focus:outline-none focus:border-gray-900 font-mono" rows="10" placeholder="gtin,batch_id,style_id,item_number&#10;5707141145391,1,1,112327-L30-W24&#10;5707141145392,1,1,112327-L32-W24"></textarea>
+          <p class="text-xs text-gray-500 mt-1">Paste your entire CSV including headers</p>
+        </div>
+
+        <div class="flex gap-3">
+          <button type="button" onclick="previewImport()" class="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700 font-semibold">
+            Preview (Dry-Run)
+          </button>
+          <button type="button" id="import-btn" onclick="executeImport()" class="bg-green-600 text-white px-6 py-3 rounded hover:bg-green-700 font-semibold" disabled>
+            Import
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview Results -->
+    <div id="preview-section" class="hidden mt-8 space-y-6">
+      <div class="bg-white rounded-lg shadow-md p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Preview Results (Dry-Run)</h2>
+
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+            <p class="text-gray-600 text-sm">Total Rows</p>
+            <p class="text-2xl font-bold text-blue-600" id="stat-total">0</p>
+          </div>
+          <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+            <p class="text-gray-600 text-sm">Ready to Create</p>
+            <p class="text-2xl font-bold text-green-600" id="stat-created">0</p>
+          </div>
+          <div class="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+            <p class="text-gray-600 text-sm">Skipped (Duplicates)</p>
+            <p class="text-2xl font-bold text-yellow-600" id="stat-skipped">0</p>
+          </div>
+          <div class="bg-red-50 rounded-lg p-4 border border-red-200">
+            <p class="text-gray-600 text-sm">Errors</p>
+            <p class="text-2xl font-bold text-red-600" id="stat-errors">0</p>
+          </div>
+        </div>
+
+        <div class="text-center mb-6">
+          <p class="text-gray-600">Success Rate: <span class="text-lg font-bold text-gray-900" id="success-rate">0%</span></p>
+        </div>
+
+        <!-- Errors Section -->
+        <div id="errors-section" class="mb-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-3 text-red-600">Errors (First 10)</h3>
+          <div id="errors-list" class="space-y-2"></div>
+          <p id="errors-more" class="text-sm text-gray-500 mt-2 hidden">... and more errors</p>
+        </div>
+
+        <!-- Created Section -->
+        <div id="created-section" class="mb-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-3 text-green-600">Ready to Create (First 10)</h3>
+          <div id="created-list" class="space-y-2"></div>
+          <p id="created-more" class="text-sm text-gray-500 mt-2 hidden">... and more items</p>
+        </div>
+
+        <!-- Skipped Section -->
+        <div id="skipped-section" class="mb-6 hidden">
+          <h3 class="text-lg font-bold text-gray-900 mb-3 text-yellow-600">Skipped (First 10)</h3>
+          <div id="skipped-list" class="space-y-2"></div>
+          <p id="skipped-more" class="text-sm text-gray-500 mt-2 hidden">... and more skipped items</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Section (After Import) -->
+    <div id="results-section" class="hidden mt-8 space-y-6">
+      <div class="bg-white rounded-lg shadow-md p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Import Results</h2>
+
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+            <p class="text-gray-600 text-sm">Total Rows</p>
+            <p class="text-2xl font-bold text-blue-600" id="result-total">0</p>
+          </div>
+          <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+            <p class="text-gray-600 text-sm">Created</p>
+            <p class="text-2xl font-bold text-green-600" id="result-created">0</p>
+          </div>
+          <div class="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+            <p class="text-gray-600 text-sm">Skipped</p>
+            <p class="text-2xl font-bold text-yellow-600" id="result-skipped">0</p>
+          </div>
+          <div class="bg-red-50 rounded-lg p-4 border border-red-200">
+            <p class="text-gray-600 text-sm">Errors</p>
+            <p class="text-2xl font-bold text-red-600" id="result-errors">0</p>
+          </div>
+        </div>
+
+        <!-- Import Results -->
+        <div id="final-results" class="space-y-4"></div>
+
+        <div class="flex gap-3 mt-6">
+          <a href="/admin-v2?tab=gtins" class="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700 font-semibold">
+            View GTINs in Hub
+          </a>
+          <button type="button" onclick="location.reload()" class="bg-gray-600 text-white px-6 py-3 rounded hover:bg-gray-700 font-semibold">
+            Import Another CSV
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let lastPreviewResult = null;
+
+    async function previewImport() {
+      const csvContent = document.getElementById('csv-content').value;
+
+      if (!csvContent.trim()) {
+        alert('Please paste CSV content');
+        return;
+      }
+
+      try {
+        const response = await fetch('/admin/import/preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ csvContent })
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          alert('Error: ' + (err.error || 'Unknown error'));
+          return;
+        }
+
+        const result = await response.json();
+        lastPreviewResult = result;
+
+        displayPreviewResults(result);
+        document.getElementById('preview-section').classList.remove('hidden');
+        document.getElementById('import-btn').disabled = false;
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    function displayPreviewResults(result) {
+      const { stats, preview } = result;
+
+      // Update stats
+      document.getElementById('stat-total').textContent = stats.totalRows;
+      document.getElementById('stat-created').textContent = stats.created;
+      document.getElementById('stat-skipped').textContent = stats.skipped;
+      document.getElementById('stat-errors').textContent = stats.errors;
+      document.getElementById('success-rate').textContent = stats.successRate + '%';
+
+      // Display errors
+      const errorsList = document.getElementById('errors-list');
+      errorsList.innerHTML = '';
+      if (preview.errors && preview.errors.length > 0) {
+        preview.errors.forEach(err => {
+          const div = document.createElement('div');
+          div.className = 'p-3 bg-red-50 border-l-4 border-red-300 rounded';
+          const errMsg = err.errors ? err.errors.join('; ') : err.message;
+          div.innerHTML = `<p class="text-sm font-semibold text-red-700">Row ${err.rowIndex}: ${err.gtin}</p><p class="text-xs text-red-600 mt-1">${errMsg}</p>`;
+          errorsList.appendChild(div);
+        });
+        document.getElementById('errors-more').classList.toggle('hidden', !preview.hasMoreErrors);
+      } else {
+        errorsList.innerHTML = '<p class="text-green-600">No errors!</p>';
+      }
+
+      // Display created
+      const createdList = document.getElementById('created-list');
+      createdList.innerHTML = '';
+      if (preview.created && preview.created.length > 0) {
+        preview.created.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'p-3 bg-green-50 border-l-4 border-green-300 rounded';
+          div.innerHTML = `<p class="text-sm font-semibold text-green-700">${item.gtin}</p><p class="text-xs text-green-600 mt-1">${item.productType} - ${item.displaySize || 'No size'}</p>`;
+          createdList.appendChild(div);
+        });
+        document.getElementById('created-more').classList.toggle('hidden', !preview.hasMoreCreated);
+      }
+
+      // Display skipped
+      const skippedList = document.getElementById('skipped-list');
+      skippedList.innerHTML = '';
+      if (preview.skipped && preview.skipped.length > 0) {
+        document.getElementById('skipped-section').classList.remove('hidden');
+        preview.skipped.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'p-3 bg-yellow-50 border-l-4 border-yellow-300 rounded';
+          div.innerHTML = `<p class="text-sm font-semibold text-yellow-700">${item.gtin}</p><p class="text-xs text-yellow-600 mt-1">${item.reason}</p>`;
+          skippedList.appendChild(div);
+        });
+        document.getElementById('skipped-more').classList.toggle('hidden', !preview.hasMoreSkipped);
+      } else {
+        document.getElementById('skipped-section').classList.add('hidden');
+      }
+    }
+
+    async function executeImport() {
+      if (!lastPreviewResult) {
+        alert('Please run preview first');
+        return;
+      }
+
+      const csvContent = document.getElementById('csv-content').value;
+
+      if (!confirm(`Import ${lastPreviewResult.stats.created} GTINs?`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/admin/import/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ csvContent })
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          alert('Error: ' + (err.error || 'Unknown error'));
+          return;
+        }
+
+        const result = await response.json();
+
+        displayImportResults(result);
+        document.getElementById('results-section').classList.remove('hidden');
+        document.getElementById('preview-section').classList.add('hidden');
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    function displayImportResults(result) {
+      const { stats, results } = result;
+
+      // Update stats
+      document.getElementById('result-total').textContent = stats.totalRows;
+      document.getElementById('result-created').textContent = stats.created;
+      document.getElementById('result-skipped').textContent = stats.skipped;
+      document.getElementById('result-errors').textContent = stats.errors;
+
+      // Display results
+      const finalResults = document.getElementById('final-results');
+      finalResults.innerHTML = '';
+
+      if (results.created && results.created.length > 0) {
+        const section = document.createElement('div');
+        section.className = 'bg-green-50 rounded-lg p-4 border border-green-200';
+        section.innerHTML = '<h3 class="font-bold text-green-700 mb-2">✓ Created GTINs</h3>';
+        const list = document.createElement('ul');
+        list.className = 'space-y-1 text-sm';
+        results.created.forEach(item => {
+          const li = document.createElement('li');
+          li.className = 'text-green-700';
+          li.textContent = `${item.gtin} - ${item.productType} ${item.displaySize || ''}`;
+          list.appendChild(li);
+        });
+        section.appendChild(list);
+        if (results.hasMoreCreated) {
+          const more = document.createElement('p');
+          more.className = 'text-xs text-green-600 mt-2';
+          more.textContent = `... and ${stats.created - results.created.length} more`;
+          section.appendChild(more);
+        }
+        finalResults.appendChild(section);
+      }
+
+      if (results.errors && results.errors.length > 0) {
+        const section = document.createElement('div');
+        section.className = 'bg-red-50 rounded-lg p-4 border border-red-200';
+        section.innerHTML = '<h3 class="font-bold text-red-700 mb-2">✗ Errors</h3>';
+        const list = document.createElement('ul');
+        list.className = 'space-y-1 text-sm';
+        results.errors.forEach(err => {
+          const li = document.createElement('li');
+          li.className = 'text-red-700';
+          const errMsg = err.errors ? err.errors.join('; ') : err.message;
+          li.textContent = `Row ${err.rowIndex}: ${errMsg}`;
+          list.appendChild(li);
+        });
+        section.appendChild(list);
+        if (results.hasMoreErrors) {
+          const more = document.createElement('p');
+          more.className = 'text-xs text-red-600 mt-2';
+          more.textContent = `... and ${stats.errors - results.errors.length} more`;
+          section.appendChild(more);
+        }
+        finalResults.appendChild(section);
+      }
+
+      if (results.skipped && results.skipped.length > 0) {
+        const section = document.createElement('div');
+        section.className = 'bg-yellow-50 rounded-lg p-4 border border-yellow-200';
+        section.innerHTML = '<h3 class="font-bold text-yellow-700 mb-2">⊘ Skipped (Duplicates)</h3>';
+        const list = document.createElement('ul');
+        list.className = 'space-y-1 text-sm';
+        results.skipped.forEach(item => {
+          const li = document.createElement('li');
+          li.className = 'text-yellow-700';
+          li.textContent = `${item.gtin}: ${item.reason}`;
+          list.appendChild(li);
+        });
+        section.appendChild(list);
+        if (results.hasMoreSkipped) {
+          const more = document.createElement('p');
+          more.className = 'text-xs text-yellow-600 mt-2';
+          more.textContent = `... and ${stats.skipped - results.skipped.length} more`;
+          section.appendChild(more);
+        }
+        finalResults.appendChild(section);
+      }
+    }
+  </script>
+</body>
+</html>

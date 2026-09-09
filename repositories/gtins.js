@@ -3,8 +3,11 @@ const db = require('../db/init-v2');
 class GtinRepository {
   async create(batchId, styleId, gtin, options = {}) {
     const sql = `
-      INSERT INTO gtins (batch_id, style_id, gtin, ean, size, color, variant, weight)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO gtins (
+        batch_id, style_id, gtin, ean, size, color, variant, weight,
+        product_type, item_number, size_value_1, size_value_2, size_value_3
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const result = await db.run(sql, [
       batchId,
@@ -14,7 +17,12 @@ class GtinRepository {
       options.size || null,
       options.color || null,
       options.variant || null,
-      options.weight || null
+      options.weight || null,
+      options.product_type || null,
+      options.item_number || null,
+      options.size_value_1 || null,
+      options.size_value_2 || null,
+      options.size_value_3 || null
     ]);
     return result.lastID;
   }
@@ -61,7 +69,10 @@ class GtinRepository {
   }
 
   async update(id, updates) {
-    const allowedFields = ['ean', 'size', 'color', 'variant', 'weight'];
+    const allowedFields = [
+      'ean', 'size', 'color', 'variant', 'weight',
+      'product_type', 'item_number', 'size_value_1', 'size_value_2', 'size_value_3'
+    ];
     const setClauses = [];
     const values = [];
 

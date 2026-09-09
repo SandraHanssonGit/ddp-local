@@ -77,6 +77,7 @@ if (dbVersion === 'v2') {
   // V2 Admin UI routes
   app.use('/admin-config', requireAuth, require('./routes/admin/config'));
   app.use('/admin-v2', requireAuth, require('./routes/admin/hub-v2'));
+  app.use('/admin/import', requireAuth, require('./routes/admin/import'));
 }
 
 // Login page
