@@ -114,7 +114,7 @@ router.get('/', async (req, res) => {
         // Master GTIN list - show unique GTINs with batch counts
         data.gtins = await new Promise((resolve, reject) => {
           db.all(`
-            SELECT DISTINCT
+            SELECT
               g.id,
               g.gtin,
               g.product_type,
@@ -124,8 +124,8 @@ router.get('/', async (req, res) => {
               g.style_id,
               s.style_number,
               s.product_name,
-              COUNT(DISTINCT g.batch_id) as batch_count,
-              GROUP_CONCAT(DISTINCT b.batch_id, ', ') as batch_ids,
+              COUNT(g.batch_id) as batch_count,
+              GROUP_CONCAT(b.batch_id, ', ') as batch_ids,
               (SELECT COUNT(*) FROM sgtins WHERE gtin_id = g.id) as sgtin_count
             FROM gtins g
             JOIN styles s ON g.style_id = s.id
