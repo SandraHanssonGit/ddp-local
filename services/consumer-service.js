@@ -2,6 +2,7 @@ const passportResolver = require('./passport-resolver');
 const sgtinRepository = require('../repositories/sgtins');
 const fieldRepository = require('../repositories/fields');
 const lifecycleService = require('./lifecycle-service');
+const ProductTypeConfig = require('./product-type-config');
 
 class ConsumerService {
   /**
@@ -182,7 +183,11 @@ class ConsumerService {
       gtin: {
         id: passport.gtin.id,
         gtin: passport.gtin.gtin,
+        product_type: passport.gtin.product_type,
         size: passport.gtin.size,
+        size_value_1: passport.gtin.size_value_1,
+        size_value_2: passport.gtin.size_value_2,
+        size_value_3: passport.gtin.size_value_3,
         color: passport.gtin.color,
         variant: passport.gtin.variant
       },
@@ -251,7 +256,11 @@ class ConsumerService {
       },
       gtin: {
         gtin: passport.gtin.gtin,
+        product_type: passport.gtin.product_type,
         size: passport.gtin.size,
+        size_value_1: passport.gtin.size_value_1,
+        size_value_2: passport.gtin.size_value_2,
+        size_value_3: passport.gtin.size_value_3,
         color: passport.gtin.color,
         variant: passport.gtin.variant
       },
@@ -319,6 +328,9 @@ class ConsumerService {
     // Filter to only EU-required fields
     const euFields = passport.consumerFields.filter(f => f.category === 'eu_required');
 
+    // Format size based on product type
+    const displaySize = ProductTypeConfig.getDisplaySize(passport.gtin);
+
     return {
       serialNumber,
       productIdentification: {
@@ -331,7 +343,7 @@ class ConsumerService {
       productInformation: {
         name: passport.style.product_name,
         type: passport.style.product_type,
-        size: passport.gtin.size,
+        size: displaySize,
         color: passport.gtin.color
       },
       euRequiredFields: euFields.map(f => ({
@@ -361,6 +373,9 @@ class ConsumerService {
     // Filter to only EU-required fields
     const euFields = passport.consumerFields.filter(f => f.category === 'eu_required');
 
+    // Format size based on product type
+    const displaySize = ProductTypeConfig.getDisplaySize(passport.gtin);
+
     return {
       serialNumber,
       productIdentification: {
@@ -373,7 +388,7 @@ class ConsumerService {
       productInformation: {
         name: passport.style.product_name,
         type: passport.style.product_type,
-        size: passport.gtin.size,
+        size: displaySize,
         color: passport.gtin.color
       },
       euRequiredFields: euFields.map(f => ({

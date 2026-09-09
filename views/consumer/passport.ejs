@@ -79,8 +79,10 @@
       <div>
         <h1 class="text-3xl font-bold text-gray-900 mb-2"><%= passport.style.product_name %></h1>
         <p class="text-sm font-mono text-gray-600">
-          W<%= passport.gtin.size || '-' %>/L<%= passport.gtin.size || '-' %>
-          <%= passport.style.style_number %>-<%= passport.gtin.color ? passport.gtin.color.substring(0, 1) : '-' %><% if (!passport.isGtinOnly) { %>-<%= passport.sgtin.serial_number %><% } else { %>-XXXX<% } %>
+          <% if (passport.displaySize && passport.displaySize !== 'Unknown Size' && passport.displaySize !== 'One Size') { %>
+            <%= passport.displaySize %>
+          <% } %>
+          <%= passport.style.style_number %><% if (!passport.isGtinOnly) { %>-<%= passport.sgtin.serial_number %><% } else { %>-XXXX<% } %>
         </p>
       </div>
     </div>

@@ -4,6 +4,7 @@ const consumerService = require('../../services/consumer-service');
 const scanService = require('../../services/scan-service');
 const sgtinRepository = require('../../repositories/sgtins');
 const gtinRepository = require('../../repositories/gtins');
+const ProductTypeConfig = require('../../services/product-type-config');
 
 // Fallback route: Try serial number lookup if GTIN lookup fails
 // If user passes just serial number (6 digits), find it and redirect
@@ -45,12 +46,15 @@ router.get('/:gtin', async (req, res) => {
 
     console.log('[consumer] GTIN-only view for:', req.params.gtin);
 
+    const displaySize = result.gtin ? ProductTypeConfig.getDisplaySize(result.gtin) : 'Unknown';
+
     res.render('consumer/passport', {
       passport: result,
       formattedCategories: [],
       qrUrl: result.gtin ? consumerService.getQrCodeUrlByGtinOnly(result.gtin) : '',
       events: [],
-      resolvedFields: result.resolvedFields || []
+      resolvedFields: result.resolvedFields || [],
+      displaySize: displaySize
     });
   } catch (err) {
     console.error('[consumer] GTIN-only error:', err.message);
@@ -138,13 +142,16 @@ router.get('/:gtin/:serialNumber', async (req, res) => {
 
     console.log('[consumer] Events to pass:', eventsList.length, 'events');
 
+    const displaySize = passportData.gtin ? ProductTypeConfig.getDisplaySize(passportData.gtin) : 'Unknown';
+
     res.render('consumer/passport', {
       passport: passportData,
       formattedCategories: result.formattedCategories,
       qrUrl: result.url,
       events: eventsList,
       scanStats: scanStats,
-      resolvedFields: passportData.resolvedFields || []
+      resolvedFields: passportData.resolvedFields || [],
+      displaySize: displaySize
     });
   } catch (err) {
     res.status(500).render('consumer/passport-error', {
