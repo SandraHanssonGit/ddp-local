@@ -1,14 +1,13 @@
 const db = require('../db/init-v2');
 
 class BatchRepository {
-  async create(styleId, batchId, options = {}) {
+  async create(batchId, options = {}) {
     const sql = `
       INSERT INTO batches
-      (style_id, batch_id, production_order, production_date, supplier, factory, country_of_production)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      (batch_id, production_order, production_date, supplier, factory, country_of_production)
+      VALUES (?, ?, ?, ?, ?, ?)
     `;
     const result = await db.run(sql, [
-      styleId,
       batchId,
       options.production_order || null,
       options.production_date || null,
@@ -24,14 +23,45 @@ class BatchRepository {
     return db.get(sql, [id]);
   }
 
-  async getByStyleAndBatchId(styleId, batchId) {
-    const sql = `SELECT * FROM batches WHERE style_id = ? AND batch_id = ?`;
-    return db.get(sql, [styleId, batchId]);
+  async getByBatchId(batchId) {
+    const sql = `SELECT * FROM batches WHERE batch_id = ?`;
+    return db.get(sql, [batchId]);
   }
 
-  async listByStyle(styleId) {
-    const sql = `SELECT * FROM batches WHERE style_id = ? ORDER BY batch_id ASC`;
-    return db.all(sql, [styleId]);
+  async list() {
+    const sql = `SELECT * FROM batches ORDER BY batch_id ASC`;
+    return db.all(sql, []);
+  }
+
+  async getWithGtins(batchId) {
+    const sql = `
+      SELECT
+        b.*,
+        COUNT(DISTINCT g.id) as gtin_count,
+        COUNT(DISTINCT g.style_id) as style_count
+      FROM batches b
+      LEFT JOIN gtins g ON b.id = g.batch_id
+      WHERE b.batch_id = ?
+      GROUP BY b.id
+    `;
+    return db.get(sql, [batchId]);
+  }
+
+  async getGtinsByBatch(batchId) {
+    const sql = `
+      SELECT
+        g.*,
+        s.style_number,
+        COUNT(sg.id) as sgtin_count
+      FROM gtins g
+      JOIN styles s ON g.style_id = s.id
+      JOIN batches b ON g.batch_id = b.id
+      LEFT JOIN sgtins sg ON g.id = sg.gtin_id
+      WHERE b.batch_id = ?
+      GROUP BY g.id
+      ORDER BY s.style_number ASC, g.size ASC
+    `;
+    return db.all(sql, [batchId]);
   }
 
   async update(id, updates) {

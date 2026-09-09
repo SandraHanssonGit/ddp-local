@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DPP Hub v2</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+  <div class="max-w-7xl mx-auto py-12 px-4">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+      <h1 class="text-4xl font-bold text-gray-900">DPP Hub v2</h1>
+      <div class="flex items-center gap-4">
+        <span class="text-sm text-gray-600"><%= user.username %></span>
+        <a href="/login" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+          Logout
+        </a>
+      </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="flex gap-4 mb-8 border-b border-gray-300">
+      <a href="/admin-v2" class="px-6 py-4 font-semibold <%= tab === 'styles' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-700' %>">
+        Styles
+      </a>
+      <a href="/admin-v2?tab=batches" class="px-6 py-4 font-semibold <%= tab === 'batches' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-700' %>">
+        Batches
+      </a>
+      <a href="/admin-v2?tab=gtins" class="px-6 py-4 font-semibold <%= tab === 'gtins' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-700' %>">
+        GTINs
+      </a>
+      <a href="/admin-v2?tab=sgtins" class="px-6 py-4 font-semibold <%= tab === 'sgtins' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-700' %>">
+        SGTINs
+      </a>
+      <a href="/admin-v2?tab=fields" class="px-6 py-4 font-semibold <%= tab === 'fields' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-700' %>">
+        Fields
+      </a>
+    </div>
+
+    <!-- STYLES TAB -->
+    <% if (tab === 'styles') { %>
+      <div class="bg-white rounded-lg shadow-md p-8">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold text-gray-900">Styles</h2>
+        </div>
+
+        <% if (styles && styles.length > 0) { %>
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse">
+              <thead>
+                <tr class="bg-gray-100 border-b border-gray-300">
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Style Number</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Product Name</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Product Type</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Batches</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% styles.forEach(style => { %>
+                  <tr class="border-b border-gray-200 hover:bg-gray-50">
+                    <td class="px-4 py-3 font-mono text-sm"><a href="/admin-v2/styles/<%= style.id %>" class="text-blue-600 hover:underline"><%= style.style_number %></a></td>
+                    <td class="px-4 py-3"><a href="/admin-v2/styles/<%= style.id %>" class="text-blue-600 hover:underline"><%= style.product_name %></a></td>
+                    <td class="px-4 py-3"><%= style.product_type %></td>
+                    <td class="px-4 py-3 text-sm text-gray-600"><%= style.batch_count || 0 %></td>
+                    <td class="px-4 py-3 text-sm">
+                      <a href="/admin-v2/styles/<%= style.id %>" class="text-blue-600 hover:underline">Detail →</a>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } else { %>
+          <div class="text-center py-12 text-gray-500">
+            No styles found. <a href="/admin-v2/styles/new" class="text-blue-600 hover:underline">Create one</a>
+          </div>
+        <% } %>
+      </div>
+    <% } %>
+
+    <!-- BATCHES TAB -->
+    <% if (tab === 'batches') { %>
+      <div class="bg-white rounded-lg shadow-md p-8">
+        <div class="flex justify-between items-center mb-6">
+          <div class="flex items-center gap-4">
+            <h2 class="text-2xl font-bold text-gray-900">Batches</h2>
+            <div>
+              <label class="text-sm text-gray-600 mr-2">Filter by Style:</label>
+              <select id="filterStyle" class="border border-gray-300 rounded px-3 py-1 text-sm" onchange="filterBatches()">
+                <option value="">All Styles</option>
+                <% if (styles) { styles.forEach(s => { %>
+                  <option value="<%= s.id %>"><%= s.style_number %> - <%= s.product_name %></option>
+                <% }); } %>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <% if (batches && batches.length > 0) { %>
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse">
+              <thead>
+                <tr class="bg-gray-100 border-b border-gray-300">
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Batch ID</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Style</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Production Date</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Factory</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">GTINs</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% batches.forEach(batch => { %>
+                  <tr class="border-b border-gray-200 hover:bg-gray-50">
+                    <td class="px-4 py-3 font-mono text-sm"><a href="/admin-v2/batches/<%= batch.id %>" class="text-blue-600 hover:underline"><%= batch.batch_id %></a></td>
+                    <td class="px-4 py-3 text-sm"><%= batch.style_count || 0 %> styles</td>
+                    <td class="px-4 py-3 text-sm"><%= batch.production_date ? new Date(batch.production_date).toISOString().split('T')[0] : '-' %></td>
+                    <td class="px-4 py-3 text-sm"><%= batch.factory || '-' %></td>
+                    <td class="px-4 py-3 text-sm text-gray-600"><%= batch.gtin_count || 0 %></td>
+                    <td class="px-4 py-3 text-sm">
+                      <a href="/admin-v2/batches/<%= batch.id %>" class="text-blue-600 hover:underline">Detail →</a>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } else { %>
+          <div class="text-center py-12 text-gray-500">
+            No batches found. <a href="/admin-v2/batches/new" class="text-blue-600 hover:underline">Create one</a>
+          </div>
+        <% } %>
+      </div>
+    <% } %>
+
+    <!-- GTINs TAB -->
+    <% if (tab === 'gtins') { %>
+      <div class="bg-white rounded-lg shadow-md p-8">
+        <div class="flex justify-between items-center mb-6">
+          <div class="flex items-center gap-4">
+            <h2 class="text-2xl font-bold text-gray-900">GTINs</h2>
+            <div>
+              <label class="text-sm text-gray-600 mr-2">Filter by Batch:</label>
+              <select id="filterBatch" class="border border-gray-300 rounded px-3 py-1 text-sm" onchange="filterGtins()">
+                <option value="">All Batches</option>
+                <% if (batches) { batches.forEach(b => { %>
+                  <option value="<%= b.id %>"><%= b.batch_id %></option>
+                <% }); } %>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <% if (gtins && gtins.length > 0) { %>
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse">
+              <thead>
+                <tr class="bg-gray-100 border-b border-gray-300">
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">GTIN</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Batch</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Size</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Color</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">SGTINs</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% gtins.forEach(gtin => { %>
+                  <tr class="border-b border-gray-200 hover:bg-gray-50">
+                    <td class="px-4 py-3 font-mono text-sm"><%= gtin.gtin %></td>
+                    <td class="px-4 py-3 text-sm"><%= gtin.batch_id %></td>
+                    <td class="px-4 py-3 text-sm"><%= gtin.size || '-' %></td>
+                    <td class="px-4 py-3 text-sm"><%= gtin.color || '-' %></td>
+                    <td class="px-4 py-3 text-sm text-gray-600"><%= gtin.sgtin_count || 0 %></td>
+                    <td class="px-4 py-3 text-sm">
+                      <a href="/admin-v2/gtins/<%= gtin.id %>" class="text-blue-600 hover:underline">Edit →</a>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } else { %>
+          <div class="text-center py-12 text-gray-500">
+            No GTINs found. <a href="/admin-v2/gtins/new" class="text-blue-600 hover:underline">Create one</a>
+          </div>
+        <% } %>
+      </div>
+    <% } %>
+
+    <!-- SGTINs TAB -->
+    <% if (tab === 'sgtins') { %>
+      <div class="bg-white rounded-lg shadow-md p-8">
+        <div class="flex justify-between items-center mb-6">
+          <div class="flex items-center gap-4">
+            <h2 class="text-2xl font-bold text-gray-900">SGTINs</h2>
+            <div>
+              <label class="text-sm text-gray-600 mr-2">Filter by GTIN:</label>
+              <select id="filterGtin" class="border border-gray-300 rounded px-3 py-1 text-sm" onchange="filterSgtins()">
+                <option value="">All GTINs</option>
+                <% if (gtins) { gtins.forEach(g => { %>
+                  <option value="<%= g.id %>"><%= g.gtin %></option>
+                <% }); } %>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <% if (sgtins && sgtins.length > 0) { %>
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse">
+              <thead>
+                <tr class="bg-gray-100 border-b border-gray-300">
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Serial Number</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">GTIN</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">SGTIN</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">QC Status</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Events</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% sgtins.forEach(sgtin => { %>
+                  <tr class="border-b border-gray-200 hover:bg-gray-50">
+                    <td class="px-4 py-3 font-mono text-sm"><%= sgtin.serial_number %></td>
+                    <td class="px-4 py-3 font-mono text-sm"><%= sgtin.gtin %></td>
+                    <td class="px-4 py-3 font-mono text-sm"><%= sgtin.sgtin || '-' %></td>
+                    <td class="px-4 py-3 text-sm"><%= sgtin.qc_status || '-' %></td>
+                    <td class="px-4 py-3 text-sm text-gray-600"><%= sgtin.event_count || 0 %></td>
+                    <td class="px-4 py-3 text-sm">
+                      <a href="/admin-v2/sgtins/<%= sgtin.id %>" class="text-blue-600 hover:underline">Detail</a>
+                      <span class="text-gray-300 mx-1">|</span>
+                      <a href="/dpp/<%= sgtin.serial_number %>" class="text-blue-600 hover:underline" target="_blank">Public</a>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } else { %>
+          <div class="text-center py-12 text-gray-500">
+            No SGTINs found. <a href="/admin-v2/sgtins/new" class="text-blue-600 hover:underline">Create one</a>
+          </div>
+        <% } %>
+      </div>
+    <% } %>
+
+    <!-- FIELDS TAB -->
+    <% if (tab === 'fields') { %>
+      <div class="bg-white rounded-lg shadow-md p-8">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold text-gray-900">DPP Field Definitions</h2>
+          <a href="/admin-config/new" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800 font-semibold">
+            + New Field
+          </a>
+        </div>
+
+        <% if (fields && fields.length > 0) { %>
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse">
+              <thead>
+                <tr class="bg-gray-100 border-b border-gray-300">
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Field Key</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Label</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Category</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Type</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Required</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Visible</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% fields.forEach((field, idx) => { %>
+                  <tr class="border-b border-gray-200 hover:bg-gray-50" id="field-row-<%= idx %>">
+                    <td class="px-4 py-3 font-mono text-sm"><%= field.field_key %></td>
+                    <td class="px-4 py-3">
+                      <span id="field-label-view-<%= idx %>"><%= field.label %></span>
+                      <input type="text" id="field-label-edit-<%= idx %>" value="<%= field.label %>" class="hidden w-full border border-gray-300 rounded px-2 py-1">
+                    </td>
+                    <td class="px-4 py-3 text-sm">
+                      <span id="field-category-view-<%= idx %>" class="<%= field.category === 'eu_required' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' %> px-2 py-1 rounded text-xs font-semibold">
+                        <%= field.category === 'eu_required' ? 'EU Required' : 'Nudie' %>
+                      </span>
+                      <select id="field-category-edit-<%= idx %>" class="hidden border border-gray-300 rounded px-2 py-1 text-sm">
+                        <option value="eu_required" <%= field.category === 'eu_required' ? 'selected' : '' %>>EU Required</option>
+                        <option value="nudie" <%= field.category === 'nudie' ? 'selected' : '' %>>Nudie</option>
+                      </select>
+                    </td>
+                    <td class="px-4 py-3 text-sm"><%= field.data_type || 'text' %></td>
+                    <td class="px-4 py-3 text-sm"><%= field.required ? '✓' : '-' %></td>
+                    <td class="px-4 py-3 text-sm"><%= field.consumer_visible ? '✓' : '-' %></td>
+                    <td class="px-4 py-3 text-sm">
+                      <span id="field-actions-view-<%= idx %>">
+                        <button onclick="editField(<%= idx %>)" class="text-blue-600 hover:underline">Edit</button>
+                      </span>
+                      <span id="field-actions-edit-<%= idx %>" class="hidden gap-2">
+                        <button onclick="saveField(<%= idx %>, <%= field.id %>)" class="text-green-600 hover:underline">Save</button>
+                        <span class="text-gray-300">|</span>
+                        <button onclick="cancelFieldEdit(<%= idx %>)" class="text-red-600 hover:underline">Cancel</button>
+                      </span>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } else { %>
+          <div class="text-center py-12 text-gray-500">
+            No fields defined. <a href="/admin-config/new" class="text-blue-600 hover:underline">Create one</a>
+          </div>
+        <% } %>
+      </div>
+    <% } %>
+
+  </div>
+
+  <script>
+    function filterBatches() {
+      const styleId = document.getElementById('filterStyle').value;
+      if (styleId) {
+        window.location.href = `/admin-v2?tab=batches&style=${styleId}`;
+      } else {
+        window.location.href = `/admin-v2?tab=batches`;
+      }
+    }
+
+    function filterGtins() {
+      const batchId = document.getElementById('filterBatch').value;
+      if (batchId) {
+        window.location.href = `/admin-v2?tab=gtins&batch=${batchId}`;
+      } else {
+        window.location.href = `/admin-v2?tab=gtins`;
+      }
+    }
+
+    function filterSgtins() {
+      const gtinId = document.getElementById('filterGtin').value;
+      if (gtinId) {
+        window.location.href = `/admin-v2?tab=sgtins&gtin=${gtinId}`;
+      } else {
+        window.location.href = `/admin-v2?tab=sgtins`;
+      }
+    }
+
+    function editField(idx) {
+      document.getElementById(`field-label-view-${idx}`).classList.add('hidden');
+      document.getElementById(`field-label-edit-${idx}`).classList.remove('hidden');
+
+      document.getElementById(`field-category-view-${idx}`).classList.add('hidden');
+      document.getElementById(`field-category-edit-${idx}`).classList.remove('hidden');
+
+      document.getElementById(`field-actions-view-${idx}`).classList.add('hidden');
+      document.getElementById(`field-actions-edit-${idx}`).classList.remove('hidden');
+    }
+
+    function cancelFieldEdit(idx) {
+      document.getElementById(`field-label-view-${idx}`).classList.remove('hidden');
+      document.getElementById(`field-label-edit-${idx}`).classList.add('hidden');
+
+      document.getElementById(`field-category-view-${idx}`).classList.remove('hidden');
+      document.getElementById(`field-category-edit-${idx}`).classList.add('hidden');
+
+      document.getElementById(`field-actions-view-${idx}`).classList.remove('hidden');
+      document.getElementById(`field-actions-edit-${idx}`).classList.add('hidden');
+    }
+
+    async function saveField(idx, fieldId) {
+      const label = document.getElementById(`field-label-edit-${idx}`).value;
+      const category = document.getElementById(`field-category-edit-${idx}`).value;
+
+      try {
+        const response = await fetch(`/admin-v2/fields/${fieldId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ label, category })
+        });
+        if (response.ok) {
+          alert('Field updated!');
+          location.reload();
+        } else {
+          alert('Error saving field');
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+  </script>
+</body>
+</html>

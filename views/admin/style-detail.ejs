@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Style <%= style.style_number %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+  <div class="max-w-7xl mx-auto py-12 px-4">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+      <div>
+        <h1 class="text-4xl font-bold text-gray-900"><%= style.style_number %></h1>
+        <p class="text-gray-600 mt-2"><%= style.product_name %></p>
+      </div>
+      <a href="/admin-v2" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+        ← Back to Styles
+      </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Main Content (2/3) -->
+      <div class="lg:col-span-2 space-y-8">
+
+        <!-- Style Information Card -->
+        <div class="bg-white rounded-lg shadow-md p-8">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-900">Style Information</h2>
+            <button onclick="toggleEdit('style-info')" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800 font-semibold">
+              Edit
+            </button>
+          </div>
+
+          <!-- View Mode -->
+          <div id="style-info-view" class="space-y-4">
+            <div class="grid grid-cols-2 gap-6">
+              <div>
+                <label class="text-xs text-gray-500 uppercase tracking-wide font-semibold">Style Number</label>
+                <p class="text-gray-900 font-mono text-lg"><%= style.style_number %></p>
+              </div>
+              <div>
+                <label class="text-xs text-gray-500 uppercase tracking-wide font-semibold">Product Name</label>
+                <p class="text-gray-900 text-lg"><%= style.product_name %></p>
+              </div>
+              <div>
+                <label class="text-xs text-gray-500 uppercase tracking-wide font-semibold">Product Type</label>
+                <p class="text-gray-900 text-lg"><%= style.product_type %></p>
+              </div>
+              <div>
+                <label class="text-xs text-gray-500 uppercase tracking-wide font-semibold">Created</label>
+                <p class="text-gray-900 text-lg"><%= new Date(style.created_at).toLocaleDateString('en-US') %></p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Edit Mode -->
+          <form id="style-info-edit" class="hidden space-y-6" onsubmit="saveStyleInfo(event)">
+            <div class="grid grid-cols-2 gap-6">
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Style Number</label>
+                <input type="text" id="edit-style-number" value="<%= style.style_number %>" class="w-full border border-gray-300 rounded px-4 py-3 focus:outline-none focus:border-gray-900" readonly>
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Product Name</label>
+                <input type="text" id="edit-product-name" value="<%= style.product_name %>" class="w-full border border-gray-300 rounded px-4 py-3 focus:outline-none focus:border-gray-900" required>
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Product Type</label>
+                <input type="text" id="edit-product-type" value="<%= style.product_type %>" class="w-full border border-gray-300 rounded px-4 py-3 focus:outline-none focus:border-gray-900">
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <button type="submit" class="bg-gray-900 text-white px-6 py-3 rounded hover:bg-gray-800 font-semibold">
+                Save Changes
+              </button>
+              <button type="button" onclick="toggleEdit('style-info')" class="bg-gray-300 text-gray-900 px-6 py-3 rounded hover:bg-gray-400 font-semibold">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Image Management Card -->
+        <div class="bg-white rounded-lg shadow-md p-8">
+          <h2 class="text-2xl font-bold text-gray-900 mb-6">Product Images</h2>
+
+          <!-- Current Image -->
+          <% if (style.image_url) { %>
+            <div class="mb-6">
+              <p class="text-sm text-gray-600 mb-2">Current Image:</p>
+              <img src="<%= style.image_url %>" alt="<%= style.product_name %>" class="w-64 h-64 object-cover rounded border border-gray-200">
+              <button onclick="deleteStyleImage()" class="mt-3 text-red-600 hover:text-red-800 text-sm font-semibold">
+                Delete Image
+              </button>
+            </div>
+          <% } else { %>
+            <div class="mb-6 p-6 bg-gray-50 rounded border-2 border-dashed border-gray-300 text-center">
+              <p class="text-gray-500">No image uploaded yet</p>
+            </div>
+          <% } %>
+
+          <!-- Upload New Image -->
+          <div class="border-t pt-6">
+            <label class="block text-sm font-bold text-gray-700 mb-3">Upload New Image</label>
+            <input type="file" id="image-upload" accept="image/*" class="w-full border border-gray-300 rounded px-4 py-3 focus:outline-none focus:border-gray-900 mb-3">
+            <button type="button" onclick="uploadImage()" class="bg-gray-900 text-white px-6 py-3 rounded hover:bg-gray-800 font-semibold">
+              Upload Image
+            </button>
+          </div>
+        </div>
+
+        <!-- DPP Fields Card -->
+        <div class="bg-white rounded-lg shadow-md p-8">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-900">DPP Field Values</h2>
+            <button onclick="toggleEdit('dpp-fields')" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800 font-semibold">
+              Edit
+            </button>
+          </div>
+
+          <!-- View Mode -->
+          <div id="dpp-fields-view" class="space-y-4">
+            <% if (dppValues && dppValues.length > 0) { %>
+              <% dppValues.forEach(val => { %>
+                <div class="p-4 rounded" style="background-color: #e8f4f8; border-left: 4px solid #5b9dc3;">
+                  <div class="flex justify-between items-start mb-2">
+                    <label class="text-sm font-bold text-gray-700"><%= val.label %></label>
+                    <span class="text-xs font-semibold px-2 py-1 rounded" style="color: #2c5aa0; background-color: #b3d9e8;">
+                      Defined at Style
+                    </span>
+                  </div>
+                  <p class="text-gray-900 mt-2"><%= val.value %></p>
+                  <span class="text-xs font-semibold text-gray-500 mt-2 inline-block px-2 py-1 bg-gray-200 rounded">
+                    <%= val.category === 'eu_required' ? 'EU Required' : 'Nudie' %>
+                  </span>
+                </div>
+              <% }); %>
+            <% } else { %>
+              <p class="text-gray-500 italic">No Style-level values defined yet. All inherited values will come from defaults.</p>
+            <% } %>
+          </div>
+
+          <!-- Edit Mode -->
+          <div id="dpp-fields-edit" class="hidden space-y-6">
+            <% if (dppValues && dppValues.length > 0) { %>
+              <% dppValues.forEach(val => { %>
+                <div class="space-y-2">
+                  <label class="block text-sm font-bold text-gray-700"><%= val.label %></label>
+                  <textarea id="field-<%= val.field_key %>" class="w-full border border-gray-300 rounded px-4 py-3 focus:outline-none focus:border-gray-900" rows="3"><%= val.value %></textarea>
+                </div>
+              <% }); %>
+            <% } %>
+            <div class="flex gap-3">
+              <button type="button" onclick="saveDppValues()" class="bg-gray-900 text-white px-6 py-3 rounded hover:bg-gray-800 font-semibold">
+                Save Changes
+              </button>
+              <button type="button" onclick="toggleEdit('dpp-fields')" class="bg-gray-300 text-gray-900 px-6 py-3 rounded hover:bg-gray-400 font-semibold">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Sidebar (1/3) -->
+      <div class="space-y-6">
+
+        <!-- Batches Card -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">Batches</h3>
+          <% if (batches && batches.length > 0) { %>
+            <div class="space-y-2">
+              <% batches.forEach(batch => { %>
+                <a href="/admin-v2/batches/<%= batch.id %>" class="block p-3 bg-gray-50 hover:bg-gray-100 rounded text-sm font-semibold text-gray-900 transition">
+                  <%= batch.batch_id %>
+                </a>
+              <% }); %>
+            </div>
+          <% } else { %>
+            <p class="text-sm text-gray-500">No batches</p>
+          <% } %>
+        </div>
+
+        <!-- Statistics Card -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">Statistics</h3>
+          <div class="space-y-3 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-600">Batches:</span>
+              <span class="font-semibold"><%= batches ? batches.length : 0 %></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">GTINs:</span>
+              <span class="font-semibold"><%= gtinCount %></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">SGTINs:</span>
+              <span class="font-semibold"><%= sgtinCount %></span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleEdit(section) {
+      const view = document.getElementById(section + '-view');
+      const edit = document.getElementById(section + '-edit');
+
+      if (view && edit) {
+        view.classList.toggle('hidden');
+        edit.classList.toggle('hidden');
+      }
+    }
+
+    async function saveStyleInfo(e) {
+      e.preventDefault();
+
+      const data = {
+        product_name: document.getElementById('edit-product-name').value,
+        product_type: document.getElementById('edit-product-type').value
+      };
+
+      try {
+        const res = await fetch('/api/admin/styles/<%= style.id %>', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        if (res.ok) {
+          alert('Style updated successfully');
+          location.reload();
+        } else {
+          alert('Error updating style');
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function uploadImage() {
+      const fileInput = document.getElementById('image-upload');
+      if (!fileInput.files[0]) {
+        alert('Please select an image');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('image', fileInput.files[0]);
+
+      try {
+        const res = await fetch('/api/admin/styles/<%= style.id %>/image', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (res.ok) {
+          alert('Image uploaded successfully');
+          location.reload();
+        } else {
+          alert('Error uploading image');
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function deleteStyleImage() {
+      if (!confirm('Delete this image?')) return;
+
+      try {
+        const res = await fetch('/api/admin/styles/<%= style.id %>/image', {
+          method: 'DELETE'
+        });
+
+        if (res.ok) {
+          alert('Image deleted');
+          location.reload();
+        } else {
+          alert('Error deleting image');
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function saveDppValues() {
+      const values = {};
+      document.querySelectorAll('[id^="field-"]').forEach(el => {
+        const key = el.id.substring(6);
+        values[key] = el.value;
+      });
+
+      try {
+        const res = await fetch('/api/admin/styles/<%= style.id %>/dpp-values', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(values)
+        });
+
+        if (res.ok) {
+          alert('DPP values saved');
+          location.reload();
+        } else {
+          alert('Error saving DPP values');
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+  </script>
+</body>
+</html>

@@ -7,7 +7,7 @@ const fieldRepository = require('../repositories/fields');
 class PassportResolver {
   /**
    * Resolve a complete passport for an SGTIN
-   * Returns resolved values with source level (style, batch, gtin, sgtin)
+   * Inheritance: SGTIN > GTIN > Batch > Style (via GTIN.style_id)
    */
   async resolveSgtinPassport(sgtinId) {
     // Load SGTIN
@@ -28,10 +28,10 @@ class PassportResolver {
       throw new Error(`Batch for GTIN not found`);
     }
 
-    // Load Style
-    const style = await styleRepository.getById(batch.style_id);
+    // Load Style (from GTIN.style_id, not Batch.style_id)
+    const style = await styleRepository.getById(gtin.style_id);
     if (!style) {
-      throw new Error(`Style for Batch not found`);
+      throw new Error(`Style for GTIN not found`);
     }
 
     // Get all field definitions
@@ -80,6 +80,7 @@ class PassportResolver {
 
   /**
    * Resolve passport for a GTIN (inherits from Batch and Style)
+   * Inheritance: GTIN > Batch > Style (via GTIN.style_id)
    */
   async resolveGtinPassport(gtinId) {
     // Load GTIN
@@ -94,16 +95,16 @@ class PassportResolver {
       throw new Error(`Batch for GTIN not found`);
     }
 
-    // Load Style
-    const style = await styleRepository.getById(batch.style_id);
+    // Load Style (from GTIN.style_id)
+    const style = await styleRepository.getById(gtin.style_id);
     if (!style) {
-      throw new Error(`Style for Batch not found`);
+      throw new Error(`Style for GTIN not found`);
     }
 
     // Get all field definitions
     const fieldDefinitions = await fieldRepository.listFieldDefinitions();
 
-    // Load DPP values for all levels
+    // Load DPP values
     const styleValues = await fieldRepository.getEntityValues('style', style.id);
     const batchValues = await fieldRepository.getEntityValues('batch', batch.id);
     const gtinValues = await fieldRepository.getEntityValues('gtin', gtin.id);
@@ -112,40 +113,19 @@ class PassportResolver {
     const styleValueMap = this._buildValueMap(styleValues);
     const batchValueMap = this._buildValueMap(batchValues);
     const gtinValueMap = this._buildValueMap(gtinValues);
+    const emptyMap = {};
 
-    // Resolve using precedence: GTIN > Batch > Style
+    // Resolve all fields: GTIN > Batch > Style
     const resolvedFields = [];
 
     for (const fieldDef of fieldDefinitions) {
-      const resolved = {
-        ...fieldDef,
-        value: null,
-        sourceLevel: null,
-        definedAt: []
-      };
-
-      // Check GTIN first (highest precedence)
-      if (gtinValueMap.has(fieldDef.id)) {
-        const val = gtinValueMap.get(fieldDef.id);
-        resolved.value = val.value;
-        resolved.sourceLevel = 'gtin';
-        resolved.definedAt.push('gtin');
-      }
-      // Then Batch
-      else if (batchValueMap.has(fieldDef.id)) {
-        const val = batchValueMap.get(fieldDef.id);
-        resolved.value = val.value;
-        resolved.sourceLevel = 'batch';
-        resolved.definedAt.push('batch');
-      }
-      // Then Style (lowest precedence)
-      else if (styleValueMap.has(fieldDef.id)) {
-        const val = styleValueMap.get(fieldDef.id);
-        resolved.value = val.value;
-        resolved.sourceLevel = 'style';
-        resolved.definedAt.push('style');
-      }
-
+      const resolved = this._resolveFieldValue(
+        fieldDef,
+        gtinValueMap,
+        batchValueMap,
+        styleValueMap,
+        emptyMap
+      );
       resolvedFields.push(resolved);
     }
 
@@ -163,7 +143,8 @@ class PassportResolver {
   }
 
   /**
-   * Resolve passport for a Batch (inherits from Style)
+   * Resolve passport for a Batch
+   * Shows all unique GTINs in batch grouped by style
    */
   async resolveBatchPassport(batchId) {
     // Load Batch
@@ -172,65 +153,74 @@ class PassportResolver {
       throw new Error(`Batch ${batchId} not found`);
     }
 
-    // Load Style
-    const style = await styleRepository.getById(batch.style_id);
-    if (!style) {
-      throw new Error(`Style for Batch not found`);
+    // Load all GTINs in this batch
+    const gtins = await gtinRepository.listByBatch(batchId);
+    if (!gtins || gtins.length === 0) {
+      throw new Error(`No GTINs found for Batch ${batchId}`);
     }
 
-    // Get all field definitions
+    // Group GTINs by style
+    const gtinsByStyle = {};
+    for (const gtin of gtins) {
+      if (!gtinsByStyle[gtin.style_id]) {
+        gtinsByStyle[gtin.style_id] = [];
+      }
+      gtinsByStyle[gtin.style_id].push(gtin);
+    }
+
+    // Load all unique styles
+    const styles = {};
+    for (const styleId of Object.keys(gtinsByStyle)) {
+      styles[styleId] = await styleRepository.getById(parseInt(styleId));
+    }
+
+    // Get field definitions
     const fieldDefinitions = await fieldRepository.listFieldDefinitions();
 
-    // Load DPP values
-    const styleValues = await fieldRepository.getEntityValues('style', style.id);
+    // Load batch-level values
     const batchValues = await fieldRepository.getEntityValues('batch', batch.id);
-
-    // Build value maps
-    const styleValueMap = this._buildValueMap(styleValues);
     const batchValueMap = this._buildValueMap(batchValues);
 
-    // Resolve using precedence: Batch > Style
-    const resolvedFields = [];
+    // For each style, resolve passport
+    const passportsByStyle = {};
+    for (const [styleId, gtinList] of Object.entries(gtinsByStyle)) {
+      const style = styles[styleId];
+      const styleValues = await fieldRepository.getEntityValues('style', style.id);
+      const styleValueMap = this._buildValueMap(styleValues);
 
-    for (const fieldDef of fieldDefinitions) {
-      const resolved = {
-        ...fieldDef,
-        value: null,
-        sourceLevel: null,
-        definedAt: []
+      const resolvedFields = [];
+      for (const fieldDef of fieldDefinitions) {
+        // Batch > Style (no GTIN/SGTIN)
+        const resolved = this._resolveFieldValue(
+          fieldDef,
+          {},
+          batchValueMap,
+          styleValueMap,
+          {}
+        );
+        resolvedFields.push(resolved);
+      }
+
+      passportsByStyle[styleId] = {
+        style,
+        gtins: gtinList,
+        resolvedFields
       };
-
-      // Check Batch first
-      if (batchValueMap.has(fieldDef.id)) {
-        const val = batchValueMap.get(fieldDef.id);
-        resolved.value = val.value;
-        resolved.sourceLevel = 'batch';
-        resolved.definedAt.push('batch');
-      }
-      // Then Style
-      else if (styleValueMap.has(fieldDef.id)) {
-        const val = styleValueMap.get(fieldDef.id);
-        resolved.value = val.value;
-        resolved.sourceLevel = 'style';
-        resolved.definedAt.push('style');
-      }
-
-      resolvedFields.push(resolved);
     }
 
     return {
       batch,
-      style,
-      resolvedFields,
+      passportsByStyle,
       hierarchy: {
-        styleId: style.id,
-        batchId: batch.id
+        batchId: batch.id,
+        styleCount: Object.keys(styles).length,
+        gtinCount: gtins.length
       }
     };
   }
 
   /**
-   * Resolve passport for a Style (source of truth)
+   * Resolve passport for a Style
    */
   async resolveStylePassport(styleId) {
     // Load Style
@@ -242,26 +232,21 @@ class PassportResolver {
     // Get all field definitions
     const fieldDefinitions = await fieldRepository.listFieldDefinitions();
 
-    // Load DPP values for style
-    const styleValues = await fieldRepository.getEntityValues('style', style.id);
+    // Load style-level values
+    const styleValues = await fieldRepository.getEntityValues('style', styleId);
     const styleValueMap = this._buildValueMap(styleValues);
 
-    // Resolve fields
+    // Resolve all fields (style only)
     const resolvedFields = [];
-
     for (const fieldDef of fieldDefinitions) {
       const resolved = {
-        ...fieldDef,
-        value: null,
-        sourceLevel: 'style',
-        definedAt: ['style']
+        fieldId: fieldDef.id,
+        fieldKey: fieldDef.field_key,
+        label: fieldDef.label,
+        value: styleValueMap[fieldDef.field_key] || null,
+        source: styleValueMap[fieldDef.field_key] ? 'style' : null,
+        category: fieldDef.category
       };
-
-      if (styleValueMap.has(fieldDef.id)) {
-        const val = styleValueMap.get(fieldDef.id);
-        resolved.value = val.value;
-      }
-
       resolvedFields.push(resolved);
     }
 
@@ -275,102 +260,51 @@ class PassportResolver {
   }
 
   /**
-   * Get resolved values grouped by category
-   */
-  getResolvedValuesByCategory(passport) {
-    const grouped = {};
-
-    for (const field of passport.resolvedFields) {
-      if (!grouped[field.category]) {
-        grouped[field.category] = [];
-      }
-
-      grouped[field.category].push({
-        field_key: field.field_key,
-        label: field.label,
-        value: field.value,
-        sourceLevel: field.sourceLevel,
-        consumer_visible: field.consumer_visible
-      });
-    }
-
-    return grouped;
-  }
-
-  /**
-   * Get inheritance tree for a field (where does it come from)
-   */
-  getFieldInheritanceChain(passport, fieldKey) {
-    const field = passport.resolvedFields.find(f => f.field_key === fieldKey);
-    if (!field) {
-      return null;
-    }
-
-    return {
-      field_key: fieldKey,
-      label: field.label,
-      resolvedValue: field.value,
-      sourceLevel: field.sourceLevel,
-      definedAt: field.definedAt,
-      category: field.category
-    };
-  }
-
-  // Private helper methods
-
-  /**
-   * Build a Map of field definition ID -> value object for quick lookup
+   * Helper: Build a map of field_key -> value from entity values
    */
   _buildValueMap(values) {
-    const map = new Map();
-    for (const val of values) {
-      map.set(val.field_definition_id, val);
+    const map = {};
+    if (values && values.length > 0) {
+      for (const v of values) {
+        map[v.field_key] = v.value;
+      }
     }
     return map;
   }
 
   /**
-   * Resolve a single field value using inheritance precedence
-   * SGTIN > GTIN > Batch > Style
+   * Helper: Resolve a single field value through inheritance levels
+   * Returns { fieldId, fieldKey, label, value, source, category }
    */
-  _resolveFieldValue(fieldDef, sgtinMap, gtinMap, batchMap, styleMap) {
-    const resolved = {
-      ...fieldDef,
-      value: null,
-      sourceLevel: null,
-      definedAt: []
+  _resolveFieldValue(fieldDef, level1Map, level2Map, level3Map, level4Map) {
+    // Try each level in precedence order
+    let value = level1Map[fieldDef.field_key];
+    let source = value ? 'level1' : null;
+
+    if (!value) {
+      value = level2Map[fieldDef.field_key];
+      source = value ? 'level2' : null;
+    }
+
+    if (!value) {
+      value = level3Map[fieldDef.field_key];
+      source = value ? 'level3' : null;
+    }
+
+    if (!value) {
+      value = level4Map[fieldDef.field_key];
+      source = value ? 'level4' : null;
+    }
+
+    return {
+      fieldId: fieldDef.id,
+      fieldKey: fieldDef.field_key,
+      label: fieldDef.label,
+      value,
+      source,
+      category: fieldDef.category,
+      dataType: fieldDef.data_type
     };
-
-    // SGTIN - highest precedence
-    if (sgtinMap.has(fieldDef.id)) {
-      const val = sgtinMap.get(fieldDef.id);
-      resolved.value = val.value;
-      resolved.sourceLevel = 'sgtin';
-      resolved.definedAt.push('sgtin');
-    }
-    // GTIN
-    else if (gtinMap.has(fieldDef.id)) {
-      const val = gtinMap.get(fieldDef.id);
-      resolved.value = val.value;
-      resolved.sourceLevel = 'gtin';
-      resolved.definedAt.push('gtin');
-    }
-    // Batch
-    else if (batchMap.has(fieldDef.id)) {
-      const val = batchMap.get(fieldDef.id);
-      resolved.value = val.value;
-      resolved.sourceLevel = 'batch';
-      resolved.definedAt.push('batch');
-    }
-    // Style - lowest precedence
-    else if (styleMap.has(fieldDef.id)) {
-      const val = styleMap.get(fieldDef.id);
-      resolved.value = val.value;
-      resolved.sourceLevel = 'style';
-      resolved.definedAt.push('style');
-    }
-
-    return resolved;
   }
 }
 

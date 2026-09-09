@@ -5,8 +5,9 @@ class FieldRepository {
   async createFieldDefinition(fieldKey, label, category, options = {}) {
     const sql = `
       INSERT INTO field_definitions
-      (field_key, label, description, data_type, category, required, consumer_visible, sort_order)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      (field_key, label, description, data_type, category, required, consumer_visible,
+       editable_at_style, editable_at_batch, editable_at_gtin, editable_at_sgtin, sort_order)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const result = await db.run(sql, [
       fieldKey,
@@ -16,6 +17,10 @@ class FieldRepository {
       category,
       options.required ? 1 : 0,
       options.consumer_visible !== false ? 1 : 0,
+      options.editable_at_style !== false ? 1 : 0,
+      options.editable_at_batch !== false ? 1 : 0,
+      options.editable_at_gtin !== false ? 1 : 0,
+      options.editable_at_sgtin !== false ? 1 : 0,
       options.sort_order || 0
     ]);
     return result.lastID;
@@ -45,7 +50,8 @@ class FieldRepository {
   }
 
   async updateFieldDefinition(fieldId, updates) {
-    const allowedFields = ['label', 'description', 'required', 'consumer_visible', 'sort_order', 'category'];
+    const allowedFields = ['label', 'description', 'required', 'consumer_visible', 'sort_order', 'category',
+                          'editable_at_style', 'editable_at_batch', 'editable_at_gtin', 'editable_at_sgtin'];
     const setClauses = [];
     const values = [];
 

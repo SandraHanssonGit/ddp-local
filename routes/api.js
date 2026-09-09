@@ -4,7 +4,10 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const cheerio = require('cheerio');
 const https = require('https');
-const { db, queries } = require('../db/init');
+
+// Load appropriate database based on version
+const dbVersion = process.env.DB_VERSION || 'v1';
+const { db, queries } = dbVersion === 'v2' ? require('../db/init-v2') : require('../db/init');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 

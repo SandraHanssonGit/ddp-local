@@ -26,6 +26,15 @@ class SgtinRepository {
     return db.get(sql, [serialNumber]);
   }
 
+  async getByGtinAndSerial(gtin, serialNumber) {
+    const sql = `
+      SELECT s.* FROM sgtins s
+      JOIN gtins g ON s.gtin_id = g.id
+      WHERE g.gtin = ? AND s.serial_number = ?
+    `;
+    return db.get(sql, [gtin, serialNumber]);
+  }
+
   async getBySgtin(sgtin) {
     const sql = `SELECT * FROM sgtins WHERE sgtin = ?`;
     return db.get(sql, [sgtin]);

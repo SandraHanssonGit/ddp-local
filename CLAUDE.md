@@ -100,9 +100,9 @@ Style-level DPP data is inherited by all entities below the Style unless overrid
 
 ### 3.2 Batch
 
-Batch represents a specific production batch belonging to a Style.
+Batch represents a specific production batch (production order).
 
-A Batch MUST belong to exactly one Style.
+A Batch is independent of Style - it can contain GTINs from multiple different Styles.
 
 Batch may contain production-specific information such as:
 
@@ -165,20 +165,25 @@ SGTIN is also the entity that owns the garment lifecycle.
 
 ## 4. Example Complete Hierarchy
 
-    Style 114519
+    Batch PO45001234
     ├
-    ├── Batch PO45001234
-    │   ├
-    │   ├── GTIN 05707141145391
-    │   │   ├── SGTIN ABC001
-    │   │   ├── SGTIN ABC002
-    │   │   ├── SGTIN ABC003
-    │   │
-    │   ├── GTIN 05707141145407
-    │       ├── SGTIN ABC004
-    │       ├── SGTIN ABC005
+    ├── GTIN 05707141145391 (Style 114519, Size 30)
+    │   ├── SGTIN ABC001
+    │   ├── SGTIN ABC002
+    │   ├── SGTIN ABC003
     │
-    ├── Batch PO45001345
+    ├── GTIN 05707141145392 (Style 114519, Size 32)
+    │   ├── SGTIN ABC004
+    │   ├── SGTIN ABC005
+    │
+    ├── GTIN 05707141145407 (Style 114526, Size 30)
+    │   ├── SGTIN ABC006
+    │   ├── SGTIN ABC007
+    │
+    └── GTIN 05707141145408 (Style 114526, Size 32)
+        └── SGTIN ABC008
+
+NOTE: Batch PO45001234 contains GTINs from TWO different Styles (114519 and 114526)
 
 The UI and database must preserve this hierarchy.
 
@@ -197,13 +202,12 @@ The core entity tables should conceptually be:
 
 Recommended relationships:
 
-    styles.id
-        ↓
-    batches.style_id
-
     batches.id
         ↓
     gtins.batch_id
+
+    styles.id → gtins.style_id
+    (Each GTIN references both its Batch AND its Style)
 
     gtins.id
         ↓
@@ -325,9 +329,11 @@ For an SGTIN, resolve every field using this precedence:
       ↓
     Batch
       ↓
-    Style
+    Style (via GTIN.style_id)
 
 The closest explicitly defined value wins.
+
+Note: GTIN always references a specific Style, so Style inheritance is always available.
 
 ---
 

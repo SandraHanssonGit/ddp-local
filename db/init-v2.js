@@ -23,6 +23,7 @@ const init = () => {
         style_number TEXT NOT NULL UNIQUE,
         product_name TEXT,
         product_type TEXT,
+        image_url TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
@@ -32,20 +33,18 @@ const init = () => {
     });
 
     // Table: batches
+    // NOTE: Batch is independent of Style - can contain GTINs from multiple styles
     db.run(`
       CREATE TABLE IF NOT EXISTS batches (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        style_id INTEGER NOT NULL,
-        batch_id TEXT NOT NULL,
+        batch_id TEXT NOT NULL UNIQUE,
         production_order TEXT,
         production_date DATE,
         supplier TEXT,
         factory TEXT,
         country_of_production TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (style_id) REFERENCES styles(id),
-        UNIQUE(style_id, batch_id)
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `, (err) => {
       if (err) console.error('[batches]', err);
@@ -53,11 +52,16 @@ const init = () => {
     });
 
     // Table: gtins
+    // NOTE: Each GTIN belongs to a Batch AND references a Style
+    // This allows a Batch to contain GTINs from multiple Styles
+    // GTIN values can repeat across batches (same product produced multiple times)
+    // but must be unique within each batch
     db.run(`
       CREATE TABLE IF NOT EXISTS gtins (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         batch_id INTEGER NOT NULL,
-        gtin TEXT NOT NULL UNIQUE,
+        style_id INTEGER NOT NULL,
+        gtin TEXT NOT NULL,
         ean TEXT,
         size TEXT,
         color TEXT,
@@ -65,7 +69,9 @@ const init = () => {
         weight REAL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (batch_id) REFERENCES batches(id)
+        FOREIGN KEY (batch_id) REFERENCES batches(id),
+        FOREIGN KEY (style_id) REFERENCES styles(id),
+        UNIQUE(batch_id, gtin)
       )
     `, (err) => {
       if (err) console.error('[gtins]', err);
@@ -103,6 +109,10 @@ const init = () => {
         category TEXT,
         required BOOLEAN DEFAULT 0,
         consumer_visible BOOLEAN DEFAULT 1,
+        editable_at_style BOOLEAN DEFAULT 1,
+        editable_at_batch BOOLEAN DEFAULT 1,
+        editable_at_gtin BOOLEAN DEFAULT 1,
+        editable_at_sgtin BOOLEAN DEFAULT 1,
         valid_from DATETIME,
         valid_until DATETIME,
         sort_order INTEGER DEFAULT 0,
@@ -175,13 +185,52 @@ const init = () => {
       else console.log('✓ lifecycle_events table');
     });
 
-    // Create indexes
-    db.run(`CREATE INDEX IF NOT EXISTS idx_batches_style_id ON batches(style_id)`, (err) => {
-      if (err) console.error('[index batches_style_id]', err);
+    // Phase 7b: Scan Tracking
+    // Table: scan_events (track when and where products are scanned)
+    db.run(`
+      CREATE TABLE IF NOT EXISTS scan_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sgtin_id INTEGER NOT NULL,
+        scan_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        scan_location TEXT,
+        scan_method TEXT DEFAULT 'qr',
+        ip_address TEXT,
+        user_agent TEXT,
+        notes TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (sgtin_id) REFERENCES sgtins(id)
+      )
+    `, (err) => {
+      if (err) console.error('[scan_events]', err);
+      else console.log('✓ scan_events table');
     });
 
+    // Phase 8: Authentication
+    // Table: users (for demo/POC purposes)
+    db.run(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL UNIQUE,
+        password TEXT NOT NULL,
+        role TEXT DEFAULT 'user',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `, (err) => {
+      if (err) console.error('[users]', err);
+      else console.log('✓ users table');
+    });
+
+    // Create indexes
     db.run(`CREATE INDEX IF NOT EXISTS idx_gtins_batch_id ON gtins(batch_id)`, (err) => {
       if (err) console.error('[index gtins_batch_id]', err);
+    });
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_gtins_style_id ON gtins(style_id)`, (err) => {
+      if (err) console.error('[index gtins_style_id]', err);
+    });
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_gtins_batch_style ON gtins(batch_id, style_id)`, (err) => {
+      if (err) console.error('[index gtins_batch_style]', err);
     });
 
     db.run(`CREATE INDEX IF NOT EXISTS idx_sgtins_gtin_id ON sgtins(gtin_id)`, (err) => {
@@ -198,6 +247,14 @@ const init = () => {
 
     db.run(`CREATE INDEX IF NOT EXISTS idx_lifecycle_events_sgtin ON lifecycle_events(sgtin_id)`, (err) => {
       if (err) console.error('[index lifecycle_events_sgtin]', err);
+    });
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_scan_events_sgtin ON scan_events(sgtin_id)`, (err) => {
+      if (err) console.error('[index scan_events_sgtin]', err);
+    });
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_scan_events_timestamp ON scan_events(scan_timestamp)`, (err) => {
+      if (err) console.error('[index scan_events_timestamp]', err);
     });
 
     console.log('[DPP v2] Database initialization complete\n');

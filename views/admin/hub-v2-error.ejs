@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fel - DPP Hub v2</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+  <div class="min-h-screen flex items-center justify-center px-4">
+    <div class="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+      <div class="text-6xl mb-4">⚠️</div>
+      <h1 class="text-4xl font-bold text-gray-900 mb-4">Något gick fel</h1>
+      <p class="text-lg text-gray-600 mb-8"><%= error %></p>
+      <div class="space-y-3">
+        <a href="/admin-v2" class="block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
+          Tillbaka till Hub
+        </a>
+        <a href="/login" class="block bg-gray-200 text-gray-900 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition">
+          Logga ut
+        </a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

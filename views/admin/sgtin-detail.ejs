@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SGTIN <%= sgtin.serial_number %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+  <div class="max-w-7xl mx-auto py-12 px-4">
+    <!-- Breadcrumb -->
+    <div class="mb-6 text-sm text-gray-600">
+      <a href="/admin-v2" class="text-blue-600 hover:underline">Styles</a>
+      → <a href="/admin-v2?tab=batches" class="text-blue-600 hover:underline">Batches</a>
+      → <a href="/admin-v2/batches/<%= batch.id %>" class="text-blue-600 hover:underline"><%= batch.batch_id %></a>
+      → <span class="text-gray-900"><%= sgtin.serial_number %></span>
+    </div>
+
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+      <div>
+        <h1 class="text-4xl font-bold text-gray-900"><%= sgtin.serial_number %></h1>
+        <p class="text-gray-600 mt-2">SGTIN: <%= sgtin.sgtin || '-' %></p>
+      </div>
+      <a href="/admin-v2?tab=sgtins" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
+        ← Back to SGTINs
+      </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Main Content -->
+      <div class="lg:col-span-2 space-y-8">
+
+        <!-- SGTIN Information -->
+        <div class="bg-white rounded-lg shadow-md p-8">
+          <h2 class="text-2xl font-bold text-gray-900 mb-6">Serial Information</h2>
+
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-6">
+              <div>
+                <label class="text-xs text-gray-500 uppercase tracking-wide font-semibold">Serial Number</label>
+                <p class="text-gray-900 font-mono text-lg"><%= sgtin.serial_number %></p>
+              </div>
+              <div>
+                <label class="text-xs text-gray-500 uppercase tracking-wide font-semibold">SGTIN</label>
+                <p class="text-gray-900 font-mono text-lg"><%= sgtin.sgtin || '-' %></p>
+              </div>
+              <div>
+                <label class="text-xs text-gray-500 uppercase tracking-wide font-semibold">QC Status</label>
+                <p class="text-gray-900 text-lg"><%= sgtin.qc_status || '-' %></p>
+              </div>
+              <div>
+                <label class="text-xs text-gray-500 uppercase tracking-wide font-semibold">RFID ID</label>
+                <p class="text-gray-900 font-mono text-lg"><%= sgtin.rfid_id || '-' %></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scan History -->
+        <div class="bg-white rounded-lg shadow-md p-8">
+          <h2 class="text-2xl font-bold text-gray-900 mb-6">Scan History</h2>
+
+          <% if (scanStats) { %>
+            <div class="grid grid-cols-3 gap-6 mb-8">
+              <div class="bg-blue-50 border border-blue-200 rounded p-6">
+                <div class="text-sm text-blue-600 font-semibold uppercase tracking-wide">Total Scans</div>
+                <div class="text-4xl font-bold text-blue-900 mt-2"><%= scanStats.total_scans || 0 %></div>
+              </div>
+              <% if (scanStats.first_scan) { %>
+                <div class="bg-green-50 border border-green-200 rounded p-6">
+                  <div class="text-sm text-green-600 font-semibold uppercase tracking-wide">First Scan</div>
+                  <div class="text-lg text-green-900 font-mono mt-2"><%= new Date(scanStats.first_scan).toLocaleDateString('sv-SE') %></div>
+                  <div class="text-xs text-green-600 mt-1"><%= new Date(scanStats.first_scan).toLocaleTimeString('sv-SE') %></div>
+                </div>
+              <% } %>
+              <% if (scanStats.last_scan) { %>
+                <div class="bg-purple-50 border border-purple-200 rounded p-6">
+                  <div class="text-sm text-purple-600 font-semibold uppercase tracking-wide">Last Scan</div>
+                  <div class="text-lg text-purple-900 font-mono mt-2"><%= new Date(scanStats.last_scan).toLocaleDateString('sv-SE') %></div>
+                  <div class="text-xs text-purple-600 mt-1"><%= new Date(scanStats.last_scan).toLocaleTimeString('sv-SE') %></div>
+                </div>
+              <% } %>
+            </div>
+          <% } else { %>
+            <p class="text-gray-500">No scan data available</p>
+          <% } %>
+        </div>
+
+        <!-- Hierarchy Tree -->
+        <div class="bg-white rounded-lg shadow-md p-8">
+          <h2 class="text-2xl font-bold text-gray-900 mb-6">Hierarchy & Inheritance</h2>
+
+          <div class="space-y-4">
+            <!-- SGTIN (Top) - Dark Blue -->
+            <div class="p-4 rounded" style="background-color: #2c5aa0; border-left: 4px solid #1a3a5c;">
+              <div class="font-bold" style="color: #ffffff;">SGTIN (Level 1 - Highest Priority)</div>
+              <div class="text-sm mt-1" style="color: #e8f4f8;"><%= sgtin.serial_number %></div>
+            </div>
+
+            <!-- GTIN - Medium Blue -->
+            <div class="p-4 rounded" style="background-color: #5b9dc3; border-left: 4px solid #2c5aa0;">
+              <div class="font-bold" style="color: #ffffff;">GTIN (Level 2)</div>
+              <div class="text-sm mt-1" style="color: #e8f4f8;">
+                <%= gtin.gtin %> | Size: <%= gtin.size %> | Color: <%= gtin.color %>
+              </div>
+            </div>
+
+            <!-- Batch - Light-Medium Blue -->
+            <div class="p-4 rounded" style="background-color: #b3d9e8; border-left: 4px solid #5b9dc3;">
+              <div class="font-bold" style="color: #2c5aa0;">Batch (Level 3)</div>
+              <div class="text-sm mt-1" style="color: #2c5aa0;">
+                <%= batch.batch_id %> | <%= batch.factory %>
+              </div>
+            </div>
+
+            <!-- Style - Lightest Blue -->
+            <div class="p-4 rounded" style="background-color: #e8f4f8; border-left: 4px solid #5b9dc3;">
+              <div class="font-bold" style="color: #2c5aa0;">Style (Level 4 - Lowest Priority)</div>
+              <div class="text-sm mt-1" style="color: #2c5aa0;">
+                <%= style.style_number %> - <%= style.product_name %>
+              </div>
+            </div>
+          </div>
+
+          <p class="text-xs text-gray-500 mt-6 pt-6 border-t">
+            Fields are resolved by this precedence: SGTIN > GTIN > Batch > Style
+          </p>
+        </div>
+
+        <!-- DPP Field Values with Source -->
+        <div class="bg-white rounded-lg shadow-md p-8">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-900">DPP Field Values (with Source)</h2>
+            <button onclick="toggleEdit('sgtin-fields')" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800 font-semibold">
+              Edit
+            </button>
+          </div>
+
+          <!-- Source Legend -->
+          <div class="mb-6 p-4 bg-gray-50 rounded border border-gray-200">
+            <p class="text-sm font-semibold text-gray-700 mb-3">Value Sources:</p>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+              <div class="flex items-center gap-2">
+                <span class="inline-block w-3 h-3 rounded" style="background-color: #2c5aa0;"></span>
+                <span>SGTIN (this garment)</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="inline-block w-3 h-3 rounded" style="background-color: #5b9dc3;"></span>
+                <span>GTIN (size/color)</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="inline-block w-3 h-3 rounded" style="background-color: #b3d9e8;"></span>
+                <span>Batch (production)</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="inline-block w-3 h-3 rounded" style="background-color: #e8f4f8; border: 1px solid #5b9dc3;"></span>
+                <span>Style (product)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- View Mode -->
+          <div id="sgtin-fields-view">
+            <% if (resolvedFields && resolvedFields.length > 0) { %>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="bg-gray-50 border-b border-gray-300">
+                      <th class="px-4 py-3 text-left font-semibold text-gray-900">Field</th>
+                      <th class="px-4 py-3 text-left font-semibold text-gray-900">Value</th>
+                      <th class="px-4 py-3 text-left font-semibold text-gray-900">Source</th>
+                      <th class="px-4 py-3 text-left font-semibold text-gray-900">Category</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% resolvedFields.forEach(field => { %>
+                      <tr class="border-b border-gray-200 hover:bg-gray-50">
+                        <td class="px-4 py-3 font-semibold text-gray-900"><%= field.label %></td>
+                        <td class="px-4 py-3 text-gray-700"><%= field.value || '-' %></td>
+                        <td class="px-4 py-3">
+                          <% if (field.source) { %>
+                            <span class="text-xs font-semibold px-2 py-1 rounded"
+                              style="<% if (field.source === 'level1') { %>background-color: #2c5aa0; color: white;<% } else if (field.source === 'level2') { %>background-color: #5b9dc3; color: white;<% } else if (field.source === 'level3') { %>background-color: #b3d9e8; color: #2c5aa0;<% } else { %>background-color: #e8f4f8; color: #2c5aa0; border: 1px solid #5b9dc3;<% } %>">
+                              <%= field.source === 'level1' ? 'SGTIN' :
+                                  field.source === 'level2' ? 'GTIN' :
+                                  field.source === 'level3' ? 'Batch' : 'Style' %>
+                            </span>
+                          <% } else { %>
+                            <span class="text-xs text-gray-500">Not set</span>
+                          <% } %>
+                        </td>
+                        <td class="px-4 py-3">
+                          <span class="text-xs font-semibold
+                            <%= field.category === 'eu_required' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' %>
+                            px-2 py-1 rounded">
+                            <%= field.category === 'eu_required' ? 'EU' : 'Nudie' %>
+                          </span>
+                        </td>
+                      </tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+              </div>
+            <% } else { %>
+              <p class="text-gray-500">No DPP values</p>
+            <% } %>
+          </div>
+
+          <!-- Edit Mode -->
+          <div id="sgtin-fields-edit" class="hidden space-y-6">
+            <p class="text-sm text-gray-600 mb-4">
+              Fields defined here override GTIN, Batch and Style values. Leave blank to inherit from parent.
+            </p>
+            <% allFields.forEach(field => { %>
+              <div class="space-y-2">
+                <label class="block text-sm font-bold text-gray-700">
+                  <%= field.label %>
+                  <span class="text-xs font-semibold text-gray-500 ml-2 px-2 py-1 bg-gray-100 rounded">
+                    <%= field.category === 'eu_required' ? 'EU' : 'Nudie' %>
+                  </span>
+                </label>
+                <% let currentValue = sgtinValues.find(v => v.field_key === field.field_key)?.value || ''; %>
+                <textarea id="field-<%= field.field_key %>" class="w-full border border-gray-300 rounded px-4 py-3 focus:outline-none focus:border-gray-900" rows="2" placeholder="Leave blank to inherit from GTIN/Batch/Style"><%= currentValue %></textarea>
+              </div>
+            <% }); %>
+            <div class="flex gap-3">
+              <button type="button" onclick="saveSgtinValues()" class="bg-gray-900 text-white px-6 py-3 rounded hover:bg-gray-800 font-semibold">
+                Save SGTIN Overrides
+              </button>
+              <button type="button" onclick="toggleEdit('sgtin-fields')" class="bg-gray-300 text-gray-900 px-6 py-3 rounded hover:bg-gray-400 font-semibold">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lifecycle Events -->
+        <div class="bg-white rounded-lg shadow-md p-8">
+          <h2 class="text-2xl font-bold text-gray-900 mb-6">Lifecycle Events</h2>
+
+          <% if (events && events.length > 0) { %>
+            <div class="space-y-4">
+              <% events.forEach((event, idx) => { %>
+                <div class="pb-4 <%= idx < events.length - 1 ? 'border-b border-gray-200' : '' %>">
+                  <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0">
+                      <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-lg">
+                        <% if (event.type === 'manufactured') { %>🏭
+                        <% } else if (event.type === 'quality_checked') { %>✓
+                        <% } else if (event.type === 'packaged') { %>📦
+                        <% } else if (event.type === 'shipped') { %>🚚
+                        <% } else if (event.type === 'delivered') { %>📬
+                        <% } else if (event.type === 'sold') { %>💳
+                        <% } else if (event.type === 'worn') { %>👕
+                        <% } else if (event.type === 'repaired') { %>🔧
+                        <% } else if (event.type === 'resold') { %>♻️
+                        <% } else if (event.type === 'returned') { %>↩️
+                        <% } else if (event.type === 'recycled') { %>🌱
+                        <% } else { %>📌
+                        <% } %>
+                      </div>
+                    </div>
+                    <div class="flex-grow">
+                      <p class="font-semibold text-gray-900"><%= event.label %></p>
+                      <p class="text-sm text-gray-600 mt-1">
+                        <%= new Date(event.date).toLocaleString('sv-SE') %>
+                      </p>
+                      <% if (event.details && Object.keys(event.details).length > 0) { %>
+                        <div class="text-sm text-gray-700 mt-2 bg-gray-50 p-2 rounded">
+                          <% for (const [key, value] of Object.entries(event.details)) { %>
+                            <p><strong><%= key %>:</strong> <%= value %></p>
+                          <% } %>
+                        </div>
+                      <% } %>
+                    </div>
+                  </div>
+                </div>
+              <% }); %>
+            </div>
+          <% } else { %>
+            <p class="text-gray-500 italic">No lifecycle events recorded yet</p>
+          <% } %>
+        </div>
+
+      </div>
+
+      <!-- Sidebar -->
+      <div class="space-y-6">
+
+        <!-- Quick Info -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">Quick Info</h3>
+          <div class="space-y-3 text-sm">
+            <div>
+              <span class="text-gray-600">Style:</span><br>
+              <span class="font-semibold"><%= style.style_number %></span>
+            </div>
+            <div>
+              <span class="text-gray-600">Batch:</span><br>
+              <span class="font-semibold"><%= batch.batch_id %></span>
+            </div>
+            <div>
+              <span class="text-gray-600">GTIN:</span><br>
+              <span class="font-mono text-xs"><%= gtin.gtin %></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">Actions</h3>
+          <a href="/dpp/<%= sgtin.serial_number %>" target="_blank" class="block w-full text-center bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800 font-semibold text-sm">
+            View Public Passport →
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const sgtinId = '<%= sgtin.id %>';
+
+    function toggleEdit(section) {
+      const view = document.getElementById(`${section}-view`);
+      const edit = document.getElementById(`${section}-edit`);
+      view.classList.toggle('hidden');
+      edit.classList.toggle('hidden');
+    }
+
+    async function saveSgtinValues() {
+      const values = {};
+      <% allFields.forEach(field => { %>
+        const val = document.getElementById('field-<%= field.field_key %>').value;
+        if (val.trim()) {
+          values['<%= field.field_key %>'] = val.trim();
+        }
+      <% }); %>
+
+      try {
+        const response = await fetch(`/admin-v2/sgtins/${sgtinId}/dpp-values`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(values)
+        });
+        if (response.ok) {
+          alert('SGTIN values saved!');
+          location.reload();
+        } else {
+          alert('Error saving values');
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+  </script>
+</body>
+</html>

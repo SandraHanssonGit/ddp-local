@@ -62,6 +62,7 @@ app.use('/p', require('./routes/public'));
 // Consumer DPP routes (both v1 and v2)
 if (dbVersion === 'v2') {
   app.use('/dpp', require('./routes/public/consumer'));
+  app.use('/api/passport', require('./routes/public/consumer'));
 }
 
 // V2 Admin API routes (if running v2)
@@ -75,6 +76,7 @@ if (dbVersion === 'v2') {
 
   // V2 Admin UI routes
   app.use('/admin-config', requireAuth, require('./routes/admin/config'));
+  app.use('/admin-v2', requireAuth, require('./routes/admin/hub-v2'));
 }
 
 // Login page
@@ -83,9 +85,15 @@ app.get('/login', (req, res) => {
 });
 
 // DPP Hub (admin) - requires authentication
-app.get('/admin-edit', requireAuth, (req, res) => {
-  res.render('admin-edit');
-});
+if (dbVersion === 'v2') {
+  app.get('/admin-edit', requireAuth, (req, res) => {
+    res.redirect('/admin-v2');
+  });
+} else {
+  app.get('/admin-edit', requireAuth, (req, res) => {
+    res.render('admin-edit');
+  });
+}
 
 // Home redirect
 app.get('/', (req, res) => {
@@ -94,10 +102,11 @@ app.get('/', (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
+  const hubUrl = dbVersion === 'v2' ? `/admin-v2` : `/admin-edit`;
   console.log(`\n✓ DPP ${dbVersion.toUpperCase()} Server running at http://localhost:${PORT}`);
   console.log(`✓ Database: ${process.env.DB_PATH || 'database.db'}`);
-  console.log(`✓ DPP Hub: http://localhost:${PORT}/admin-edit`);
-  console.log(`✓ Public passport: http://localhost:${PORT}/p/114519-001-AA\n`);
+  console.log(`✓ DPP Hub: http://localhost:${PORT}${hubUrl}`);
+  console.log(`✓ Public passport: http://localhost:${PORT}/dpp/ABC001\n`);
 });
 
 module.exports = app;

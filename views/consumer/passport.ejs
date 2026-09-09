@@ -3,226 +3,286 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= passport.style.product_name %> - <%= passport.serialNumber %></title>
+    <title><%= passport.style.product_name %><% if (!passport.isGtinOnly) { %> - <%= passport.sgtin.serial_number %><% } %></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .category-badge {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            border-radius: 9999px;
+        body {
+            background-color: #faf8f3;
+            color: #333;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .label {
+            color: #8b6f47;
             font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: capitalize;
+        }
+
+        .value {
+            color: #333;
+            font-size: 1rem;
+            margin-top: 0.25rem;
+        }
+
+        .section-title {
+            color: #333;
+            font-size: 1rem;
             font-weight: 600;
-        }
-        .eu-required {
-            background-color: #dbeafe;
-            color: #0c4a6e;
-        }
-        .nudie {
-            background-color: #dcfce7;
-            color: #14532d;
-        }
-        .field-group {
-            background: white;
-            border-radius: 0.5rem;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-        .field-item {
             margin-bottom: 1rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid #f3f4f6;
+            margin-top: 2rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #ddd;
         }
-        .field-item:last-child {
-            margin-bottom: 0;
-            padding-bottom: 0;
+
+        .data-row {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 2rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .data-row:last-child {
             border-bottom: none;
         }
-        .field-label {
-            font-weight: 600;
-            color: #374151;
-            font-size: 0.875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.5rem;
-        }
-        .field-value {
-            color: #111827;
-            font-size: 1rem;
-            line-height: 1.5;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-        .product-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2rem;
-            border-radius: 0.75rem;
-            margin-bottom: 2rem;
-        }
-        .product-specs {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-        .spec-box {
-            background: #f9fafb;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            border-left: 4px solid #667eea;
-        }
-        .spec-label {
-            font-size: 0.75rem;
-            color: #6b7280;
-            text-transform: uppercase;
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
-        .spec-value {
-            font-size: 1.125rem;
-            color: #111827;
-            font-weight: 600;
+
+        @media print {
+            body { background: white; }
+            .no-print { display: none; }
         }
     </style>
 </head>
-<body class="bg-gray-50">
-    <div class="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-2xl mx-auto">
-            <!-- Product Header -->
-            <div class="product-header">
-                <h1 class="text-3xl font-bold mb-2"><%= passport.style.product_name %></h1>
-                <p class="text-blue-100 mb-4"><%= passport.style.product_type %></p>
-                <div class="text-sm font-mono text-blue-100">
-                    Serial: <strong><%= passport.serialNumber %></strong>
-                </div>
-            </div>
+<body>
+  <div class="max-w-3xl mx-auto px-8 py-12">
 
-            <!-- Product Specifications -->
-            <div class="product-specs">
-                <div class="spec-box">
-                    <div class="spec-label">Style Number</div>
-                    <div class="spec-value"><%= passport.style.style_number %></div>
-                </div>
-                <div class="spec-box">
-                    <div class="spec-label">Size</div>
-                    <div class="spec-value"><%= passport.gtin.size || 'N/A' %></div>
-                </div>
-                <div class="spec-box">
-                    <div class="spec-label">Color</div>
-                    <div class="spec-value"><%= passport.gtin.color || 'N/A' %></div>
-                </div>
-                <div class="spec-box">
-                    <div class="spec-label">Production Date</div>
-                    <div class="spec-value"><%= passport.batch.production_date || 'N/A' %></div>
-                </div>
-                <div class="spec-box">
-                    <div class="spec-label">Made In</div>
-                    <div class="spec-value"><%= passport.batch.country_of_production || 'N/A' %></div>
-                </div>
-                <div class="spec-box">
-                    <div class="spec-label">Batch</div>
-                    <div class="spec-value"><%= passport.batch.batch_id %></div>
-                </div>
-            </div>
-
-            <!-- Digital Passport Sections -->
-            <% if (formattedCategories && formattedCategories.length > 0) { %>
-                <% formattedCategories.forEach(category => { %>
-                    <% if (category.fields && category.fields.length > 0) { %>
-                        <div class="field-group">
-                            <div class="mb-4 pb-4 border-b-2 border-gray-200">
-                                <span class="category-badge <%= category.category %>">
-                                    <%= category.icon %> <%= category.label %>
-                                </span>
-                                <% if (category.description) { %>
-                                    <p class="text-gray-600 text-sm mt-2"><%= category.description %></p>
-                                <% } %>
-                            </div>
-
-                            <% category.fields.forEach(field => { %>
-                                <% if (field.value) { %>
-                                    <div class="field-item">
-                                        <div class="field-label"><%= field.label %></div>
-                                        <div class="field-value"><%= field.value %></div>
-                                    </div>
-                                <% } %>
-                            <% }); %>
-                        </div>
-                    <% } %>
-                <% }); %>
-            <% } else { %>
-                <div class="field-group">
-                    <p class="text-gray-500 text-center py-8">
-                        No detailed information available for this product.
-                    </p>
-                </div>
-            <% } %>
-
-            <!-- Lifecycle Timeline -->
-            <% if (passport.events && passport.events.length > 0) { %>
-                <div class="field-group">
-                    <div class="mb-4 pb-4 border-b-2 border-gray-200">
-                        <span class="category-badge" style="background-color: #fef3c7; color: #92400e;">
-                            📋 Product History
-                        </span>
-                        <p class="text-gray-600 text-sm mt-2"><%= passport.eventCount %> events recorded</p>
-                    </div>
-
-                    <div class="relative">
-                        <% passport.events.forEach((event, index) => { %>
-                            <div class="mb-6 pb-6 border-b border-gray-200" style="<% if (index === passport.events.length - 1) { %>border-bottom: none;<% } %>">
-                                <div class="flex gap-4">
-                                    <div class="flex-shrink-0">
-                                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: #e0e7ff; display: flex; align-items: center; justify-content: center; font-size: 20px;">
-                                            <% if (event.type === 'manufactured') { %>🏭
-                                            <% } else if (event.type === 'quality_checked') { %>✓
-                                            <% } else if (event.type === 'packaged') { %>📦
-                                            <% } else if (event.type === 'shipped') { %>🚚
-                                            <% } else if (event.type === 'delivered') { %>📬
-                                            <% } else if (event.type === 'sold') { %>💳
-                                            <% } else if (event.type === 'worn') { %>👕
-                                            <% } else if (event.type === 'repaired') { %>🔧
-                                            <% } else if (event.type === 'resold') { %>♻️
-                                            <% } else if (event.type === 'returned') { %>↩️
-                                            <% } else if (event.type === 'recycled') { %>🌱
-                                            <% } else { %>📌
-                                            <% } %>
-                                        </div>
-                                    </div>
-                                    <div class="flex-grow">
-                                        <h3 class="font-semibold text-gray-900"><%= event.label %></h3>
-                                        <p class="text-sm text-gray-600 mt-1">
-                                            <%
-                                              const date = new Date(event.date);
-                                              const formatted = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-                                            %>
-                                            <%= formatted %>
-                                        </p>
-                                        <% if (event.details && Object.keys(event.details).length > 0) { %>
-                                            <div class="text-sm text-gray-700 mt-2 bg-gray-50 p-2 rounded">
-                                                <% for (const [key, value] of Object.entries(event.details)) { %>
-                                                    <div><strong><%= key %>:</strong> <%= value %></div>
-                                                <% } %>
-                                            </div>
-                                        <% } %>
-                                    </div>
-                                </div>
-                            </div>
-                        <% }); %>
-                    </div>
-                </div>
-            <% } %>
-
-            <!-- Footer -->
-            <div class="mt-8 pt-6 border-t border-gray-200">
-                <p class="text-gray-500 text-xs text-center">
-                    Nudie Jeans Digital Product Passport<br>
-                    Made with care since 1992<br>
-                    <span class="font-mono text-gray-400">Serial: <%= passport.serialNumber %></span>
-                </p>
-            </div>
-        </div>
+    <!-- Logo -->
+    <div class="mb-8">
+      <h2 class="text-lg font-bold text-gray-900">Nudie Jeans co</h2>
     </div>
+
+    <!-- Product Header -->
+    <div class="mb-12 pb-12 border-b border-gray-300">
+      <!-- Product Image (if available) -->
+      <% if (passport.style && passport.style.image_url) { %>
+        <div class="mb-8">
+          <img src="<%= passport.style.image_url %>" alt="<%= passport.style.product_name %>" class="w-40 h-56 object-cover rounded" onerror="console.log('Image failed to load from:', this.src)">
+        </div>
+      <% } else { %>
+        <!-- Debug: Show why image is not displayed -->
+        <script>
+          console.log('Image not shown. passport.style:', <%= JSON.stringify(passport.style) %>);
+        </script>
+      <% } %>
+
+      <!-- Product Info -->
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900 mb-2"><%= passport.style.product_name %></h1>
+        <p class="text-sm font-mono text-gray-600">
+          W<%= passport.gtin.size || '-' %>/L<%= passport.gtin.size || '-' %>
+          <%= passport.style.style_number %>-<%= passport.gtin.color ? passport.gtin.color.substring(0, 1) : '-' %><% if (!passport.isGtinOnly) { %>-<%= passport.sgtin.serial_number %><% } else { %>-XXXX<% } %>
+        </p>
+      </div>
+    </div>
+
+    <!-- Composition Section -->
+    <div class="mb-12">
+      <h2 class="section-title">Composition</h2>
+      <div class="data-row">
+        <div class="label">Composition</div>
+        <div class="value">
+          <%= passport.resolvedFields?.find(f => f.field_key === 'fiber_composition')?.value || '100% Cotton' %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Section -->
+    <div class="mb-12">
+      <h2 class="section-title">Production</h2>
+      <p class="text-sm text-gray-600 mb-4"><%= passport.resolvedFields?.length || 0 %> steps · <%= passport.resolvedFields?.length || 0 %> suppliers</p>
+
+      <div class="data-row">
+        <div class="label">Made in</div>
+        <div class="value"><%= passport.batch.country_of_production || 'N/A' %></div>
+      </div>
+
+      <div class="data-row">
+        <div class="label">Factory</div>
+        <div class="value"><%= passport.batch.factory || 'N/A' %></div>
+      </div>
+
+      <div class="data-row">
+        <div class="label">Production Date</div>
+        <div class="value"><%= passport.batch.production_date ? new Date(passport.batch.production_date).toLocaleDateString('sv-SE') : 'N/A' %></div>
+      </div>
+
+      <div class="data-row">
+        <div class="label">Production Order</div>
+        <div class="value"><%= passport.batch.production_order || 'N/A' %></div>
+      </div>
+    </div>
+
+    <!-- Climate and Water Section -->
+    <div class="mb-12">
+      <h2 class="section-title">Climate and water</h2>
+
+      <div class="data-row">
+        <div class="label">Carbon footprint</div>
+        <div class="value">Calculated per garment</div>
+      </div>
+
+      <div class="data-row">
+        <div class="label">Water use</div>
+        <div class="value">Calculated per garment</div>
+      </div>
+    </div>
+
+    <!-- Care Instructions Section -->
+    <div class="mb-12">
+      <h2 class="section-title">Care instructions</h2>
+
+      <div class="value text-sm leading-relaxed">
+        <%= passport.resolvedFields?.find(f => f.field_key === 'care_instructions')?.value || 'See label for care instructions' %>
+      </div>
+    </div>
+
+    <!-- Additional Info Sections -->
+    <% formattedCategories?.forEach(category => { %>
+      <% if (category.fields && category.fields.length > 0 && category.category !== 'eu_required') { %>
+        <div class="mb-12">
+          <h2 class="section-title"><%= category.label %></h2>
+
+          <% category.fields.forEach(field => { %>
+            <div class="data-row">
+              <div class="label"><%= field.label %></div>
+              <div class="value text-sm"><%= field.value || 'N/A' %></div>
+            </div>
+          <% }); %>
+        </div>
+      <% } %>
+    <% }); %>
+
+    <!-- Identifiers Section -->
+    <div class="mb-12">
+      <h2 class="section-title">Identifiers</h2>
+
+      <div class="data-row">
+        <div class="label">Article number</div>
+        <div class="value font-mono"><%= passport.style.style_number %></div>
+      </div>
+
+      <div class="data-row">
+        <div class="label">GTIN</div>
+        <div class="value font-mono"><%= passport.gtin.gtin || 'N/A' %></div>
+      </div>
+
+      <% if (!passport.isGtinOnly) { %>
+        <div class="data-row">
+          <div class="label">Serial</div>
+          <div class="value font-mono"><%= passport.sgtin.serial_number %></div>
+        </div>
+      <% } else { %>
+        <div class="data-row">
+          <div class="label">Serial</div>
+          <div class="value text-sm italic text-gray-500">Not assigned yet (circular information)</div>
+        </div>
+      <% } %>
+
+      <div class="data-row">
+        <div class="label">Batch</div>
+        <div class="value font-mono"><%= passport.batch.batch_id %></div>
+      </div>
+    </div>
+
+    <!-- Lifecycle Events Section -->
+    <% if (events && events.length > 0) { %>
+      <div class="mb-12">
+        <h2 class="section-title">Product Lifecycle</h2>
+
+        <div class="space-y-6">
+          <% events.forEach((event, idx) => { %>
+            <div class="flex gap-4">
+              <!-- Event icon -->
+              <div class="flex-shrink-0 w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-xl">
+                <% if (event.type === 'manufactured') { %>🏭
+                <% } else if (event.type === 'quality_checked') { %>✓
+                <% } else if (event.type === 'packaged') { %>📦
+                <% } else if (event.type === 'shipped') { %>🚚
+                <% } else if (event.type === 'delivered') { %>📬
+                <% } else if (event.type === 'sold') { %>💳
+                <% } else if (event.type === 'worn') { %>👕
+                <% } else if (event.type === 'repaired') { %>🔧
+                <% } else if (event.type === 'resold') { %>♻️
+                <% } else if (event.type === 'returned') { %>↩️
+                <% } else if (event.type === 'recycled') { %>🌱
+                <% } else { %>📌
+                <% } %>
+              </div>
+
+              <!-- Event details -->
+              <div class="flex-grow">
+                <p class="font-semibold text-gray-900">
+                  <%
+                    const labels = {
+                      manufactured: 'Manufactured',
+                      quality_checked: 'Quality Checked',
+                      packaged: 'Packaged',
+                      shipped: 'Shipped',
+                      delivered: 'Delivered',
+                      sold: 'Sold',
+                      worn: 'Worn',
+                      repaired: 'Repaired',
+                      resold: 'Resold',
+                      returned: 'Returned',
+                      recycled: 'Recycled'
+                    };
+                  %>
+                  <%= labels[event.type] || event.type %>
+                </p>
+                <p class="text-sm text-gray-600 mt-1">
+                  <%= new Date(event.date).toLocaleString('sv-SE') %>
+                </p>
+                <% if (event.details && Object.keys(event.details).length > 0) { %>
+                  <div class="text-sm text-gray-700 mt-2 bg-gray-50 p-3 rounded">
+                    <% for (const [key, value] of Object.entries(event.details)) { %>
+                      <p><strong><%= key.replace(/_/g, ' ') %>:</strong> <%= value %></p>
+                    <% } %>
+                  </div>
+                <% } %>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+    <% } %>
+
+    <!-- Footer -->
+    <div class="mt-16 pt-8 border-t border-gray-300 text-center text-xs text-gray-600">
+      <p class="mb-2">Digital Product Passport · Nudie Jeans</p>
+      <p>Passport version 1, issued <%= new Date().toISOString().split('T')[0] %>.</p>
+
+      <!-- Machine-readable formats -->
+      <div class="mt-4 space-y-2">
+        <% if (!passport.isGtinOnly) { %>
+          <p class="text-gray-500 font-semibold">Machine-readable (SGTIN):</p>
+          <p>
+            <a href="/dpp/<%= passport.gtin.gtin %>/<%= passport.sgtin.serial_number %>/json" class="text-blue-600 hover:underline">Full Passport (JSON)</a>
+            ·
+            <a href="/dpp/<%= passport.gtin.gtin %>/<%= passport.sgtin.serial_number %>/eu" class="text-blue-600 hover:underline">EU-Required Fields (JSON)</a>
+          </p>
+        <% } else { %>
+          <p class="text-gray-500 font-semibold">GTIN-level view</p>
+          <p class="text-sm text-gray-600">SGTIN will be created on first consumer interaction with this product. The unique serial will then track this specific garment through its lifecycle.</p>
+        <% } %>
+      </div>
+
+      <% if (!passport.isGtinOnly && passport.sgtin) { %>
+        <p class="mt-4 font-mono text-gray-400">Serial: <%= passport.sgtin.serial_number %></p>
+      <% } else if (passport.isGtinOnly) { %>
+        <p class="mt-4 font-mono text-gray-400">GTIN: <%= passport.gtin.gtin %></p>
+      <% } %>
+    </div>
+
+  </div>
 </body>
 </html>

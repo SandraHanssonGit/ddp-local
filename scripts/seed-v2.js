@@ -3,6 +3,8 @@ const batchRepository = require('../repositories/batches');
 const gtinRepository = require('../repositories/gtins');
 const sgtinRepository = require('../repositories/sgtins');
 const fieldService = require('../services/field-service');
+const bcrypt = require('bcrypt');
+const sqlite3 = require('sqlite3').verbose();
 
 const DB_PATH = process.env.DB_PATH || 'data/dpp-v2.db';
 
@@ -50,160 +52,125 @@ async function seedDemoData() {
       { description: 'Information about Nudie repair services', data_type: 'text' }
     );
 
-    const storytellingId = await fieldService.createField(
-      'storytelling',
-      'Product Story',
+    const secondhandProgramId = await fieldService.createField(
+      'secondhand_program',
+      'Secondhand Program',
       'nudie',
-      { description: 'Story behind the product', data_type: 'text' }
+      { description: 'Information about Nudie secondhand program', data_type: 'text' }
     );
 
     console.log('[SEED] ✓ 6 field definitions created\n');
 
-    // Create Style 1
-    console.log('[SEED] Creating Style 114519...');
-    const style1Id = await styleRepository.create(
-      '114519',
-      'Tight Terry',
-      'Jeans'
-    );
+    // Create Styles
+    console.log('[SEED] Creating Styles...');
+    const style1 = await styleRepository.create('114519', 'Classic Jeans', 'Denim');
+    const style2 = await styleRepository.create('114526', 'Skinny Jeans', 'Denim');
+    console.log('[SEED] ✓ 2 styles created\n');
 
-    // Set Style 1 fields
-    await fieldService.setValue('style', style1Id, 'fiber_composition', '99% organic cotton, 1% elastane');
-    await fieldService.setValue('style', style1Id, 'care_instructions', 'Wash inside out in cold water, hang dry');
-    await fieldService.setValue('style', style1Id, 'country_of_origin', 'Sweden');
-    await fieldService.setValue('style', style1Id, 'sustainability_info', 'Made from 100% organic cotton');
-    await fieldService.setValue('style', style1Id, 'repair_program', 'Free repair for life at Nudie stores');
-    await fieldService.setValue('style', style1Id, 'storytelling', 'Tight fitting, classic Nudie silhouette');
+    // Set Style-level DPP values
+    await fieldService.setValue('style', style1, 'fiber_composition', '100% Cotton');
+    await fieldService.setValue('style', style1, 'care_instructions', 'Wash in 30°C');
+    await fieldService.setValue('style', style1, 'sustainability_info', 'Made from organic cotton');
+    await fieldService.setValue('style', style1, 'repair_program', 'Free repair for 1 year');
 
-    console.log('[SEED] ✓ Style 114519 created with field values\n');
+    await fieldService.setValue('style', style2, 'fiber_composition', '99% Cotton, 1% Elastane');
+    await fieldService.setValue('style', style2, 'care_instructions', 'Wash in 30°C, do not bleach');
+    await fieldService.setValue('style', style2, 'country_of_origin', 'Cambodia');
 
-    // Create Batch 1.1
-    console.log('[SEED] Creating Batch PO45001234...');
-    const batch1_1Id = await batchRepository.create(
-      style1Id,
-      'PO45001234',
-      {
-        production_order: 'PO45001234',
-        production_date: '2026-08-15',
-        supplier: 'Trimco AB',
-        factory: 'Stockholm',
-        country_of_production: 'Sweden'
-      }
-    );
+    console.log('[SEED] ✓ Style-level field values created\n');
 
-    // Override fiber composition at batch level
-    await fieldService.setValue('batch', batch1_1Id, 'fiber_composition', '98% organic cotton, 2% elastane (special blend)');
+    // Create Batch (independent of style)
+    console.log('[SEED] Creating Batches...');
+    const batch1 = await batchRepository.create('PO45001234', {
+      production_order: 'Order-001',
+      production_date: '2024-01-15',
+      factory: 'Cambodia',
+      country_of_production: 'Cambodia'
+    });
+    console.log('[SEED] ✓ Batch PO45001234 created\n');
 
-    console.log('[SEED] ✓ Batch PO45001234 created (with override)\n');
+    // Create GTINs for Batch 1 - from MULTIPLE styles
+    console.log('[SEED] Creating GTINs for Batch (multi-style)...');
+    const gtin1 = await gtinRepository.create(batch1, style1, '5707141145391', { size: '30', color: 'Blue' });
+    const gtin2 = await gtinRepository.create(batch1, style1, '5707141145392', { size: '32', color: 'Blue' });
+    const gtin3 = await gtinRepository.create(batch1, style2, '5707141145407', { size: '28', color: 'Black' });
+    const gtin4 = await gtinRepository.create(batch1, style2, '5707141145408', { size: '30', color: 'Black' });
+    console.log('[SEED] ✓ 4 GTINs created (2x Style 114519, 2x Style 114526)\n');
 
-    // Create GTINs for Batch 1.1
-    console.log('[SEED] Creating GTINs...');
-    const gtin1_1_1Id = await gtinRepository.create(
-      batch1_1Id,
-      '05707141145391',
-      { size: 'M', color: 'Black' }
-    );
+    // Set Batch-level override
+    await fieldService.setValue('batch', batch1, 'country_of_origin', 'Vietnam');
+    console.log('[SEED] ✓ Batch-level override created\n');
 
-    const gtin1_1_2Id = await gtinRepository.create(
-      batch1_1Id,
-      '05707141145407',
-      { size: 'L', color: 'Black' }
-    );
-
-    console.log('[SEED] ✓ 2 GTINs created\n');
-
-    // Create SGTINs for GTIN 1
+    // Create SGTINs
     console.log('[SEED] Creating SGTINs...');
-    await sgtinRepository.create(batch1_1Id, 'ABC001', { serial_number: 'ABC001', qc_status: 'pass' });
-    await sgtinRepository.create(gtin1_1_1Id, 'ABC002', { qc_status: 'pass' });
-    await sgtinRepository.create(gtin1_1_1Id, 'ABC003', { qc_status: 'pass' });
-
-    // Create SGTINs for GTIN 2
-    await sgtinRepository.create(gtin1_1_2Id, 'ABC004', { qc_status: 'pass' });
-    await sgtinRepository.create(gtin1_1_2Id, 'ABC005', { qc_status: 'pass' });
-
+    const sgtin1 = await sgtinRepository.create(gtin1, 'ABC001', { qc_status: 'Passed' });
+    const sgtin2 = await sgtinRepository.create(gtin1, 'ABC002', { qc_status: 'Passed' });
+    const sgtin3 = await sgtinRepository.create(gtin2, 'ABC003', { qc_status: 'Passed' });
+    const sgtin4 = await sgtinRepository.create(gtin3, 'ABC004', { qc_status: 'Passed' });
+    const sgtin5 = await sgtinRepository.create(gtin4, 'ABC005', { qc_status: 'Passed' });
     console.log('[SEED] ✓ 5 SGTINs created\n');
 
-    // Create Batch 1.2
-    console.log('[SEED] Creating Batch PO45001345...');
-    const batch1_2Id = await batchRepository.create(
-      style1Id,
-      'PO45001345',
-      {
-        production_order: 'PO45001345',
-        production_date: '2026-09-01',
-        supplier: 'Trimco AB',
-        factory: 'Gothenburg',
-        country_of_production: 'Sweden'
-      }
-    );
+    // Set SGTIN-level override
+    await fieldService.setValue('sgtin', sgtin1, 'fiber_composition', '100% Organic Cotton (Premium)');
 
-    console.log('[SEED] ✓ Batch PO45001345 created\n');
+    // Create Additional Batches for completeness
+    console.log('[SEED] Creating additional batches...');
+    const batch2 = await batchRepository.create('PO45001345', {
+      production_order: 'Order-002',
+      production_date: '2024-02-01',
+      factory: 'Vietnam'
+    });
 
-    // Create GTIN for Batch 1.2
-    const gtin1_2_1Id = await gtinRepository.create(
-      batch1_2Id,
-      '05707141145414',
-      { size: 'S', color: 'Dark Blue' }
-    );
+    const gtin5 = await gtinRepository.create(batch2, style1, '5707141145440', { size: '34', color: 'Dark Blue' });
+    const gtin6 = await gtinRepository.create(batch2, style2, '5707141145460', { size: '32', color: 'Gray' });
+    console.log('[SEED] ✓ Additional batch created\n');
 
-    // Create SGTINs for this GTIN
-    await sgtinRepository.create(gtin1_2_1Id, 'ABC006', { qc_status: 'pass' });
-    await sgtinRepository.create(gtin1_2_1Id, 'ABC007', { qc_status: 'pass' });
+    // Create more SGTINs
+    const sgtin6 = await sgtinRepository.create(gtin5, 'ABC006', { qc_status: 'Passed' });
+    const sgtin7 = await sgtinRepository.create(gtin6, 'ABC007', { qc_status: 'Passed' });
+    const sgtin8 = await sgtinRepository.create(gtin6, 'ABC008', { qc_status: 'Passed' });
+    const sgtin9 = await sgtinRepository.create(gtin6, 'ABC009', { qc_status: 'Passed' });
 
-    console.log('[SEED] ✓ Batch 1.2 with GTINs and SGTINs created\n');
+    console.log('[SEED] ✓ 4 more SGTINs created\n');
 
-    // Create Style 2
-    console.log('[SEED] Creating Style 114526...');
-    const style2Id = await styleRepository.create(
-      '114526',
-      'Grim Tim',
-      'Jeans'
-    );
+    // Seed demo users
+    console.log('[SEED] Creating demo users...');
 
-    // Set Style 2 fields
-    await fieldService.setValue('style', style2Id, 'fiber_composition', '100% organic cotton');
-    await fieldService.setValue('style', style2Id, 'care_instructions', 'Wash inside out, gentle cycle, hang dry');
-    await fieldService.setValue('style', style2Id, 'country_of_origin', 'Sweden');
-    await fieldService.setValue('style', style2Id, 'sustainability_info', 'Fair trade certified organic cotton');
-    await fieldService.setValue('style', style2Id, 'repair_program', 'Lifetime repair guarantee');
-    await fieldService.setValue('style', style2Id, 'storytelling', 'Classic straight leg cut');
+    const db = new sqlite3.Database(DB_PATH);
 
-    console.log('[SEED] ✓ Style 114526 created\n');
+    const demoUsers = [
+      { username: 'demo', password: 'password', role: 'admin' },
+      { username: 'admin', password: 'admin', role: 'super_admin' },
+      { username: 'sandra', password: 'password', role: 'super_admin' }
+    ];
 
-    // Create Batch for Style 2
-    const batch2_1Id = await batchRepository.create(
-      style2Id,
-      'PO45001456',
-      {
-        production_order: 'PO45001456',
-        production_date: '2026-08-20',
-        supplier: 'Trimco AB',
-        factory: 'Stockholm',
-        country_of_production: 'Sweden'
-      }
-    );
+    for (const user of demoUsers) {
+      const hashedPassword = await bcrypt.hash(user.password, 10);
+      await new Promise((resolve, reject) => {
+        db.run(
+          `INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)`,
+          [user.username, hashedPassword, user.role],
+          function(err) {
+            if (err) reject(err);
+            else {
+              console.log(`  ✓ User: ${user.username} (${user.role})`);
+              resolve();
+            }
+          }
+        );
+      });
+    }
 
-    // Create GTIN and SGTINs for Style 2
-    const gtin2_1_1Id = await gtinRepository.create(
-      batch2_1Id,
-      '05707141145421',
-      { size: 'M', color: 'Raw' }
-    );
+    db.close();
 
-    await sgtinRepository.create(gtin2_1_1Id, 'DEF001', { qc_status: 'pass' });
-    await sgtinRepository.create(gtin2_1_1Id, 'DEF002', { qc_status: 'pass' });
-
-    console.log('[SEED] ✓ Style 114526 hierarchy created\n');
-
-    console.log('[SEED] ✅ Demo data seeding complete!\n');
     console.log('[SEED] Demo Data Summary:');
     console.log('  Styles: 2 (114519, 114526)');
-    console.log('  Batches: 3 (PO45001234, PO45001345, PO45001456)');
-    console.log('  GTINs: 4');
-    console.log('  SGTINs: 9');
+    console.log('  Batches: 2 (PO45001234, PO45001345)');
+    console.log('  GTINs: 6 (from multiple styles per batch)');
+    console.log('  SGTINs: 9 (ABC001-ABC009)');
     console.log('  Fields: 6 (EU + Nudie)');
-    console.log('  Field Values: 15 (Style-level) + 1 (Batch-level override)\n');
+    console.log('  Users: 3 (demo, admin, sandra)');
+    console.log('\n[SEED] ✅ Demo data seeding complete!\n');
 
   } catch (error) {
     console.error('[SEED] ❌ Error:', error.message);
