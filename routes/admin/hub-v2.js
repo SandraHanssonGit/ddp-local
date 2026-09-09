@@ -249,7 +249,7 @@ router.get('/batches/:batchId', async (req, res) => {
     // Get GTINs with style info
     const gtins = await new Promise((resolve, reject) => {
       db.all(`
-        SELECT g.*, s.style_number,
+        SELECT g.*, s.style_number, s.product_name,
                (SELECT COUNT(*) FROM sgtins WHERE gtin_id = g.id) as sgtin_count
         FROM gtins g
         JOIN styles s ON g.style_id = s.id

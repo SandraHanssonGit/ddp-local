@@ -98,11 +98,11 @@
             const gtinsByStyle = {};
             gtins.forEach(gtin => {
               if (!gtinsByStyle[gtin.style_number]) {
-                gtinsByStyle[gtin.style_number] = { styleName: '', items: [] };
+                gtinsByStyle[gtin.style_number] = { productName: '', items: [] };
               }
               // Store first gtin object to get style info
-              if (!gtinsByStyle[gtin.style_number].styleName) {
-                gtinsByStyle[gtin.style_number].styleName = gtin.style_number;
+              if (!gtinsByStyle[gtin.style_number].productName) {
+                gtinsByStyle[gtin.style_number].productName = gtin.product_name;
               }
               gtinsByStyle[gtin.style_number].items.push(gtin);
             });
@@ -112,7 +112,7 @@
                 <div class="border border-gray-200 rounded-lg overflow-hidden">
                   <!-- Style Header -->
                   <div class="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200 px-6 py-4">
-                    <h3 class="font-bold text-gray-900 text-lg"><%= styleNum %></h3>
+                    <h3 class="font-bold text-gray-900 text-lg"><%= styleNum %> - <%= styleData.productName %></h3>
                     <p class="text-sm text-gray-600 mt-1"><%= styleData.items.length %> GTIN variant<%= styleData.items.length !== 1 ? 's' : '' %></p>
                   </div>
 
