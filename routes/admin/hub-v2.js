@@ -170,7 +170,8 @@ router.get('/', async (req, res) => {
     if (tab === 'sgtins') {
       const gtinId = req.query.gtin;
       let query = `
-        SELECT s.*, g.gtin, st.style_number
+        SELECT s.*, g.gtin, g.product_type, g.size_value_1, g.size_value_2, g.size_value_3,
+               st.style_number, st.product_name
         FROM sgtins s
         JOIN gtins g ON s.gtin_id = g.id
         JOIN styles st ON g.style_id = st.id

@@ -295,26 +295,52 @@
             <table class="w-full border-collapse">
               <thead>
                 <tr class="bg-gray-100 border-b border-gray-300">
-                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Serial Number</th>
-                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">GTIN</th>
-                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">SGTIN</th>
-                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">QC Status</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Product</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Size/Variant</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Serial</th>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">QC</th>
                   <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Events</th>
                   <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                <% sgtins.forEach(sgtin => { %>
+                <% sgtins.forEach(sgtin => {
+                  let displaySize = '-';
+                  if (sgtin.product_type === 'jeans_adult' && sgtin.size_value_1 && sgtin.size_value_2) {
+                    displaySize = `L${sgtin.size_value_1}-W${sgtin.size_value_2}`;
+                  } else if (sgtin.product_type === 'tshirt' && sgtin.size_value_1) {
+                    displaySize = sgtin.size_value_2 ? `${sgtin.size_value_1} (${sgtin.size_value_2})` : sgtin.size_value_1;
+                  } else if (sgtin.product_type === 'kids' && sgtin.size_value_1) {
+                    displaySize = sgtin.size_value_2 ? `K${sgtin.size_value_1} (${sgtin.size_value_2})` : `K${sgtin.size_value_1}`;
+                  } else if (sgtin.product_type === 'no_size') {
+                    displaySize = sgtin.size_value_2 || 'One Size';
+                  } else if (sgtin.product_type === 'legacy' || !sgtin.product_type) {
+                    if (sgtin.size_value_1 && sgtin.size_value_2) {
+                      displaySize = `${sgtin.size_value_1}-${sgtin.size_value_2}`;
+                    }
+                  }
+                %>
                   <tr class="border-b border-gray-200 hover:bg-gray-50">
-                    <td class="px-4 py-3 font-mono text-sm"><%= sgtin.serial_number %></td>
-                    <td class="px-4 py-3 font-mono text-sm"><%= sgtin.gtin %></td>
-                    <td class="px-4 py-3 font-mono text-sm"><%= sgtin.sgtin || '-' %></td>
-                    <td class="px-4 py-3 text-sm"><%= sgtin.qc_status || '-' %></td>
-                    <td class="px-4 py-3 text-sm text-gray-600"><%= sgtin.event_count || 0 %></td>
+                    <td class="px-4 py-3 text-sm">
+                      <div class="font-semibold text-gray-900"><%= sgtin.style_number %></div>
+                      <div class="text-xs text-gray-500"><%= sgtin.product_name || 'Unknown' %></div>
+                    </td>
+                    <td class="px-4 py-3 text-sm font-mono font-semibold text-blue-600"><%= displaySize %></td>
+                    <td class="px-4 py-3 font-mono text-sm text-gray-900"><strong><%= sgtin.serial_number %></strong></td>
+                    <td class="px-4 py-3 text-sm">
+                      <% if (sgtin.qc_status === 'Passed') { %>
+                        <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-semibold">Passed</span>
+                      <% } else if (sgtin.qc_status === 'Failed') { %>
+                        <span class="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-semibold">Failed</span>
+                      <% } else { %>
+                        <span class="text-gray-600 text-sm">-</span>
+                      <% } %>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-center font-semibold"><%= sgtin.event_count || 0 %></td>
                     <td class="px-4 py-3 text-sm">
                       <a href="/admin-v2/sgtins/<%= sgtin.id %>" class="text-blue-600 hover:underline">Detail</a>
                       <span class="text-gray-300 mx-1">|</span>
-                      <a href="/dpp/<%= sgtin.serial_number %>" class="text-blue-600 hover:underline" target="_blank">Public</a>
+                      <a href="/dpp/<%= sgtin.gtin %>/<%= sgtin.serial_number %>" class="text-blue-600 hover:underline" target="_blank">Public</a>
                     </td>
                   </tr>
                 <% }); %>
