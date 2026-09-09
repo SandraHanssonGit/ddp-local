@@ -247,7 +247,7 @@ router.get('/batches/:batchId', async (req, res) => {
       return res.status(404).render('admin/hub-v2-error', { error: 'Batch not found' });
     }
 
-    // Get GTINs with style info
+    // Get GTINs with style info (including product_type and flexible size columns)
     const gtins = await new Promise((resolve, reject) => {
       db.all(`
         SELECT g.*, s.style_number, s.product_name,
@@ -255,7 +255,7 @@ router.get('/batches/:batchId', async (req, res) => {
         FROM gtins g
         JOIN styles s ON g.style_id = s.id
         WHERE g.batch_id = ?
-        ORDER BY s.style_number ASC, g.size ASC
+        ORDER BY s.style_number ASC, g.product_type ASC, g.size_value_1 ASC, g.size_value_2 ASC
       `, [batch.id], (err, rows) => {
         if (err) reject(err);
         else resolve(rows || []);
