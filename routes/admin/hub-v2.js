@@ -108,29 +108,63 @@ router.get('/', async (req, res) => {
     }
 
     if (tab === 'gtins') {
-      const batchId = req.query.batch;
-      let query = `
-        SELECT g.*, s.style_number, b.batch_id
-        FROM gtins g
-        JOIN styles s ON g.style_id = s.id
-        JOIN batches b ON g.batch_id = b.id
-      `;
-      let params = [];
+      const viewType = req.query.view || 'master'; // 'master' or 'all'
 
-      if (batchId) {
-        query += ' WHERE g.batch_id = ?';
-        params.push(batchId);
-      }
-
-      query += ` ORDER BY s.style_number ASC, g.size ASC`;
-
-      data.gtins = await new Promise((resolve, reject) => {
-        db.all(query, params, (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows || []);
+      if (viewType === 'master') {
+        // Master GTIN list - show unique GTINs with batch counts
+        data.gtins = await new Promise((resolve, reject) => {
+          db.all(`
+            SELECT DISTINCT
+              g.id,
+              g.gtin,
+              g.product_type,
+              g.size_value_1,
+              g.size_value_2,
+              g.size_value_3,
+              g.style_id,
+              s.style_number,
+              s.product_name,
+              COUNT(DISTINCT g.batch_id) as batch_count,
+              GROUP_CONCAT(DISTINCT b.batch_id, ', ') as batch_ids,
+              (SELECT COUNT(*) FROM sgtins WHERE gtin_id = g.id) as sgtin_count
+            FROM gtins g
+            JOIN styles s ON g.style_id = s.id
+            JOIN batches b ON g.batch_id = b.id
+            GROUP BY g.gtin
+            ORDER BY s.style_number ASC, g.product_type ASC, g.size_value_1 ASC, g.size_value_2 ASC
+          `, (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows || []);
+          });
         });
-      });
-      data.gtins = await getGtinCounts(data.gtins);
+        data.viewType = 'master';
+      } else {
+        // All GTINs - show all GTIN-batch combinations
+        const batchId = req.query.batch;
+        let query = `
+          SELECT g.*, s.style_number, s.product_name, b.batch_id,
+                 (SELECT COUNT(*) FROM sgtins WHERE gtin_id = g.id) as sgtin_count
+          FROM gtins g
+          JOIN styles s ON g.style_id = s.id
+          JOIN batches b ON g.batch_id = b.id
+        `;
+        let params = [];
+
+        if (batchId) {
+          query += ' WHERE g.batch_id = ?';
+          params.push(batchId);
+        }
+
+        query += ` ORDER BY s.style_number ASC, g.product_type ASC, g.size_value_1 ASC, g.size_value_2 ASC`;
+
+        data.gtins = await new Promise((resolve, reject) => {
+          db.all(query, params, (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows || []);
+          });
+        });
+        data.viewType = 'all';
+      }
     }
 
     if (tab === 'sgtins') {
