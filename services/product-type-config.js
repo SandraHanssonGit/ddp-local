@@ -147,18 +147,19 @@ class ProductTypeConfig {
         const match = itemNumber.match(/^(\d+)-([A-Z]\d{2})-K(\d{2})$/);
         if (!match) return null;
 
+        const kidSizeNum = match[3].replace(/^0+/, '') || '0'; // Strip leading zeros
         const kidSizeKey = `K${match[3]}`;
         const kidSizeInfo = this.PRODUCT_TYPES.kids.kid_sizes[kidSizeKey] || {
-          age: parseInt(match[3]),
-          label: `Age ${match[3]}`,
+          age: parseInt(kidSizeNum),
+          label: `Age ${kidSizeNum}`,
         };
 
         return {
           style_number: match[1],
           variant: match[2],
-          kid_size: match[3],
+          kid_size: kidSizeNum, // Without leading zero
           kid_size_label: kidSizeInfo.label,
-          size_value_1: match[3], // kid_size
+          size_value_1: kidSizeNum, // Without leading zero
           size_value_2: match[2], // variant
           size_value_3: null,
           display: `K${match[3]} (${match[2]})`,

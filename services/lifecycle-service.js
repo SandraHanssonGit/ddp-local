@@ -117,8 +117,8 @@ class LifecycleService {
       FROM lifecycle_events le
       JOIN sgtins s ON le.sgtin_id = s.id
       JOIN gtins g ON s.gtin_id = g.id
-      JOIN batches b ON g.batch_id = b.id
-      JOIN styles st ON b.style_id = st.id
+      JOIN batches b ON b.id = s.batch_id
+      JOIN styles st ON st.id = g.style_id
       ORDER BY le.created_at DESC
       LIMIT ?
     `;

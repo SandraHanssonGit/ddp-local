@@ -195,15 +195,15 @@ class ImportService {
   }
 
   /**
-   * Check if GTIN already exists in the batch
-   * @param {number} batchId - Batch ID
+   * Check if GTIN already exists globally
+   * (GTINs are batch-agnostic and globally unique)
    * @param {string} gtin - GTIN value
    * @returns {Promise<boolean>}
    */
-  static async gtinExistsInBatch(batchId, gtin) {
+  static async gtinExists(gtin) {
     const row = await getOne(
-      'SELECT id FROM gtins WHERE batch_id = ? AND gtin = ?',
-      [batchId, gtin]
+      'SELECT id FROM gtins WHERE gtin = ?',
+      [gtin]
     );
     return !!row;
   }
@@ -314,14 +314,14 @@ class ImportService {
           continue;
         }
 
-        // Check for duplicates
-        const exists = await this.gtinExistsInBatch(parseInt(row.batch_id), row.gtin);
+        // Check for duplicates (GTINs are globally unique)
+        const exists = await this.gtinExists(row.gtin);
         if (exists) {
           if (skipDuplicates) {
             summary.skipped.push({
               rowIndex: validation.rowIndex,
               gtin: row.gtin,
-              reason: 'GTIN already exists in this batch'
+              reason: 'GTIN already exists'
             });
             continue;
           }
@@ -329,15 +329,15 @@ class ImportService {
 
         // Prepare GTIN record
         const gtinRecord = {
-          batch_id: parseInt(row.batch_id),
           style_id: parseInt(row.style_id),
+          variant_id: row.variant_id ? parseInt(row.variant_id) : null,
           gtin: row.gtin.trim(),
           ean: row.ean || null,
           product_type: validation.productType,
           item_number: row.item_number || null,
-          size_value_1: validation.parsed?.size_value_1 || null,
-          size_value_2: validation.parsed?.size_value_2 || null,
-          size_value_3: validation.parsed?.size_value_3 || null,
+          size_value_1: validation.parsed?.size_value_1 || row.size_value_1 || null,
+          size_value_2: validation.parsed?.size_value_2 || row.size_value_2 || null,
+          size_value_3: validation.parsed?.size_value_3 || row.size_value_3 || null,
           weight: row.weight ? parseFloat(row.weight) : null
         };
 
@@ -346,15 +346,15 @@ class ImportService {
           try {
             const sql = `
               INSERT INTO gtins (
-                batch_id, style_id, gtin, ean, product_type, item_number,
+                style_id, variant_id, gtin, ean, product_type, item_number,
                 size_value_1, size_value_2, size_value_3, weight
               )
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
 
             await runQuery(sql, [
-              gtinRecord.batch_id,
               gtinRecord.style_id,
+              gtinRecord.variant_id || null,
               gtinRecord.gtin,
               gtinRecord.ean,
               gtinRecord.product_type,

@@ -1,6 +1,12 @@
 node_modules/
 database.db
+data/*.db
+data/*.db-shm
+data/*.db-wal
 *.log
 .DS_Store
 .env
 .env.local
+server-output.txt
+*-old.ejs
+*-old.js

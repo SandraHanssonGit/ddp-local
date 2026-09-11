@@ -22,10 +22,10 @@ class PassportResolver {
       throw new Error(`GTIN for SGTIN ${sgtinId} not found`);
     }
 
-    // Load Batch
-    const batch = await batchRepository.getById(gtin.batch_id);
+    // Load Batch (from SGTIN.batch_id, not GTIN.batch_id - v2 architecture)
+    const batch = await batchRepository.getById(sgtin.batch_id);
     if (!batch) {
-      throw new Error(`Batch for GTIN not found`);
+      throw new Error(`Batch for SGTIN not found`);
     }
 
     // Load Style (from GTIN.style_id, not Batch.style_id)
@@ -275,25 +275,26 @@ class PassportResolver {
   /**
    * Helper: Resolve a single field value through inheritance levels
    * Returns { fieldId, fieldKey, label, value, source, category }
+   * source can be: sgtin, gtin, batch, style (or null if undefined)
    */
-  _resolveFieldValue(fieldDef, level1Map, level2Map, level3Map, level4Map) {
+  _resolveFieldValue(fieldDef, level1Map, level2Map, level3Map, level4Map, sourceNames = ['sgtin', 'gtin', 'batch', 'style']) {
     // Try each level in precedence order
     let value = level1Map[fieldDef.field_key];
-    let source = value ? 'level1' : null;
+    let source = value ? sourceNames[0] : null;
 
     if (!value) {
       value = level2Map[fieldDef.field_key];
-      source = value ? 'level2' : null;
+      source = value ? sourceNames[1] : null;
     }
 
     if (!value) {
       value = level3Map[fieldDef.field_key];
-      source = value ? 'level3' : null;
+      source = value ? sourceNames[2] : null;
     }
 
     if (!value) {
       value = level4Map[fieldDef.field_key];
-      source = value ? 'level4' : null;
+      source = value ? sourceNames[3] : null;
     }
 
     return {

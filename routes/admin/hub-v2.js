@@ -1,526 +1,526 @@
+/**
+ * Admin Hub v2 - Refactored for new GTIN/Variant/Batch hierarchy
+ *
+ * Key changes:
+ * - GTINs are masterdata (no batch_id)
+ * - Variants are style product variations
+ * - SGTINs link Batch × GTIN × Serial
+ */
+
 const express = require('express');
 const router = express.Router();
-const styleRepository = require('../../repositories/styles');
-const batchRepository = require('../../repositories/batches');
-const gtinRepository = require('../../repositories/gtins');
-const sgtinRepository = require('../../repositories/sgtins');
-const fieldService = require('../../services/field-service');
-const ProductTypeConfig = require('../../services/product-type-config');
 const db = require('../../db/init-v2').db;
+const batchGtinsRouter = require('./batch-gtins');
 
-// Helper to get counts
-const getStyleCounts = async (styles) => {
-  for (let style of styles) {
-    style.batch_count = await new Promise((resolve, reject) => {
-      db.get(`
-        SELECT COUNT(DISTINCT b.id) as count
-        FROM gtins g
-        JOIN batches b ON g.batch_id = b.id
-        WHERE g.style_id = ?
-      `, [style.id], (err, row) => {
-        if (err) reject(err);
-        else resolve(row?.count || 0);
-      });
-    });
-  }
-  return styles;
-};
+const getOne = (sql, params = []) => new Promise((resolve, reject) => {
+  db.get(sql, params, (err, row) => {
+    if (err) reject(err);
+    else resolve(row);
+  });
+});
 
-const getBatchCounts = async (batches) => {
-  for (let batch of batches) {
-    batch.gtin_count = await new Promise((resolve, reject) => {
-      db.get('SELECT COUNT(*) as count FROM gtins WHERE batch_id = ?', [batch.id], (err, row) => {
-        if (err) reject(err);
-        else resolve(row?.count || 0);
-      });
-    });
-    batch.style_count = await new Promise((resolve, reject) => {
-      db.get('SELECT COUNT(DISTINCT style_id) as count FROM gtins WHERE batch_id = ?', [batch.id], (err, row) => {
-        if (err) reject(err);
-        else resolve(row?.count || 0);
-      });
-    });
-  }
-  return batches;
-};
+const getAll = (sql, params = []) => new Promise((resolve, reject) => {
+  db.all(sql, params, (err, rows) => {
+    if (err) reject(err);
+    else resolve(rows || []);
+  });
+});
 
-const getGtinCounts = async (gtins) => {
-  for (let gtin of gtins) {
-    gtin.sgtin_count = await new Promise((resolve, reject) => {
-      db.get('SELECT COUNT(*) as count FROM sgtins WHERE gtin_id = ?', [gtin.id], (err, row) => {
-        if (err) reject(err);
-        else resolve(row?.count || 0);
-      });
-    });
-  }
-  return gtins;
-};
+const run = (sql, params = []) => new Promise((resolve, reject) => {
+  db.run(sql, params, function(err) {
+    if (err) reject(err);
+    else resolve({ lastID: this.lastID, changes: this.changes });
+  });
+});
 
-const getSgtinCounts = async (sgtins) => {
-  for (let sgtin of sgtins) {
-    sgtin.event_count = await new Promise((resolve, reject) => {
-      db.get('SELECT COUNT(*) as count FROM lifecycle_events WHERE sgtin_id = ?', [sgtin.id], (err, row) => {
-        if (err) reject(err);
-        else resolve(row?.count || 0);
-      });
-    });
-  }
-  return sgtins;
-};
-
-// Main hub route
+// Main hub
 router.get('/', async (req, res) => {
   try {
     const tab = req.query.tab || 'styles';
     const user = { username: 'demo', role: 'admin' };
+    let data = { tab, user };
 
-    let data = { tab, user, viewType: 'master', styles: [], batches: [], gtins: [], sgtins: [], fields: [] };
+    // STYLES TAB
+    if (tab === 'styles') {
+      data.styles = await getAll(`
+        SELECT
+          s.id,
+          s.style_number,
+          s.product_name,
+          s.product_type,
+          COUNT(DISTINCT g.id) as gtin_count,
+          COUNT(DISTINCT v.id) as variant_count,
+          COUNT(DISTINCT sg.id) as sgtin_count
+        FROM styles s
+        LEFT JOIN gtins g ON g.style_id = s.id
+        LEFT JOIN variants v ON v.style_id = s.id
+        LEFT JOIN sgtins sg ON sg.gtin_id = g.id
+        GROUP BY s.id
+        ORDER BY s.style_number DESC
+      `);
+    }
 
-    // Always load styles (for filters in other tabs)
-    data.styles = await styleRepository.list();
-    data.styles = await getStyleCounts(data.styles);
-
-    // Load data based on active tab
-    if (tab === 'batches') {
+    // VARIANTS TAB
+    else if (tab === 'variants') {
       const styleId = req.query.style;
-      let query = `SELECT b.* FROM batches b`;
-      let params = [];
+      let query = `
+        SELECT
+          v.id,
+          v.style_id,
+          v.variant_name,
+          s.style_number,
+          s.product_name,
+          COUNT(DISTINCT g.id) as gtin_count,
+          COUNT(DISTINCT sg.id) as sgtin_count
+        FROM variants v
+        JOIN styles s ON s.id = v.style_id
+        LEFT JOIN gtins g ON g.variant_id = v.id
+        LEFT JOIN sgtins sg ON sg.gtin_id = g.id
+      `;
+      const params = [];
 
-      // If filtering by style, get batches that contain GTINs from that style
       if (styleId) {
-        query += ` WHERE b.id IN (
-          SELECT DISTINCT b.id FROM batches b
-          JOIN gtins g ON b.id = g.batch_id
-          WHERE g.style_id = ?
-        )`;
+        query += ' WHERE v.style_id = ?';
         params.push(styleId);
       }
 
-      query += ` ORDER BY b.batch_id ASC`;
+      query += ` GROUP BY v.id ORDER BY s.style_number, v.variant_name`;
 
-      data.batches = await new Promise((resolve, reject) => {
-        db.all(query, params, (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows || []);
-        });
-      });
-      data.batches = await getBatchCounts(data.batches);
+      data.variants = await getAll(query, params);
+      data.styles = await getAll(`SELECT id, style_number, product_name FROM styles ORDER BY style_number`);
+      data.selectedStyleId = styleId;
     }
 
-    if (tab === 'gtins') {
-      const viewType = req.query.view || 'master'; // 'master' or 'all'
+    // GTINS TAB (Masterdata)
+    else if (tab === 'gtins') {
+      const search = req.query.search || '';
+      const styleId = req.query.style;
+      const variantId = req.query.variant;
 
-      if (viewType === 'master') {
-        // Master GTIN list - show unique GTINs with batch counts
-        data.gtins = await new Promise((resolve, reject) => {
-          db.all(`
-            SELECT
-              g.id,
-              g.gtin,
-              g.product_type,
-              g.size_value_1,
-              g.size_value_2,
-              g.size_value_3,
-              g.style_id,
-              s.style_number,
-              s.product_name,
-              COUNT(g.batch_id) as batch_count,
-              GROUP_CONCAT(b.batch_id, ', ') as batch_ids,
-              (SELECT COUNT(*) FROM sgtins WHERE gtin_id = g.id) as sgtin_count
-            FROM gtins g
-            JOIN styles s ON g.style_id = s.id
-            JOIN batches b ON g.batch_id = b.id
-            GROUP BY g.gtin
-            ORDER BY s.style_number ASC, g.product_type ASC, g.size_value_1 ASC, g.size_value_2 ASC
-          `, (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows || []);
-          });
-        });
-        data.viewType = 'master';
-      } else {
-        // All GTINs - show all GTIN-batch combinations
-        const batchId = req.query.batch;
-        let query = `
-          SELECT g.*, s.style_number, s.product_name, b.batch_id,
-                 (SELECT COUNT(*) FROM sgtins WHERE gtin_id = g.id) as sgtin_count
-          FROM gtins g
-          JOIN styles s ON g.style_id = s.id
-          JOIN batches b ON g.batch_id = b.id
-        `;
-        let params = [];
+      let query = `
+        SELECT
+          g.id,
+          g.gtin,
+          g.item_number,
+          g.product_type,
+          g.size_value_1,
+          g.size_value_2,
+          g.size_value_3,
+          g.style_id,
+          s.style_number,
+          s.product_name,
+          v.id as variant_id,
+          v.variant_name,
+          COUNT(DISTINCT sg.id) as sgtin_count
+        FROM gtins g
+        JOIN styles s ON g.style_id = s.id
+        LEFT JOIN variants v ON g.variant_id = v.id
+        LEFT JOIN sgtins sg ON sg.gtin_id = g.id
+      `;
+      const params = [];
+      const conditions = [];
 
-        if (batchId) {
-          query += ' WHERE g.batch_id = ?';
-          params.push(batchId);
-        }
+      if (search) {
+        conditions.push(`(g.gtin LIKE ? OR g.item_number LIKE ? OR s.style_number LIKE ?)`);
+        params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+      }
 
-        query += ` ORDER BY s.style_number ASC, g.product_type ASC, g.size_value_1 ASC, g.size_value_2 ASC`;
+      if (styleId) {
+        conditions.push(`g.style_id = ?`);
+        params.push(styleId);
+      }
 
-        data.gtins = await new Promise((resolve, reject) => {
-          db.all(query, params, (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows || []);
-          });
-        });
-        data.viewType = 'all';
+      if (variantId) {
+        conditions.push(`g.variant_id = ?`);
+        params.push(variantId);
+      }
+
+      if (conditions.length > 0) {
+        query += ` WHERE ` + conditions.join(' AND ');
+      }
+
+      query += ` GROUP BY g.id ORDER BY s.style_number, COALESCE(v.variant_name, ''), g.item_number`;
+
+      data.gtins = await getAll(query, params);
+      data.search = search;
+      data.selectedStyleId = styleId;
+      data.selectedVariantId = variantId;
+      data.styles = await getAll(`SELECT id, style_number, product_name FROM styles ORDER BY style_number`);
+
+      // Get variants for selected style
+      if (styleId) {
+        data.variants = await getAll(`SELECT id, variant_name FROM variants WHERE style_id = ? ORDER BY variant_name`, [styleId]);
       }
     }
 
-    if (tab === 'sgtins') {
+    // BATCHES TAB
+    else if (tab === 'batches') {
+      const styleId = req.query.style;
+      let query = `
+        SELECT DISTINCT
+          b.id,
+          b.batch_id,
+          b.production_order,
+          COUNT(DISTINCT sg.id) as sgtin_count,
+          COUNT(DISTINCT g.id) as gtin_count,
+          COUNT(DISTINCT s.id) as style_count
+        FROM batches b
+        LEFT JOIN sgtins sg ON sg.batch_id = b.id
+        LEFT JOIN gtins g ON g.id = sg.gtin_id
+        LEFT JOIN styles s ON s.id = g.style_id
+      `;
+      const params = [];
+
+      if (styleId) {
+        query += ` WHERE s.id = ?`;
+        params.push(styleId);
+      }
+
+      query += ` GROUP BY b.id ORDER BY b.batch_id DESC`;
+
+      data.batches = await getAll(query, params);
+      data.styles = await getAll(`SELECT id, style_number, product_name FROM styles ORDER BY style_number`);
+    }
+
+    // SGTINS TAB (Individual garments)
+    else if (tab === 'sgtins') {
       const gtinId = req.query.gtin;
       let query = `
-        SELECT s.*, g.gtin, g.product_type, g.size_value_1, g.size_value_2, g.size_value_3,
-               st.style_number, st.product_name
-        FROM sgtins s
-        JOIN gtins g ON s.gtin_id = g.id
-        JOIN styles st ON g.style_id = st.id
+        SELECT
+          sg.id,
+          sg.serial_number,
+          sg.sgtin,
+          sg.qc_status,
+          g.gtin,
+          g.item_number,
+          g.product_type,
+          g.size_value_1,
+          g.size_value_2,
+          g.size_value_3,
+          s.style_number,
+          s.product_name,
+          b.batch_id,
+          v.variant_name,
+          COUNT(DISTINCT le.id) as event_count
+        FROM sgtins sg
+        JOIN gtins g ON g.id = sg.gtin_id
+        JOIN styles s ON s.id = g.style_id
+        JOIN batches b ON b.id = sg.batch_id
+        LEFT JOIN variants v ON v.id = g.variant_id
+        LEFT JOIN lifecycle_events le ON le.sgtin_id = sg.id
       `;
-      let params = [];
+      const params = [];
 
       if (gtinId) {
-        query += ' WHERE s.gtin_id = ?';
+        query += ` WHERE sg.gtin_id = ?`;
         params.push(gtinId);
       }
 
-      query += ` ORDER BY s.serial_number ASC`;
+      query += ` GROUP BY sg.id ORDER BY b.batch_id DESC, sg.serial_number ASC`;
 
-      data.sgtins = await new Promise((resolve, reject) => {
-        db.all(query, params, (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows || []);
-        });
-      });
-      data.sgtins = await getSgtinCounts(data.sgtins);
+      data.sgtins = await getAll(query, params);
     }
 
-    if (tab === 'fields') {
-      data.fields = await fieldService.listFields();
+    // FIELDS TAB (DPP Field Definitions)
+    else if (tab === 'fields') {
+      const category = req.query.category || null;
+      let query = 'SELECT * FROM field_definitions';
+      const params = [];
+
+      if (category) {
+        query += ' WHERE category = ?';
+        params.push(category);
+      }
+
+      query += ' ORDER BY category, sort_order, label';
+
+      data.fields = await getAll(query, params);
+      data.selectedCategory = category;
+      data.categories = ['eu_required', 'nudie'];
     }
 
     res.render('admin/hub-v2', data);
   } catch (err) {
     console.error('[hub-v2]', err);
-    res.status(500).render('admin/hub-v2-error', { error: err.message });
+    res.status(500).render('admin/error', { error: err.message });
   }
 });
 
-// Style detail page
-router.get('/styles/:styleId', async (req, res) => {
+// Style detail
+router.get('/style/:styleId', async (req, res) => {
   try {
-    const style = await styleRepository.getById(req.params.styleId);
-    if (!style) {
-      return res.status(404).render('admin/hub-v2-error', { error: 'Style not found' });
-    }
+    const style = await getOne('SELECT * FROM styles WHERE id = ?', [req.params.styleId]);
+    if (!style) return res.status(404).render('admin/error', { error: 'Style not found' });
 
-    // Get batches for this style (via GTINs)
-    const batches = await new Promise((resolve, reject) => {
-      db.all(`
-        SELECT DISTINCT b.*
-        FROM batches b
-        JOIN gtins g ON b.id = g.batch_id
-        WHERE g.style_id = ?
-        ORDER BY b.batch_id ASC
-      `, [style.id], (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows || []);
-      });
-    });
+    const variants = await getAll(
+      'SELECT * FROM variants WHERE style_id = ? ORDER BY variant_name',
+      [style.id]
+    );
 
-    // Get counts
-    const gtinCount = await new Promise((resolve, reject) => {
-      db.get('SELECT COUNT(*) as count FROM gtins WHERE style_id = ?', [style.id], (err, row) => {
-        if (err) reject(err);
-        else resolve(row?.count || 0);
-      });
-    });
+    const gtins = await getAll(`
+      SELECT
+        g.*,
+        v.variant_name,
+        COUNT(DISTINCT sg.id) as sgtin_count
+      FROM gtins g
+      LEFT JOIN variants v ON v.id = g.variant_id
+      LEFT JOIN sgtins sg ON sg.gtin_id = g.id
+      WHERE g.style_id = ?
+      GROUP BY g.id
+      ORDER BY COALESCE(v.variant_name, ''), g.item_number
+    `, [style.id]);
 
-    const sgtinCount = await new Promise((resolve, reject) => {
-      db.get(`
-        SELECT COUNT(*) as count FROM sgtins sg
-        JOIN gtins g ON sg.gtin_id = g.id
-        WHERE g.style_id = ?
-      `, [style.id], (err, row) => {
-        if (err) reject(err);
-        else resolve(row?.count || 0);
-      });
-    });
+    const batches = await getAll(`
+      SELECT DISTINCT
+        b.id,
+        b.batch_id,
+        COUNT(DISTINCT sg.id) as sgtin_count
+      FROM batches b
+      JOIN sgtins sg ON sg.batch_id = b.id
+      JOIN gtins g ON g.id = sg.gtin_id
+      WHERE g.style_id = ?
+      GROUP BY b.id
+      ORDER BY b.batch_id DESC
+    `, [style.id]);
 
-    // Get DPP values for this style (only editable at style level)
-    const dppValues = await new Promise((resolve, reject) => {
-      db.all(`
-        SELECT fd.*, dv.value
-        FROM field_definitions fd
-        LEFT JOIN dpp_values dv ON fd.id = dv.field_definition_id AND dv.entity_type = 'style' AND dv.entity_id = ?
-        WHERE fd.editable_at_style = 1
-        ORDER BY fd.sort_order ASC
-      `, [style.id], (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows || []);
-      });
-    });
+    // Calculate counts
+    const gtinCount = gtins.length;
+    const sgtinCount = gtins.reduce((sum, g) => sum + (g.sgtin_count || 0), 0);
+
+    // Get DPP values for this style
+    const dppValues = await getAll(`
+      SELECT
+        dv.value,
+        fd.field_key,
+        fd.label,
+        fd.category
+      FROM dpp_values dv
+      JOIN field_definitions fd ON dv.field_definition_id = fd.id
+      WHERE dv.entity_type = 'style' AND dv.entity_id = ?
+      ORDER BY fd.category, fd.label
+    `, [style.id]);
 
     res.render('admin/style-detail', {
       style,
+      variants,
+      gtins,
       batches,
-      dppValues,
       gtinCount,
       sgtinCount,
+      dppValues,
       user: { username: 'demo', role: 'admin' }
     });
   } catch (err) {
     console.error('[style-detail]', err);
-    res.status(500).render('admin/hub-v2-error', { error: err.message });
+    res.status(500).render('admin/error', { error: err.message });
   }
 });
 
-// Batch detail page
-router.get('/batches/:batchId', async (req, res) => {
+// Variant detail
+router.get('/variant/:variantId', async (req, res) => {
   try {
-    const batch = await batchRepository.getById(req.params.batchId);
-    if (!batch) {
-      return res.status(404).render('admin/hub-v2-error', { error: 'Batch not found' });
-    }
+    const variant = await getOne('SELECT * FROM variants WHERE id = ?', [req.params.variantId]);
+    if (!variant) return res.status(404).render('admin/error', { error: 'Variant not found' });
 
-    // Get GTINs with style info (including product_type and flexible size columns)
-    const gtins = await new Promise((resolve, reject) => {
-      db.all(`
-        SELECT g.*, s.style_number, s.product_name,
-               (SELECT COUNT(*) FROM sgtins WHERE gtin_id = g.id) as sgtin_count
-        FROM gtins g
-        JOIN styles s ON g.style_id = s.id
-        WHERE g.batch_id = ?
-        ORDER BY s.style_number ASC, g.product_type ASC, g.size_value_1 ASC, g.size_value_2 ASC
-      `, [batch.id], (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows || []);
-      });
-    });
+    const style = await getOne('SELECT * FROM styles WHERE id = ?', [variant.style_id]);
 
-    // Count unique styles in batch
-    const styleCount = await new Promise((resolve, reject) => {
-      db.get('SELECT COUNT(DISTINCT style_id) as count FROM gtins WHERE batch_id = ?', [batch.id], (err, row) => {
-        if (err) reject(err);
-        else resolve(row?.count || 0);
-      });
-    });
+    const gtins = await getAll(`
+      SELECT
+        g.*,
+        COUNT(DISTINCT sg.id) as sgtin_count
+      FROM gtins g
+      LEFT JOIN sgtins sg ON sg.gtin_id = g.id
+      WHERE g.variant_id = ?
+      GROUP BY g.id
+      ORDER BY g.item_number
+    `, [variant.id]);
 
     const gtinCount = gtins.length;
     const sgtinCount = gtins.reduce((sum, g) => sum + (g.sgtin_count || 0), 0);
 
-    res.render('admin/batch-detail', {
-      batch,
+    res.render('admin/variant-detail', {
+      variant,
+      style,
       gtins,
-      styleCount,
       gtinCount,
       sgtinCount,
       user: { username: 'demo', role: 'admin' }
     });
   } catch (err) {
-    console.error('[batch-detail]', err);
-    res.status(500).render('admin/hub-v2-error', { error: err.message });
+    console.error('[variant-detail]', err);
+    res.status(500).render('admin/error', { error: err.message });
   }
 });
 
-// GTIN detail page with overrides
-router.get('/gtins/:gtinId', async (req, res) => {
+// Batch detail
+router.get('/batch/:batchId', async (req, res) => {
   try {
-    const gtin = await gtinRepository.getById(req.params.gtinId);
-    if (!gtin) {
-      return res.status(404).render('admin/hub-v2-error', { error: 'GTIN not found' });
-    }
+    const batch = await getOne('SELECT * FROM batches WHERE id = ?', [req.params.batchId]);
+    if (!batch) return res.status(404).render('admin/error', { error: 'Batch not found' });
 
-    const style = await styleRepository.getById(gtin.style_id);
-    const batch = await batchRepository.getById(gtin.batch_id);
-    const sgtins = await sgtinRepository.listByGtin(gtin.id);
+    // Get planned GTINs for this batch with created SGTINs count
+    const batchGtins = await getAll(`
+      SELECT
+        bg.id as batch_gtin_id,
+        bg.planned_quantity,
+        g.id as gtin_id,
+        g.gtin,
+        g.item_number,
+        g.product_type,
+        g.size_value_1,
+        g.size_value_2,
+        g.size_value_3,
+        s.style_number,
+        s.product_name,
+        v.variant_name,
+        COUNT(DISTINCT sg.id) as created_quantity
+      FROM batch_gtins bg
+      JOIN gtins g ON g.id = bg.gtin_id
+      JOIN styles s ON s.id = g.style_id
+      LEFT JOIN variants v ON v.id = g.variant_id
+      LEFT JOIN sgtins sg ON sg.gtin_id = g.id AND sg.batch_id = ?
+      WHERE bg.batch_id = ?
+      GROUP BY bg.id
+      ORDER BY s.style_number, COALESCE(v.variant_name, ''), g.item_number
+    `, [batch.id, batch.id]);
 
-    // Get all fields editable at GTIN level
-    const allFields = (await fieldService.listFields()).filter(f => f.editable_at_gtin);
-    const gtinValues = await fieldService.getEntityValues('gtin', gtin.id);
+    // Also get SGTINs (for detail view if needed)
+    const sgtins = await getAll(`
+      SELECT
+        sg.*,
+        g.gtin,
+        g.item_number,
+        g.product_type,
+        g.size_value_1,
+        g.size_value_2,
+        g.size_value_3,
+        s.style_number,
+        s.product_name,
+        v.variant_name
+      FROM sgtins sg
+      JOIN gtins g ON g.id = sg.gtin_id
+      JOIN styles s ON s.id = g.style_id
+      LEFT JOIN variants v ON v.id = g.variant_id
+      WHERE sg.batch_id = ?
+      ORDER BY s.style_number, COALESCE(v.variant_name, ''), sg.serial_number
+    `, [batch.id]);
 
-    // Load product type configuration
-    const allProductTypes = ProductTypeConfig.listProductTypes().map(typeId => {
-      return {
-        id: typeId,
-        ...ProductTypeConfig.getProductType(typeId)
-      };
+    // Get all styles for form dropdown
+    const styles = await getAll(`
+      SELECT
+        s.id,
+        s.style_number,
+        s.product_name,
+        s.product_type
+      FROM styles s
+      ORDER BY s.style_number
+    `);
+
+    // Get all GTINs with variants for form population
+    const gtins = await getAll(`
+      SELECT
+        g.id,
+        g.style_id,
+        g.variant_id,
+        g.gtin,
+        g.item_number,
+        g.product_type,
+        g.size_value_1,
+        g.size_value_2,
+        g.size_value_3,
+        s.style_number,
+        s.product_name,
+        v.variant_name
+      FROM gtins g
+      JOIN styles s ON s.id = g.style_id
+      LEFT JOIN variants v ON v.id = g.variant_id
+      ORDER BY s.style_number, COALESCE(v.variant_name, ''), g.item_number
+    `);
+
+    const gtin_count = batchGtins.length;
+    const style_count = new Set(batchGtins.map(bg => bg.style_number)).size;
+    const sgtin_count = sgtins.length;
+    const planned_total = batchGtins.reduce((sum, bg) => sum + (bg.planned_quantity || 0), 0);
+
+    res.render('admin/batch-detail', {
+      batch,
+      batchGtins,
+      sgtins,
+      styles,
+      gtins,
+      gtin_count,
+      style_count,
+      sgtin_count,
+      planned_total,
+      user: { username: 'demo', role: 'admin' }
     });
+  } catch (err) {
+    console.error('[batch-detail]', err);
+    res.status(500).render('admin/error', { error: err.message });
+  }
+});
 
-    const currentProductType = gtin.product_type
-      ? ProductTypeConfig.getProductType(gtin.product_type)
-      : null;
+// GTIN detail (masterdata)
+router.get('/gtin/:gtinId', async (req, res) => {
+  try {
+    const gtin = await getOne('SELECT * FROM gtins WHERE id = ?', [req.params.gtinId]);
+    if (!gtin) return res.status(404).render('admin/error', { error: 'GTIN not found' });
 
-    const sizeComponentTemplate = currentProductType
-      ? ProductTypeConfig.getSizeComponentTemplate(gtin.product_type)
-      : [];
+    const style = await getOne('SELECT * FROM styles WHERE id = ?', [gtin.style_id]);
+    const variant = gtin.variant_id ? await getOne('SELECT * FROM variants WHERE id = ?', [gtin.variant_id]) : null;
 
-    // Calculate display size
-    const displaySize = ProductTypeConfig.getDisplaySize(gtin);
+    const sgtins = await getAll(`
+      SELECT
+        sg.*,
+        b.batch_id
+      FROM sgtins sg
+      JOIN batches b ON b.id = sg.batch_id
+      WHERE sg.gtin_id = ?
+      ORDER BY b.batch_id DESC, sg.serial_number ASC
+    `, [gtin.id]);
 
     res.render('admin/gtin-detail', {
       gtin,
       style,
-      batch,
+      variant,
       sgtins,
-      allFields,
-      gtinValues,
-      allProductTypes,
-      currentProductType,
-      sizeComponentTemplate,
-      displaySize,
       user: { username: 'demo', role: 'admin' }
     });
   } catch (err) {
     console.error('[gtin-detail]', err);
-    res.status(500).render('admin/hub-v2-error', { error: err.message });
+    res.status(500).render('admin/error', { error: err.message });
   }
 });
 
-// SGTIN detail page with inheritance
-router.get('/sgtins/:sgtinId', async (req, res) => {
+// SGTIN detail
+router.get('/sgtin/:sgtinId', async (req, res) => {
   try {
-    const passportResolver = require('../../services/passport-resolver');
-    const lifecycleService = require('../../services/lifecycle-service');
-    const scanService = require('../../services/scan-service');
-    const passport = await passportResolver.resolveSgtinPassport(req.params.sgtinId);
+    const sgtin = await getOne('SELECT * FROM sgtins WHERE id = ?', [req.params.sgtinId]);
+    if (!sgtin) return res.status(404).render('admin/error', { error: 'SGTIN not found' });
 
-    // Get all fields editable at SGTIN level
-    const allFields = (await fieldService.listFields()).filter(f => f.editable_at_sgtin);
-    const sgtinValues = await fieldService.getEntityValues('sgtin', req.params.sgtinId);
+    const gtin = await getOne('SELECT * FROM gtins WHERE id = ?', [sgtin.gtin_id]);
+    const style = await getOne('SELECT * FROM styles WHERE id = ?', [gtin.style_id]);
+    const variant = gtin.variant_id ? await getOne('SELECT * FROM variants WHERE id = ?', [gtin.variant_id]) : null;
+    const batch = await getOne('SELECT * FROM batches WHERE id = ?', [sgtin.batch_id]);
 
-    // Get lifecycle events
-    const events = await lifecycleService.getEventsForPassport(req.params.sgtinId);
-
-    // Get scan statistics
-    const scanStats = await scanService.getScanStats(req.params.sgtinId);
+    const events = await getAll('SELECT * FROM lifecycle_events WHERE sgtin_id = ? ORDER BY created_at DESC', [sgtin.id]);
 
     res.render('admin/sgtin-detail', {
-      sgtin: passport.sgtin,
-      gtin: passport.gtin,
-      batch: passport.batch,
-      style: passport.style,
-      resolvedFields: passport.resolvedFields,
-      allFields,
-      sgtinValues,
+      sgtin,
+      gtin,
+      style,
+      variant,
+      batch,
       events,
-      scanStats,
       user: { username: 'demo', role: 'admin' }
     });
   } catch (err) {
     console.error('[sgtin-detail]', err);
-    res.status(500).render('admin/hub-v2-error', { error: err.message });
+    res.status(500).render('admin/error', { error: err.message });
   }
 });
 
-// Save GTIN DPP values
-router.post('/gtins/:gtinId/dpp-values', async (req, res) => {
-  try {
-    const gtinId = req.params.gtinId;
-    const values = req.body;
-
-    for (const [fieldKey, value] of Object.entries(values)) {
-      if (value) {
-        await fieldService.setValue('gtin', gtinId, fieldKey, value);
-      }
-    }
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error('[gtin-dpp-values]', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Save SGTIN DPP values
-router.post('/sgtins/:sgtinId/dpp-values', async (req, res) => {
-  try {
-    const sgtinId = req.params.sgtinId;
-    const values = req.body;
-
-    for (const [fieldKey, value] of Object.entries(values)) {
-      if (value) {
-        await fieldService.setValue('sgtin', sgtinId, fieldKey, value);
-      }
-    }
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error('[sgtin-dpp-values]', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Update batch
-router.patch('/batches/:batchId', async (req, res) => {
-  try {
-    const { production_order, factory, production_date, country_of_production } = req.body;
-    const batchId = req.params.batchId;
-
-    await batchRepository.update(batchId, {
-      production_order,
-      factory,
-      production_date,
-      country_of_production
-    });
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error('[update-batch]', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Update field definition
-router.patch('/fields/:fieldId', async (req, res) => {
-  try {
-    const { label, category } = req.body;
-    const fieldId = req.params.fieldId;
-
-    await new Promise((resolve, reject) => {
-      db.run(
-        'UPDATE field_definitions SET label = ?, category = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-        [label, category, fieldId],
-        function(err) {
-          if (err) reject(err);
-          else resolve();
-        }
-      );
-    });
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error('[update-field]', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Update GTIN product type and size values
-router.patch('/gtins/:gtinId/product-type', async (req, res) => {
-  try {
-    const gtinId = req.params.gtinId;
-    const { product_type, item_number, size_value_1, size_value_2, size_value_3 } = req.body;
-
-    // Validate product type if provided
-    if (product_type) {
-      const config = ProductTypeConfig.getProductType(product_type);
-      if (!config) {
-        return res.status(400).json({ success: false, error: 'Invalid product type' });
-      }
-    }
-
-    await gtinRepository.update(gtinId, {
-      product_type: product_type || null,
-      item_number: item_number || null,
-      size_value_1: size_value_1 || null,
-      size_value_2: size_value_2 || null,
-      size_value_3: size_value_3 || null
-    });
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error('[update-gtin-product-type]', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+// Batch GTIN management API
+router.use('/batch-gtins', batchGtinsRouter);
 
 module.exports = router;

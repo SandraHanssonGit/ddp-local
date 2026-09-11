@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Style <%= style.style_number %></title>
+  <title><%= style.product_name %> - Style Detail</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100">
@@ -81,6 +81,41 @@
           </form>
         </div>
 
+        <!-- DPP Values Card -->
+        <div class="bg-white rounded-lg shadow-md p-8">
+          <h2 class="text-2xl font-bold text-gray-900 mb-6">Digital Product Passport (DPP)</h2>
+
+          <div class="bg-blue-50 border border-blue-200 rounded p-4 mb-6">
+            <p class="text-sm text-blue-900"><strong>Public Passport URL:</strong></p>
+            <p class="font-mono text-xs bg-white p-2 rounded border mt-2 break-all">
+              http://localhost:3000/dpp/{batch}/{gtin}/{serial}
+            </p>
+            <p class="text-xs text-gray-600 mt-2">Example URLs will appear when you view batches and GTINs</p>
+          </div>
+
+          <% if (typeof dppValues !== 'undefined' && dppValues.length > 0) { %>
+            <div class="space-y-4">
+              <h3 class="font-semibold text-gray-900">DPP Values (EU & Nudie)</h3>
+              <% dppValues.forEach(v => { %>
+                <div class="border-l-4 border-blue-500 pl-4 py-2">
+                  <p class="text-sm font-bold text-gray-900"><%= v.label %></p>
+                  <p class="text-sm text-gray-700"><%= v.value %></p>
+                  <p class="text-xs text-gray-500 mt-1">
+                    Category: <span class="font-mono"><%= v.category %></span>
+                  </p>
+                </div>
+              <% }); %>
+            </div>
+          <% } else { %>
+            <div class="bg-gray-50 p-4 rounded text-center">
+              <p class="text-gray-600 text-sm">No DPP values set for this style yet</p>
+              <button onclick="alert('DPP Values UI coming soon')" class="mt-3 text-blue-600 hover:underline text-sm font-semibold">
+                Add DPP Values →
+              </button>
+            </div>
+          <% } %>
+        </div>
+
         <!-- Image Management Card -->
         <div class="bg-white rounded-lg shadow-md p-8">
           <h2 class="text-2xl font-bold text-gray-900 mb-6">Product Images</h2>
@@ -110,6 +145,62 @@
           </div>
         </div>
 
+        <!-- Variants Card (for styles with variants) -->
+        <% if (variants && variants.length > 0) { %>
+          <div class="bg-white rounded-lg shadow-md p-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Variants</h2>
+
+            <div class="space-y-6">
+              <% variants.forEach(variant => {
+                const variantGtins = gtins.filter(g => g.variant_id === variant.id);
+              %>
+                <div class="border border-gray-200 rounded p-6 bg-gray-50">
+                  <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-gray-900"><%= variant.variant_name %></h3>
+                    <span class="bg-blue-100 text-blue-900 px-3 py-1 rounded text-sm font-semibold">
+                      <%= variantGtins.length %> GTINs
+                    </span>
+                  </div>
+
+                  <% if (variantGtins.length > 0) { %>
+                    <div class="overflow-x-auto">
+                      <table class="w-full text-sm">
+                        <thead>
+                          <tr class="bg-gray-200 border-b">
+                            <th class="px-3 py-2 text-left font-semibold">GTIN</th>
+                            <th class="px-3 py-2 text-left font-semibold">Item #</th>
+                            <th class="px-3 py-2 text-left font-semibold">Size</th>
+                            <th class="px-3 py-2 text-center font-semibold">SGTINs</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <% variantGtins.forEach(gtin => { %>
+                            <tr class="border-b hover:bg-white">
+                              <td class="px-3 py-2 font-mono text-xs"><%= gtin.gtin %></td>
+                              <td class="px-3 py-2"><%= gtin.item_number %></td>
+                              <td class="px-3 py-2">
+                                <% let size = gtin.size_value_1 || ''; %>
+                                <% if (gtin.size_value_2) size += '-' + gtin.size_value_2; %>
+                                <% if (gtin.size_value_3) size += '-' + gtin.size_value_3; %>
+                                <%= size %>
+                              </td>
+                              <td class="px-3 py-2 text-center">
+                                <span class="bg-green-100 text-green-900 px-2 py-1 rounded text-xs font-semibold">
+                                  <%= gtin.sgtin_count || 0 %>
+                                </span>
+                              </td>
+                            </tr>
+                          <% }); %>
+                        </tbody>
+                      </table>
+                    </div>
+                  <% } %>
+                </div>
+              <% }); %>
+            </div>
+          </div>
+        <% } %>
+
         <!-- DPP Fields Card -->
         <div class="bg-white rounded-lg shadow-md p-8">
           <div class="flex justify-between items-center mb-6">
@@ -121,7 +212,7 @@
 
           <!-- View Mode -->
           <div id="dpp-fields-view" class="space-y-4">
-            <% if (dppValues && dppValues.length > 0) { %>
+            <% if (typeof dppValues !== 'undefined' && dppValues.length > 0) { %>
               <% dppValues.forEach(val => { %>
                 <div class="p-4 rounded" style="background-color: #e8f4f8; border-left: 4px solid #5b9dc3;">
                   <div class="flex justify-between items-start mb-2">
@@ -143,7 +234,7 @@
 
           <!-- Edit Mode -->
           <div id="dpp-fields-edit" class="hidden space-y-6">
-            <% if (dppValues && dppValues.length > 0) { %>
+            <% if (typeof dppValues !== 'undefined' && dppValues.length > 0) { %>
               <% dppValues.forEach(val => { %>
                 <div class="space-y-2">
                   <label class="block text-sm font-bold text-gray-700"><%= val.label %></label>

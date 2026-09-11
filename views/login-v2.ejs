@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DPP Hub v2 - Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen flex items-center justify-center px-4" style="background-image: url('/nudie-background.jpg'); background-size: cover; background-position: center; background-attachment: fixed;">
+  <div class="w-full max-w-md">
+    <!-- Login Card -->
+    <div class="bg-white rounded-lg shadow-lg p-8">
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">DPP Hub v2</h1>
+        <p class="text-sm text-gray-600 mt-2">Digital Product Passport Administration</p>
+        <p class="text-xs text-gray-500 mt-1">New Architecture</p>
+      </div>
+
+      <form id="loginForm" class="space-y-4">
+        <!-- Username/Email -->
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-2">Username or Email</label>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            placeholder="demo"
+            class="w-full border border-gray-300 rounded px-4 py-3 focus:outline-none focus:border-gray-900"
+            required
+            autofocus
+          >
+        </div>
+
+        <!-- Password -->
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-2">Password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            placeholder="••••••••"
+            class="w-full border border-gray-300 rounded px-4 py-3 focus:outline-none focus:border-gray-900"
+            required
+          >
+        </div>
+
+        <!-- Error Message -->
+        <div id="error" class="hidden p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm"></div>
+
+        <!-- Login Button -->
+        <button
+          type="submit"
+          class="w-full bg-gray-900 text-white px-6 py-3 rounded font-semibold hover:bg-gray-800"
+        >
+          Login
+        </button>
+      </form>
+
+      <!-- Demo Info -->
+      <div class="mt-6 p-4 bg-gray-50 rounded border border-gray-200">
+        <p class="text-xs font-bold text-gray-700 mb-3">Demo Credentials:</p>
+        <div class="text-xs text-gray-600 space-y-2">
+          <div class="flex justify-between">
+            <span><strong>demo</strong></span>
+            <span class="text-gray-500">password</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <p class="text-center text-gray-500 text-xs mt-6">
+        Nudie Jeans • Digital Product Passport
+      </p>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const errorDiv = document.getElementById('error');
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.token) {
+          // Save token
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user || { username }));
+
+          // Redirect to v2 admin hub
+          window.location.href = '/admin-v2';
+        } else {
+          errorDiv.textContent = data.error || 'Login failed. Please try again.';
+          errorDiv.classList.remove('hidden');
+        }
+      } catch (err) {
+        errorDiv.textContent = 'Connection error. Please try again.';
+        errorDiv.classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>

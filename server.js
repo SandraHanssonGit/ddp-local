@@ -6,7 +6,7 @@ const helmet = require('helmet');
 const jwt = require('jsonwebtoken');
 
 // Load appropriate database based on version
-const dbVersion = process.env.DB_VERSION || 'v1';
+const dbVersion = process.env.DB_VERSION || 'v2';
 const db = require(dbVersion === 'v2' ? './db/init-v2' : './db/init');
 
 const app = express();
@@ -59,10 +59,9 @@ const requireAuth = (req, res, next) => {
 app.use('/api', require('./routes/api'));
 app.use('/p', require('./routes/public'));
 
-// Consumer DPP routes (both v1 and v2)
+// Public DPP routes
 if (dbVersion === 'v2') {
-  app.use('/dpp', require('./routes/public/consumer'));
-  app.use('/api/passport', require('./routes/public/consumer'));
+  app.use('/dpp', require('./routes/dpp'));
 }
 
 // V2 Admin API routes (if running v2)
@@ -74,16 +73,25 @@ if (dbVersion === 'v2') {
   app.use('/api/admin/lifecycle', require('./routes/admin/lifecycle'));
   app.use('/api/admin/config', require('./routes/admin/config'));
 
-  // V2 Admin UI routes
-  app.use('/admin-config', requireAuth, require('./routes/admin/config'));
-  app.use('/admin-v2', requireAuth, require('./routes/admin/hub-v2'));
-  app.use('/admin/import', requireAuth, require('./routes/admin/import'));
+  // V2 Admin UI routes (no auth for development)
+  app.use('/admin-config', require('./routes/admin/config'));
+  const hubV2 = require('./routes/admin/hub-v2');
+  const lifecycleRouter = require('./routes/admin/lifecycle');
+  hubV2.use('/lifecycle', lifecycleRouter);
+  app.use('/admin-v2', hubV2);
+  app.use('/admin/import', require('./routes/admin/import'));
 }
 
-// Login page
-app.get('/login', (req, res) => {
-  res.render('login');
-});
+// Login pages
+if (dbVersion === 'v2') {
+  app.get('/login', (req, res) => {
+    res.render('login-v2');
+  });
+} else {
+  app.get('/login', (req, res) => {
+    res.render('login');
+  });
+}
 
 // DPP Hub (admin) - requires authentication
 if (dbVersion === 'v2') {

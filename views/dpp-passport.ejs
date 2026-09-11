@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Product Passport - <%= passport.sgtin.serial_number %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .collapsible-section {
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .collapsible-header {
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 0;
+    }
+    .collapsible-header:hover {
+      background-color: #f9fafb;
+    }
+    .collapsible-content {
+      display: none;
+      padding-bottom: 1rem;
+    }
+    .collapsible-content.open {
+      display: block;
+    }
+    .field-row {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 1rem;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .field-row:last-child {
+      border-bottom: none;
+    }
+    .field-label {
+      font-size: 0.875rem;
+      color: #6b7280;
+      font-weight: 500;
+    }
+    .field-value {
+      color: #1f2937;
+      font-size: 0.95rem;
+    }
+    .field-source {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      font-style: italic;
+      margin-top: 0.25rem;
+    }
+  </style>
+</head>
+<body class="bg-white">
+  <!-- Header with Logo and Title -->
+  <div class="border-b border-gray-300">
+    <div class="max-w-6xl mx-auto py-8 px-4 sm:px-6">
+      <p class="text-sm text-gray-600 mb-2">Nudie Jeans co</p>
+      <h1 class="text-3xl font-bold text-gray-900"><%= passport.style.product_name %></h1>
+      <p class="text-sm text-gray-600 mt-2"><%= passport.style.style_number %> | <%= passport.sgtin.serial_number %></p>
+    </div>
+  </div>
+
+  <div class="max-w-6xl mx-auto py-8 px-4 sm:px-6">
+
+    <!-- Basic Info -->
+    <div class="mb-12">
+      <div class="field-row">
+        <div class="field-label">GTIN</div>
+        <div class="field-value font-mono"><%= passport.gtin.gtin %></div>
+      </div>
+      <div class="field-row">
+        <div class="field-label">Serial Number</div>
+        <div class="field-value font-mono"><%= passport.sgtin.serial_number %></div>
+      </div>
+      <% if (passport.variant) { %>
+        <div class="field-row">
+          <div class="field-label">Variant</div>
+          <div class="field-value"><%= passport.variant.variant_name %></div>
+        </div>
+      <% } %>
+      <div class="field-row">
+        <div class="field-label">Created</div>
+        <div class="field-value"><%= new Date(passport.sgtin.created_at).toLocaleDateString('sv-SE') %></div>
+      </div>
+    </div>
+
+    <!-- DPP Sections -->
+    <%
+      const euValues = passport.resolvedFields.filter(f => f.category === 'eu_required' && f.value);
+      const nudieValues = passport.resolvedFields.filter(f => f.category === 'nudie' && f.value);
+    %>
+
+    <!-- EU Required Section -->
+    <% if (euValues.length > 0) { %>
+      <div class="collapsible-section">
+        <div class="collapsible-header" onclick="this.nextElementSibling.classList.toggle('open')">
+          <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide">EU Required Information</h2>
+          <span class="text-lg text-gray-400">−</span>
+        </div>
+        <div class="collapsible-content open">
+          <% euValues.forEach(field => { %>
+            <div class="field-row">
+              <div class="field-label"><%= field.label %></div>
+              <div>
+                <div class="field-value"><%= field.value %></div>
+                <% if (field.source && field.source !== 'sgtin') { %>
+                  <%
+                    let sourceLabel = field.source === 'batch' ? 'Batch' : field.source === 'gtin' ? 'GTIN' : field.source === 'style' ? 'Style' : field.source;
+                  %>
+                  <div class="field-source">från <%= sourceLabel %></div>
+                <% } %>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+    <% } %>
+
+    <!-- Nudie Specific Section -->
+    <% if (nudieValues.length > 0) { %>
+      <div class="collapsible-section">
+        <div class="collapsible-header" onclick="this.nextElementSibling.classList.toggle('open')">
+          <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide">Nudie Information</h2>
+          <span class="text-lg text-gray-400">−</span>
+        </div>
+        <div class="collapsible-content open">
+          <% nudieValues.forEach(field => { %>
+            <div class="field-row">
+              <div class="field-label"><%= field.label %></div>
+              <div>
+                <div class="field-value"><%= field.value %></div>
+                <% if (field.source && field.source !== 'sgtin') { %>
+                  <%
+                    let sourceLabel = field.source === 'batch' ? 'Batch' : field.source === 'gtin' ? 'GTIN' : field.source === 'style' ? 'Style' : field.source;
+                  %>
+                  <div class="field-source">från <%= sourceLabel %></div>
+                <% } %>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+    <% } %>
+
+    <!-- Production Information -->
+    <div class="collapsible-section">
+      <div class="collapsible-header" onclick="this.nextElementSibling.classList.toggle('open')">
+        <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide">Production</h2>
+        <span class="text-lg text-gray-400">−</span>
+      </div>
+      <div class="collapsible-content open">
+        <div class="field-row">
+          <div class="field-label">Batch ID</div>
+          <div class="field-value font-mono"><%= passport.batch.batch_id %></div>
+        </div>
+        <% if (passport.batch.production_order) { %>
+          <div class="field-row">
+            <div class="field-label">Production Order</div>
+            <div class="field-value"><%= passport.batch.production_order %></div>
+          </div>
+        <% } %>
+        <% if (passport.batch.production_date) { %>
+          <div class="field-row">
+            <div class="field-label">Production Date</div>
+            <div class="field-value"><%= new Date(passport.batch.production_date).toLocaleDateString('sv-SE') %></div>
+          </div>
+        <% } %>
+        <% if (passport.batch.supplier) { %>
+          <div class="field-row">
+            <div class="field-label">Supplier</div>
+            <div class="field-value"><%= passport.batch.supplier %></div>
+          </div>
+        <% } %>
+        <% if (passport.batch.factory) { %>
+          <div class="field-row">
+            <div class="field-label">Factory</div>
+            <div class="field-value"><%= passport.batch.factory %></div>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Lifecycle Events -->
+    <% if (typeof events !== 'undefined' && events.length > 0) { %>
+      <div class="collapsible-section">
+        <div class="collapsible-header" onclick="this.nextElementSibling.classList.toggle('open')">
+          <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide">Lifecycle Events</h2>
+          <span class="text-lg text-gray-400">−</span>
+        </div>
+        <div class="collapsible-content open">
+          <% events.forEach(event => { %>
+            <div class="field-row">
+              <div class="field-label"><%= event.event_type %></div>
+              <div>
+                <div class="field-value">
+                  <%= new Date(event.created_at).toLocaleDateString('sv-SE') %>
+                </div>
+                <% if (event.event_data) { %>
+                  <% try { %>
+                    <% const data = JSON.parse(event.event_data); %>
+                    <% if (Object.keys(data).length > 0) { %>
+                      <div class="field-source">
+                        <% Object.entries(data).forEach(([key, value]) => { %>
+                          <%= key %>: <%= JSON.stringify(value) %><br>
+                        <% }); %>
+                      </div>
+                    <% } %>
+                  <% } catch(e) { %>
+                    <div class="field-source"><%= event.event_data %></div>
+                  <% } %>
+                <% } %>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+    <% } %>
+
+    <!-- Scan History -->
+    <% if (scanStats && scanStats.total_scans > 0) { %>
+      <div class="collapsible-section">
+        <div class="collapsible-header" onclick="this.nextElementSibling.classList.toggle('open')">
+          <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide">Scan History</h2>
+          <span class="text-lg text-gray-400">−</span>
+        </div>
+        <div class="collapsible-content open">
+          <div class="field-row">
+            <div class="field-label">Total Scans</div>
+            <div class="field-value"><%= scanStats.total_scans %></div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">First Scan</div>
+            <div class="field-value">
+              <% if (scanStats.first_scan) { %>
+                <%= new Date(scanStats.first_scan).toLocaleDateString('sv-SE') %>
+              <% } else { %>
+                Never
+              <% } %>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Last Scan</div>
+            <div class="field-value">
+              <% if (scanStats.last_scan) { %>
+                <%= new Date(scanStats.last_scan).toLocaleDateString('sv-SE') %>
+              <% } else { %>
+                Never
+              <% } %>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% } %>
+
+    <!-- Identifiers -->
+    <div class="collapsible-section">
+      <div class="collapsible-header" onclick="this.nextElementSibling.classList.toggle('open')">
+        <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide">Identifiers</h2>
+        <span class="text-lg text-gray-400">−</span>
+      </div>
+      <div class="collapsible-content open">
+        <div class="field-row">
+          <div class="field-label">GTIN</div>
+          <div class="field-value font-mono"><%= passport.gtin.gtin %></div>
+        </div>
+        <div class="field-row">
+          <div class="field-label">Serial</div>
+          <div class="field-value font-mono"><%= passport.sgtin.serial_number %></div>
+        </div>
+        <div class="field-row">
+          <div class="field-label">Passport</div>
+          <div class="field-value">
+            <a href="<%= url %>" class="text-blue-600 hover:underline break-all text-sm">
+              <%= url %>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="mt-12 pt-8 border-t border-gray-300">
+      <p class="text-xs text-gray-600">
+        Digital Product Passport. Nudie Jeans. | Version 2
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>

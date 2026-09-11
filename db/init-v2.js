@@ -51,27 +51,49 @@ const init = () => {
       else console.log('✓ batches table');
     });
 
+    // Table: variants
+    // Represents product variants (e.g., Red, Blue for t-shirts)
+    // For jeans: no variants (variant_id is NULL on GTINs)
+    // For topwear: each variant gets its own set of GTINs per size
+    db.run(`
+      CREATE TABLE IF NOT EXISTS variants (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        style_id INTEGER NOT NULL,
+        variant_name TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (style_id) REFERENCES styles(id),
+        UNIQUE(style_id, variant_name)
+      )
+    `, (err) => {
+      if (err) console.error('[variants]', err);
+      else console.log('✓ variants table');
+    });
+
     // Table: gtins
-    // NOTE: Each GTIN belongs to a Batch AND references a Style
-    // This allows a Batch to contain GTINs from multiple Styles
-    // GTIN values can repeat across batches (same product produced multiple times)
-    // but must be unique within each batch
+    // Masterdata: Product SKUs (Style + Size, or Style + Variant + Size)
+    // GTIN is globally unique (EAN-14)
+    // No batch_id here - batches reference GTINs via SGTINs
     db.run(`
       CREATE TABLE IF NOT EXISTS gtins (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        batch_id INTEGER NOT NULL,
         style_id INTEGER NOT NULL,
-        gtin TEXT NOT NULL,
+        variant_id INTEGER,
+        gtin TEXT NOT NULL UNIQUE,
         ean TEXT,
         size TEXT,
         color TEXT,
         variant TEXT,
         weight REAL,
+        product_type TEXT,
+        item_number TEXT,
+        size_value_1 TEXT,
+        size_value_2 TEXT,
+        size_value_3 TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (batch_id) REFERENCES batches(id),
         FOREIGN KEY (style_id) REFERENCES styles(id),
-        UNIQUE(batch_id, gtin)
+        FOREIGN KEY (variant_id) REFERENCES variants(id)
       )
     `, (err) => {
       if (err) console.error('[gtins]', err);
@@ -79,10 +101,14 @@ const init = () => {
     });
 
     // Table: sgtins
+    // Individual garments: links GTIN × Batch × Serial
+    // One SGTIN = one physical garment with unique serial number
+    // Batch_id specifies which production batch this garment came from
     db.run(`
       CREATE TABLE IF NOT EXISTS sgtins (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         gtin_id INTEGER NOT NULL,
+        batch_id INTEGER NOT NULL,
         serial_number TEXT NOT NULL,
         sgtin TEXT UNIQUE,
         rfid_id TEXT,
@@ -90,11 +116,30 @@ const init = () => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (gtin_id) REFERENCES gtins(id),
+        FOREIGN KEY (batch_id) REFERENCES batches(id),
         UNIQUE(gtin_id, serial_number)
       )
     `, (err) => {
       if (err) console.error('[sgtins]', err);
       else console.log('✓ sgtins table');
+    });
+
+    // Table: batch_gtins (batch planning: which GTINs in which quantities)
+    db.run(`
+      CREATE TABLE IF NOT EXISTS batch_gtins (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        batch_id INTEGER NOT NULL,
+        gtin_id INTEGER NOT NULL,
+        planned_quantity INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (batch_id) REFERENCES batches(id),
+        FOREIGN KEY (gtin_id) REFERENCES gtins(id),
+        UNIQUE(batch_id, gtin_id)
+      )
+    `, (err) => {
+      if (err) console.error('[batch_gtins]', err);
+      else console.log('✓ batch_gtins table');
     });
 
     // Phase 2: Dynamic Fields
@@ -221,20 +266,28 @@ const init = () => {
     });
 
     // Create indexes
-    db.run(`CREATE INDEX IF NOT EXISTS idx_gtins_batch_id ON gtins(batch_id)`, (err) => {
-      if (err) console.error('[index gtins_batch_id]', err);
-    });
-
     db.run(`CREATE INDEX IF NOT EXISTS idx_gtins_style_id ON gtins(style_id)`, (err) => {
       if (err) console.error('[index gtins_style_id]', err);
     });
 
-    db.run(`CREATE INDEX IF NOT EXISTS idx_gtins_batch_style ON gtins(batch_id, style_id)`, (err) => {
-      if (err) console.error('[index gtins_batch_style]', err);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_gtins_variant_id ON gtins(variant_id)`, (err) => {
+      if (err) console.error('[index gtins_variant_id]', err);
+    });
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_gtins_gtin ON gtins(gtin)`, (err) => {
+      if (err) console.error('[index gtins_gtin]', err);
+    });
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_variants_style_id ON variants(style_id)`, (err) => {
+      if (err) console.error('[index variants_style_id]', err);
     });
 
     db.run(`CREATE INDEX IF NOT EXISTS idx_sgtins_gtin_id ON sgtins(gtin_id)`, (err) => {
       if (err) console.error('[index sgtins_gtin_id]', err);
+    });
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_sgtins_batch_id ON sgtins(batch_id)`, (err) => {
+      if (err) console.error('[index sgtins_batch_id]', err);
     });
 
     db.run(`CREATE INDEX IF NOT EXISTS idx_dpp_values_entity ON dpp_values(entity_type, entity_id)`, (err) => {

@@ -1,17 +1,17 @@
 const db = require('../db/init-v2');
 
 class GtinRepository {
-  async create(batchId, styleId, gtin, options = {}) {
+  async create(styleId, gtin, options = {}) {
     const sql = `
       INSERT INTO gtins (
-        batch_id, style_id, gtin, ean, size, color, variant, weight,
+        style_id, variant_id, gtin, ean, size, color, variant, weight,
         product_type, item_number, size_value_1, size_value_2, size_value_3
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const result = await db.run(sql, [
-      batchId,
       styleId,
+      options.variant_id || null,
       gtin,
       options.ean || null,
       options.size || null,
@@ -39,31 +39,33 @@ class GtinRepository {
 
   async listByBatch(batchId) {
     const sql = `
-      SELECT g.*, s.style_number
+      SELECT DISTINCT g.*, s.style_number
       FROM gtins g
+      JOIN sgtins sg ON sg.gtin_id = g.id
       JOIN styles s ON g.style_id = s.id
-      WHERE g.batch_id = ?
-      ORDER BY s.style_number ASC, g.size ASC
+      WHERE sg.batch_id = ?
+      ORDER BY s.style_number ASC, g.item_number ASC
     `;
     return db.all(sql, [batchId]);
   }
 
   async listByBatchAndStyle(batchId, styleId) {
     const sql = `
-      SELECT * FROM gtins
-      WHERE batch_id = ? AND style_id = ?
-      ORDER BY size ASC, color ASC
+      SELECT DISTINCT g.* FROM gtins g
+      JOIN sgtins sg ON sg.gtin_id = g.id
+      WHERE sg.batch_id = ? AND g.style_id = ?
+      ORDER BY g.item_number ASC
     `;
     return db.all(sql, [batchId, styleId]);
   }
 
   async listByStyle(styleId) {
     const sql = `
-      SELECT g.*, b.batch_id
+      SELECT g.*, v.variant_name
       FROM gtins g
-      JOIN batches b ON g.batch_id = b.id
+      LEFT JOIN variants v ON v.id = g.variant_id
       WHERE g.style_id = ?
-      ORDER BY b.batch_id ASC, g.size ASC
+      ORDER BY COALESCE(v.variant_name, ''), g.item_number ASC
     `;
     return db.all(sql, [styleId]);
   }

@@ -6,7 +6,7 @@ const cheerio = require('cheerio');
 const https = require('https');
 
 // Load appropriate database based on version
-const dbVersion = process.env.DB_VERSION || 'v1';
+const dbVersion = process.env.DB_VERSION || 'v2';
 const { db, queries } = dbVersion === 'v2' ? require('../db/init-v2') : require('../db/init');
 
 const JWT_SECRET = process.env.JWT_SECRET;
