@@ -25,6 +25,7 @@
       <a href="/admin-v2?tab=batches" class="px-6 py-4 font-semibold <%= tab === 'batches' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-700' %>">Batches</a>
       <a href="/admin-v2?tab=sgtins" class="px-6 py-4 font-semibold <%= tab === 'sgtins' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-700' %>">SGTINs</a>
       <a href="/admin-v2?tab=fields" class="px-6 py-4 font-semibold <%= tab === 'fields' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-700' %>">DPP Fields</a>
+      <a href="/admin-v2?tab=analytics" class="px-6 py-4 font-semibold <%= tab === 'analytics' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-700' %>">Scan Analytics</a>
     </div>
 
     <div class="bg-white rounded-lg shadow-md p-8">
@@ -428,6 +429,118 @@
             }
           });
         </script>
+      <% } %>
+
+      <!-- ANALYTICS TAB (Scan statistics) -->
+      <% if (tab === 'analytics') { %>
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold text-gray-900">Scan Analytics</h2>
+        </div>
+
+        <!-- Summary cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
+            <div class="text-sm text-gray-500 mb-1">Total Scans</div>
+            <div class="text-3xl font-bold text-gray-900"><%= totals.total_scans || 0 %></div>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
+            <div class="text-sm text-gray-500 mb-1">Unique Products Scanned</div>
+            <div class="text-3xl font-bold text-gray-900"><%= totals.unique_sgtins_scanned || 0 %></div>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
+            <div class="text-sm text-gray-500 mb-1">First Scan</div>
+            <div class="text-lg font-semibold text-gray-900">
+              <%= totals.first_scan ? new Date(totals.first_scan).toLocaleDateString('sv-SE') : '–' %>
+            </div>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
+            <div class="text-sm text-gray-500 mb-1">Last Scan</div>
+            <div class="text-lg font-semibold text-gray-900">
+              <%= totals.last_scan ? new Date(totals.last_scan).toLocaleDateString('sv-SE') : '–' %>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scans by day -->
+        <div class="mb-8">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Scans per day (last 14 days with activity)</h3>
+          <% if (scansByDay.length > 0) { %>
+            <div class="space-y-2">
+              <% const maxCount = Math.max(...scansByDay.map(d => d.scan_count)); %>
+              <% scansByDay.forEach(d => { %>
+                <div class="flex items-center gap-3">
+                  <div class="w-28 text-sm text-gray-600"><%= d.day %></div>
+                  <div class="flex-1 bg-gray-100 rounded h-6 overflow-hidden">
+                    <div class="bg-gray-900 h-full" style="width: <%= Math.round((d.scan_count / maxCount) * 100) %>%"></div>
+                  </div>
+                  <div class="w-10 text-sm text-gray-900 font-semibold text-right"><%= d.scan_count %></div>
+                </div>
+              <% }) %>
+            </div>
+          <% } else { %>
+            <div class="text-center py-8 text-gray-500">No scan data yet</div>
+          <% } %>
+        </div>
+
+        <!-- Top scanned products -->
+        <div class="mb-8">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Most scanned products</h3>
+          <% if (topProducts.length > 0) { %>
+            <table class="w-full text-left">
+              <thead>
+                <tr class="border-b border-gray-200 text-sm text-gray-500">
+                  <th class="pb-2">Style</th>
+                  <th class="pb-2">GTIN</th>
+                  <th class="pb-2 text-right">Scans</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% topProducts.forEach(p => { %>
+                  <tr class="border-b border-gray-100">
+                    <td class="py-2 text-sm"><%= p.style_number %> <span class="text-gray-500"><%= p.product_name || '' %></span></td>
+                    <td class="py-2 text-sm font-mono"><%= p.gtin %></td>
+                    <td class="py-2 text-sm text-right font-semibold"><%= p.scan_count %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          <% } else { %>
+            <div class="text-center py-8 text-gray-500">No scan data yet</div>
+          <% } %>
+        </div>
+
+        <!-- Recent scans -->
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent scans</h3>
+          <% if (recentScans.length > 0) { %>
+            <table class="w-full text-left">
+              <thead>
+                <tr class="border-b border-gray-200 text-sm text-gray-500">
+                  <th class="pb-2">Time</th>
+                  <th class="pb-2">Style</th>
+                  <th class="pb-2">Serial</th>
+                  <th class="pb-2">Batch</th>
+                  <th class="pb-2">Method</th>
+                  <th class="pb-2">Location</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% recentScans.forEach(sc => { %>
+                  <tr class="border-b border-gray-100">
+                    <td class="py-2 text-sm"><%= new Date(sc.scan_timestamp).toLocaleString('sv-SE') %></td>
+                    <td class="py-2 text-sm"><%= sc.style_number %> <span class="text-gray-500"><%= sc.product_name || '' %></span></td>
+                    <td class="py-2 text-sm font-mono"><%= sc.serial_number %></td>
+                    <td class="py-2 text-sm"><%= sc.batch_id %></td>
+                    <td class="py-2 text-sm"><%= sc.scan_method || '–' %></td>
+                    <td class="py-2 text-sm"><%= sc.scan_location || '–' %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          <% } else { %>
+            <div class="text-center py-8 text-gray-500">No scans logged yet</div>
+          <% } %>
+        </div>
       <% } %>
     </div>
   </div>

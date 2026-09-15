@@ -239,6 +239,61 @@ router.get('/', async (req, res) => {
       data.categories = ['eu_required', 'nudie'];
     }
 
+    // ANALYTICS TAB (Scan statistics)
+    else if (tab === 'analytics') {
+      data.totals = await getOne(`
+        SELECT
+          COUNT(*) as total_scans,
+          COUNT(DISTINCT sgtin_id) as unique_sgtins_scanned,
+          MIN(scan_timestamp) as first_scan,
+          MAX(scan_timestamp) as last_scan
+        FROM scan_events
+      `);
+
+      data.topProducts = await getAll(`
+        SELECT
+          s.style_number,
+          s.product_name,
+          g.gtin,
+          COUNT(se.id) as scan_count
+        FROM scan_events se
+        JOIN sgtins sg ON sg.id = se.sgtin_id
+        JOIN gtins g ON g.id = sg.gtin_id
+        JOIN styles s ON s.id = g.style_id
+        GROUP BY g.id
+        ORDER BY scan_count DESC
+        LIMIT 10
+      `);
+
+      data.recentScans = await getAll(`
+        SELECT
+          se.scan_timestamp,
+          se.scan_method,
+          se.scan_location,
+          sg.serial_number,
+          s.style_number,
+          s.product_name,
+          b.batch_id
+        FROM scan_events se
+        JOIN sgtins sg ON sg.id = se.sgtin_id
+        JOIN gtins g ON g.id = sg.gtin_id
+        JOIN styles s ON s.id = g.style_id
+        JOIN batches b ON b.id = sg.batch_id
+        ORDER BY se.scan_timestamp DESC
+        LIMIT 25
+      `);
+
+      data.scansByDay = await getAll(`
+        SELECT
+          DATE(scan_timestamp) as day,
+          COUNT(*) as scan_count
+        FROM scan_events
+        GROUP BY DATE(scan_timestamp)
+        ORDER BY day DESC
+        LIMIT 14
+      `);
+    }
+
     res.render('admin/hub-v2', data);
   } catch (err) {
     console.error('[hub-v2]', err);
