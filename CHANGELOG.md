@@ -4,6 +4,20 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 17) — Fix remaining demo data: name every variant
+
+User spotted the same gap on the Belt style: "Leather Belt Classic"
+shown twice for variants BLK/BRN with no distinguishing name. Same
+root cause as etapp 15 (T-shirt B02) - `product_name` was `NULL` on
+both. Set them to "Leather Belt Classic Black" / "...Brown". Checked
+the remaining style (910006, Tiny Turner Kid Rinsed) too: its one
+variant (B26) also had no name, but there's no color/size split to
+name it after (only one variant exists, sizes 10/12/14, no color
+data) - set `product_name` to the style's own name rather than invent
+a distinction that doesn't exist in the data. Every variant in the
+dataset now has its own `product_name` set, matching the confirmed
+rule that this is always the case, never a fallback.
+
 ## 2026-09-16 (etapp 16) — Variants tab: drop the override badge, filter style dropdown
 
 Two follow-ups from the previous fix, per user feedback:
