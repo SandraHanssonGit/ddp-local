@@ -115,30 +115,6 @@
       </div>
     <% } %>
 
-    <!-- Nudie -->
-    <% if (nudieValues.length > 0) { %>
-      <div style="border-top:1px solid var(--hairline);">
-        <div class="row accordion-header" style="justify-content:space-between;padding:18px 0;" onclick="this.nextElementSibling.classList.toggle('open')">
-          <div class="row" style="gap:12px;">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
-            <span style="font-size:16px;font-weight:600;">Nudie Information</span>
-          </div>
-          <svg class="icon" style="color:var(--muted);" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
-        </div>
-        <div class="accordion-content open">
-          <% nudieValues.forEach(field => { %>
-            <div class="field-row">
-              <div class="field-label"><%= field.label %></div>
-              <div class="field-value"><%= field.value %></div>
-              <% if (field.source && field.source !== 'sgtin') { %>
-                <div class="field-source">från <%= sourceLabel(field.source) %></div>
-              <% } %>
-            </div>
-          <% }); %>
-        </div>
-      </div>
-    <% } %>
-
     <!-- Production -->
     <div style="border-top:1px solid var(--hairline);">
       <div class="row accordion-header" style="justify-content:space-between;padding:18px 0;" onclick="this.nextElementSibling.classList.toggle('open')">
@@ -180,6 +156,30 @@
       </div>
     </div>
 
+    <!-- Nudie -->
+    <% if (nudieValues.length > 0) { %>
+      <div style="border-top:1px solid var(--hairline);">
+        <div class="row accordion-header" style="justify-content:space-between;padding:18px 0;" onclick="this.nextElementSibling.classList.toggle('open')">
+          <div class="row" style="gap:12px;">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+            <span style="font-size:16px;font-weight:600;">Nudie Information</span>
+          </div>
+          <svg class="icon" style="color:var(--muted);" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+        <div class="accordion-content open">
+          <% nudieValues.forEach(field => { %>
+            <div class="field-row">
+              <div class="field-label"><%= field.label %></div>
+              <div class="field-value"><%= field.value %></div>
+              <% if (field.source && field.source !== 'sgtin') { %>
+                <div class="field-source">från <%= sourceLabel(field.source) %></div>
+              <% } %>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+    <% } %>
+
     <!-- Lifecycle Events -->
     <% if (typeof events !== 'undefined' && events.length > 0) { %>
       <div style="border-top:1px solid var(--hairline);">
@@ -211,33 +211,6 @@
               <% } %>
             </div>
           <% }); %>
-        </div>
-      </div>
-    <% } %>
-
-    <!-- Scan History -->
-    <% if (scanStats && scanStats.total_scans > 0) { %>
-      <div style="border-top:1px solid var(--hairline);">
-        <div class="row accordion-header" style="justify-content:space-between;padding:18px 0;" onclick="this.nextElementSibling.classList.toggle('open')">
-          <div class="row" style="gap:12px;">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>
-            <span style="font-size:16px;font-weight:600;">Scan History</span>
-          </div>
-          <svg class="icon" style="color:var(--muted);" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
-        </div>
-        <div class="accordion-content open">
-          <div class="field-row">
-            <div class="field-label">Total Scans</div>
-            <div class="field-value"><%= scanStats.total_scans %></div>
-          </div>
-          <div class="field-row">
-            <div class="field-label">First Scan</div>
-            <div class="field-value"><%= scanStats.first_scan ? new Date(scanStats.first_scan).toLocaleDateString('sv-SE') : 'Never' %></div>
-          </div>
-          <div class="field-row">
-            <div class="field-label">Last Scan</div>
-            <div class="field-value"><%= scanStats.last_scan ? new Date(scanStats.last_scan).toLocaleDateString('sv-SE') : 'Never' %></div>
-          </div>
         </div>
       </div>
     <% } %>

@@ -135,9 +135,14 @@ async function renderPassportJson(req, res, sgtinRecord) {
       size: passport.gtin.size_value_1,
       color: passport.gtin.color
     },
+    // country of origin is deliberately NOT read from
+    // batch.country_of_production here - that hardcoded column has no
+    // inheritance/override/locale/lock support and duplicates the real
+    // EU-required "country_of_origin" dynamic field, which is already
+    // included in `fields` below. Per decision 2026-09-16: the dynamic
+    // field is the single source of truth for this.
     manufacturing: {
       factory: passport.batch.factory,
-      countryOfProduction: passport.batch.country_of_production,
       productionDate: passport.batch.production_date
     },
     fields

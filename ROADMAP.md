@@ -338,6 +338,29 @@ gets past the batch_id bug above and fails on this next, separate one.
 Out of scope for the variant fix; flagged here for whoever picks up
 `routes/admin/passports.js`.
 
+## Consumer passport content fixes ✅ Done (2026-09-16)
+
+Per direct feedback while reviewing the redesigned consumer passport:
+- Section order changed to EU Required → **Production** → **Nudie
+  Information** → Lifecycle Events → Identifiers (Production moved
+  above Nudie Information).
+- **Scan History section removed** from the consumer-facing passport -
+  not useful to the customer (it's still tracked and shown in the
+  admin Scan Analytics tab, just not exposed publicly).
+- **Found and fixed a real data duplication**: `batches.country_of_production`
+  (a hardcoded column, no inheritance/override/locale/lock support) and
+  the dynamic `country_of_origin` field (`field_definitions`/`dpp_values`,
+  category `eu_required` - the one used throughout this session's
+  Tunisia→France examples) were two separate sources of truth for the
+  same fact. Per decision: the dynamic field wins.
+  `country_of_production` was never actually shown in the consumer
+  Production section (checked - only Batch ID/Production Order/
+  Production Date/Supplier/Factory are), but it WAS duplicated into the
+  JSON export's `manufacturing.countryOfProduction` - removed from
+  there. The column itself is left in the schema (not a migration,
+  just stopped reading it) - `country_of_origin` is the single source
+  of truth going forward.
+
 ## Security note (found while building Phase 0, 2026-09-16)
 
 The entire v2 admin API (`routes/admin/styles.js`, `fields.js`,
