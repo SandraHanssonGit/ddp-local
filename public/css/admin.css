@@ -67,7 +67,7 @@ a:hover { text-decoration: underline; }
 }
 
 .logo-crop { height: 20px; width: 146px; overflow: hidden; position: relative; }
-.logo-crop img { position: absolute; top: -70px; left: -8px; width: 163px; height: 163px; }
+.logo-crop img { position: absolute; top: -70px; left: -8px; width: 163px; height: 163px; mix-blend-mode: multiply; }
 
 .admin-header h1 {
   font-size: 15px;

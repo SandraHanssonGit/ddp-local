@@ -4,6 +4,16 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 8) — Logo: remove visible white background box
+
+User spotted the hand-drawn "Nudie Jeans co" logo showing its white
+source-image background as a visible box on the login card. Added
+`mix-blend-mode: multiply` to `.logo-crop img` everywhere it's used
+(admin.css, login-v2.ejs, dpp-passport.ejs) - white blends away against
+whatever surface it sits on, black stays black. Applied consistently
+across admin pages, login, and the consumer passport rather than only
+patching the one place it was noticed.
+
 ## 2026-09-16 (etapp 7) — Login page: password field width bug
 
 - Real bug the user spotted: the Password input rendered at browser
