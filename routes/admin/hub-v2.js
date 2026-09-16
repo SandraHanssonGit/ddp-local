@@ -558,6 +558,13 @@ router.get('/variant/:variantId', async (req, res) => {
     const gtinCount = gtins.length;
     const sgtinCount = gtins.reduce((sum, g) => sum + (g.sgtin_count || 0), 0);
 
+    const batchCount = (await getOne(`
+      SELECT COUNT(DISTINCT sg.batch_id) as count
+      FROM sgtins sg
+      JOIN gtins g ON g.id = sg.gtin_id
+      WHERE g.variant_id = ?
+    `, [variant.id])).count;
+
     // Variant has exactly one style_id, so "inherited from Style" is
     // well-defined here - same pattern as GTIN's own inheritance
     const locale = req.query.lang || null;
@@ -576,6 +583,7 @@ router.get('/variant/:variantId', async (req, res) => {
       gtins,
       gtinCount,
       sgtinCount,
+      batchCount,
       dppValues,
       locale,
       availableLocales,

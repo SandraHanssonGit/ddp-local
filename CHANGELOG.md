@@ -4,6 +4,14 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 21) — Add Batches count to Variant Statistics
+
+User suggestion while decluttering the Statistics card: useful to see
+how many distinct production batches a Variant has appeared in.
+Added a `COUNT(DISTINCT sg.batch_id)` query (joining sgtins → gtins
+filtered to this variant) and a new "Batches" row in the Statistics
+sidebar, alongside the existing GTINs/SGTINs counts.
+
 ## 2026-09-16 (etapp 20) — Variant detail page: dedupe redundant info
 
 User feedback on `variant-detail.ejs`:
