@@ -86,31 +86,35 @@ a:hover { text-decoration: underline; }
   color: var(--muted);
 }
 
-/* Nav — plain text, underline-on-active (kritiker.se pattern) */
+/* Nav — kritiker.se pattern: plain text, rounded hover highlight,
+   soft pill background on the active item (not just an underline) */
 .admin-nav {
   display: flex;
-  gap: 28px;
+  gap: 4px;
   margin-bottom: 28px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--hairline);
 }
 
 .admin-nav a {
   display: inline-block;
-  padding: 4px 0 14px;
+  padding: 8px 16px;
+  border-radius: 999px;
   color: var(--muted);
   font-family: 'Archivo', system-ui, sans-serif;
   font-weight: 600;
   font-size: 14px;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.admin-nav a:hover { color: var(--text); text-decoration: none; }
+.admin-nav a:hover { background: var(--surface-2); color: var(--text); text-decoration: none; }
 
 .admin-nav a.active {
-  color: var(--text);
-  border-bottom-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
+
+.admin-nav a.active:hover { background: var(--accent-soft); }
 
 /* Card */
 .card {
@@ -307,6 +311,7 @@ input:focus, textarea:focus, select:focus {
   color: var(--text);
   font-size: 13px;
   font-weight: 600;
+  transition: background-color 0.15s ease;
 }
 
 .filter-pills a:hover { text-decoration: none; background: var(--hairline); }
@@ -427,6 +432,7 @@ input:focus, textarea:focus, select:focus {
   color: var(--text);
   font-size: 12px;
   font-weight: 600;
+  transition: background-color 0.15s ease;
 }
 
 .locale-tabs a:hover { text-decoration: none; background: var(--hairline); }

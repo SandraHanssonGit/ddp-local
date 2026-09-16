@@ -4,6 +4,30 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 4) — Nav hover: rounded highlight (kritiker.se)
+
+User pointed out that DESIGN_SYSTEM.md's "modeled on kritiker.se" nav
+claim wasn't fully true in code - the admin hub's tab bar only had a
+plain underline-on-active, none of kritiker.se's rounded hover
+highlight/active pill. Fixed the specific thing asked for (the hover
+highlight), not a full icon+pill nav rebuild:
+- `.admin-nav a` - rounded pill padding, `--surface-2` background on
+  hover, `--accent-soft` pill on the active tab (was a bare
+  border-bottom).
+- Added matching hover transitions to `.filter-pills` and
+  `.locale-tabs` (DPP Fields category filter, language tabs) for
+  consistency - same pill family, same interaction.
+- Added the same hover state to the consumer passport's `.lang-link`
+  language switcher, which had none before.
+
+## 2026-09-16 (etapp 3) — Admin visual redesign: login page
+
+- Rewrote `views/login-v2.ejs` onto `public/css/admin.css` - Nudie
+  logo, Archivo/Work Sans, brand card styling over the existing
+  `nudie-background.jpg` store photo (kept, just darkened with a
+  gradient overlay for text contrast). Same login flow/JS unchanged,
+  verified `POST /api/login` still returns a token.
+
 ## 2026-09-16 (etapp 2) — Admin visual redesign: detail pages
 
 - Extended `public/css/admin.css` with detail-page components: 2/3+1/3

@@ -4,74 +4,99 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DPP Hub v2 - Login</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background-image: linear-gradient(rgba(23,22,19,0.35), rgba(23,22,19,0.55)), url('/nudie-background.jpg');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 400px;
+      background: var(--surface);
+      border-radius: 8px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+      padding: 36px;
+    }
+
+    .login-card .logo-crop { height: 22px; width: 160px; margin-bottom: 20px; }
+    .login-card .logo-crop img { top: -77px; left: -9px; width: 178px; height: 178px; }
+
+    .login-card h1 { font-size: 22px; margin-bottom: 6px; }
+    .login-card .subtitle { color: var(--muted); font-size: 13px; }
+    .login-card .subtitle.small2 { font-size: 11px; margin-top: 2px; }
+
+    .login-error {
+      padding: 10px 14px;
+      background: var(--danger-soft);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+
+    .demo-box {
+      margin-top: 20px;
+      padding: 14px 16px;
+      background: var(--surface-2);
+      border: 1px solid var(--hairline);
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    .demo-box .demo-row { display: flex; justify-content: space-between; color: var(--muted); }
+    .demo-box .demo-row strong { color: var(--text); }
+
+    .login-footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 20px;
+    }
+  </style>
 </head>
-<body class="min-h-screen flex items-center justify-center px-4" style="background-image: url('/nudie-background.jpg'); background-size: cover; background-position: center; background-attachment: fixed;">
-  <div class="w-full max-w-md">
-    <!-- Login Card -->
-    <div class="bg-white rounded-lg shadow-lg p-8">
-      <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900">DPP Hub v2</h1>
-        <p class="text-sm text-gray-600 mt-2">Digital Product Passport Administration</p>
-        <p class="text-xs text-gray-500 mt-1">New Architecture</p>
-      </div>
-
-      <form id="loginForm" class="space-y-4">
-        <!-- Username/Email -->
-        <div>
-          <label class="block text-sm font-bold text-gray-700 mb-2">Username or Email</label>
-          <input
-            type="text"
-            id="username"
-            name="username"
-            placeholder="demo"
-            class="w-full border border-gray-300 rounded px-4 py-3 focus:outline-none focus:border-gray-900"
-            required
-            autofocus
-          >
-        </div>
-
-        <!-- Password -->
-        <div>
-          <label class="block text-sm font-bold text-gray-700 mb-2">Password</label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            placeholder="••••••••"
-            class="w-full border border-gray-300 rounded px-4 py-3 focus:outline-none focus:border-gray-900"
-            required
-          >
-        </div>
-
-        <!-- Error Message -->
-        <div id="error" class="hidden p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm"></div>
-
-        <!-- Login Button -->
-        <button
-          type="submit"
-          class="w-full bg-gray-900 text-white px-6 py-3 rounded font-semibold hover:bg-gray-800"
-        >
-          Login
-        </button>
-      </form>
-
-      <!-- Demo Info -->
-      <div class="mt-6 p-4 bg-gray-50 rounded border border-gray-200">
-        <p class="text-xs font-bold text-gray-700 mb-3">Demo Credentials:</p>
-        <div class="text-xs text-gray-600 space-y-2">
-          <div class="flex justify-between">
-            <span><strong>demo</strong></span>
-            <span class="text-gray-500">password</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Footer -->
-      <p class="text-center text-gray-500 text-xs mt-6">
-        Nudie Jeans • Digital Product Passport
-      </p>
+<body>
+  <div class="login-card">
+    <div class="logo-crop" title="Nudie Jeans co">
+      <img src="/nudie-logo.png" alt="Nudie Jeans co">
     </div>
+    <h1>DPP Hub</h1>
+    <p class="subtitle">Digital Product Passport Administration</p>
+    <p class="subtitle small2">New Architecture</p>
+
+    <form id="loginForm" style="margin-top:24px;">
+      <div class="field-row">
+        <label>Username or Email</label>
+        <input type="text" id="username" name="username" placeholder="demo" required autofocus>
+      </div>
+
+      <div class="field-row">
+        <label>Password</label>
+        <input type="password" id="password" name="password" placeholder="••••••••" required>
+      </div>
+
+      <div id="error" class="login-error hidden"></div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:12px;">Login</button>
+    </form>
+
+    <div class="demo-box">
+      <p class="label-sm" style="margin-bottom:8px;">Demo Credentials</p>
+      <div class="demo-row"><strong>demo</strong><span>password</span></div>
+    </div>
+
+    <p class="login-footer">Nudie Jeans &middot; Digital Product Passport</p>
   </div>
 
   <script>

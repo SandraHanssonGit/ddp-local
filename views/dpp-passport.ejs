@@ -30,8 +30,10 @@
     .logo-crop{height:24px;width:176px;overflow:hidden;position:relative;}
     .logo-crop img{position:absolute;top:-85px;left:-10px;width:196px;height:196px;filter:var(--logo-filter);}
     .icon-btn{background:none;border:1px solid var(--hairline);border-radius:100px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);}
-    .lang-link{font-size:12px;font-weight:600;padding:6px 10px;border-radius:100px;color:var(--muted);}
+    .lang-link{font-size:12px;font-weight:600;padding:6px 10px;border-radius:100px;color:var(--muted);transition:background-color 0.15s ease,color 0.15s ease;}
+    .lang-link:hover{background:var(--surface-2);color:var(--text);text-decoration:none;}
     .lang-link.active{background:var(--text);color:var(--bg);}
+    .lang-link.active:hover{background:var(--text);color:var(--bg);}
     .accordion-header{cursor:pointer;user-select:none;}
     .accordion-content{display:none;}
     .accordion-content.open{display:block;}
