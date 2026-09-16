@@ -4,6 +4,33 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (absolutely final) — Supply Chain data structure
+
+- New `supply_chain_steps` table - a repeating list of named process
+  steps (Raw Material, Spinning, Weaving Mill, Thread Supplier, ...),
+  each with a supplier (name/city/country/employee range/"visited"
+  flag). Deliberately separate from `field_definitions`/`dpp_values`,
+  which only holds one scalar value per field per level and can't
+  represent a repeating structured list. The old (pre-this-session) v1
+  schema actually had a `transparency_data` table with JSON columns
+  for the same purpose, dropped when v2's simpler field model was
+  built - noted for context, not reused (a normalized table fit v2's
+  style better).
+- New `repositories/supply-chain.js` + CRUD routes in
+  `routes/admin/hub-v2.js`. New "Supply Chain" card on the Style admin
+  page (add/view/delete, grouped by category) and a matching section
+  on the public consumer passport, placed after Production.
+- Seeded real reference data for style `113756` (Tuff Tony Dry
+  Selvage) via `scripts/seed-supply-chain-113756.js` - 19 real supply
+  chain steps pulled from the live nudiejeans.com product page, used
+  to visually verify the new section against the real site. Verified
+  UTF-8 renders correctly for non-ASCII names (Söke, Türkiye, Berning
+  +Söhne, Borås) - seeded via a Node script rather than shell
+  arguments specifically to avoid encoding corruption.
+- Verified end-to-end on both the admin page and the public passport
+  (GS1 URL); full regression sweep across every existing admin page
+  and both passport routes (GS1 + legacy) confirmed unaffected.
+
 ## 2026-09-16 (truly final) — Visual redesign: consumer passport in code
 
 - Rewrote `views/dpp-passport.ejs` to the approved Nudie brand language

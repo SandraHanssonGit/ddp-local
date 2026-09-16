@@ -16,6 +16,7 @@ const db = require('../../db/init-v2').db;
 const batchGtinsRouter = require('./batch-gtins');
 const fieldRepository = require('../../repositories/fields');
 const variantRepository = require('../../repositories/variants');
+const supplyChainRepository = require('../../repositories/supply-chain');
 
 // Image upload config for variants - mirrors routes/admin/styles.js's
 // style image upload (found missing entirely for variants alongside
@@ -392,6 +393,7 @@ router.get('/style/:styleId', async (req, res) => {
     const locale = req.query.lang || null;
     const dppValues = await fieldRepository.getFieldsForLevel('style', style.id, locale);
     const availableLocales = await fieldRepository.getAvailableLocales('style', style.id);
+    const supplyChainGroups = await supplyChainRepository.getGroupedForEntity('style', style.id);
 
     res.render('admin/style-detail', {
       style,
@@ -403,11 +405,56 @@ router.get('/style/:styleId', async (req, res) => {
       dppValues,
       locale,
       availableLocales,
+      supplyChainGroups,
       user: { username: 'demo', role: 'admin' }
     });
   } catch (err) {
     console.error('[style-detail]', err);
     res.status(500).render('admin/error', { error: err.message });
+  }
+});
+
+// Supply chain: add a step for a style
+router.post('/style/:styleId/supply-chain', async (req, res) => {
+  try {
+    const style = await getOne('SELECT * FROM styles WHERE id = ?', [req.params.styleId]);
+    if (!style) return res.status(404).json({ success: false, error: 'Style not found' });
+
+    const { step_category, step_label, sort_order, supplier_name, city, country, employee_range, visited_by_brand } = req.body;
+    if (!step_category || !step_label) {
+      return res.status(400).json({ success: false, error: 'step_category and step_label are required' });
+    }
+
+    const id = await supplyChainRepository.create('style', style.id, {
+      step_category, step_label, sort_order, supplier_name, city, country, employee_range, visited_by_brand
+    });
+
+    res.json({ success: true, id });
+  } catch (err) {
+    console.error('[supply-chain-create]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Supply chain: update a step
+router.put('/supply-chain/:stepId', async (req, res) => {
+  try {
+    await supplyChainRepository.update(req.params.stepId, req.body);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[supply-chain-update]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Supply chain: delete a step
+router.delete('/supply-chain/:stepId', async (req, res) => {
+  try {
+    await supplyChainRepository.delete(req.params.stepId);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[supply-chain-delete]', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

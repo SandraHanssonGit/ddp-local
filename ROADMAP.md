@@ -338,6 +338,43 @@ gets past the batch_id bug above and fails on this next, separate one.
 Out of scope for the variant fix; flagged here for whoever picks up
 `routes/admin/passports.js`.
 
+## Supply Chain data structure ✅ Done (2026-09-16)
+
+**Finding, from real reference data the user pulled from nudiejeans.com**:
+the live site's "Transparency" panel shows a two-level structure -
+category (Raw Material, Yarn Process, Fabric Process, Trims,
+Manufacturing, Transportation) → named role (Spinning, Weaving Mill,
+Thread Supplier, ...) → one or more supplier entries (name, city,
+country, employee range, "Visited by Nudie Jeans" badge). The current
+`field_definitions`/`dpp_values` system can't represent this - it's one
+scalar value per field per level, not a repeating list of structured
+records. Notably, the old v1 schema *did* have a `transparency_data`
+table with JSON columns for exactly this, dropped when v2's simpler
+per-field model was built.
+
+**Decision**: build a dedicated `supply_chain_steps` table, separate
+from the field system - see the schema note in this section as it's
+built. CO2/water-style scalar metrics do NOT need this - they fit the
+existing dynamic field system fine (new `field_definitions` rows,
+category `environmental`), and get inheritance/override/locale/lock
+for free that way.
+
+**Built**: `supply_chain_steps` table (`repositories/supply-chain.js`,
+CRUD routes in `routes/admin/hub-v2.js` under `/style/:id/supply-chain`
+and `/supply-chain/:id`), a "Supply Chain" card on the Style admin
+detail page (add/view/delete, grouped by category), and a matching
+"Supply Chain" section on the public consumer passport
+(`views/dpp-passport.ejs`), placed after Production.
+
+**Reference test article**: style `113756` (Tuff Tony Dry Selvage, real
+product on nudiejeans.com) seeded with its real 19-step supply chain
+via `scripts/seed-supply-chain-113756.js` - verified end-to-end on both
+the admin page and the public passport, including correct UTF-8
+rendering of non-ASCII supplier/city names (Söke, Türkiye, Berning
++Söhne, Borås). Its real size-matrix (Waist 24-38 × Length 28-36) was
+not modeled - only one placeholder GTIN (W32/L32) was created to have
+an SGTIN to test the passport with.
+
 ## Consumer passport content fixes ✅ Done (2026-09-16)
 
 Per direct feedback while reviewing the redesigned consumer passport:

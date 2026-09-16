@@ -7,6 +7,7 @@
 const passportResolver = require('./passport-resolver');
 const scanService = require('./scan-service');
 const fieldRepository = require('../repositories/fields');
+const supplyChainRepository = require('../repositories/supply-chain');
 const { db } = require('../db/init-v2');
 
 // sgtins has UNIQUE(gtin_id, serial_number) - a serial is unique per
@@ -85,12 +86,15 @@ async function renderPassportPage(req, res, sgtinRecord, basePath) {
   const scanStats = await scanService.getScanStats(sgtinRecord.id);
   const events = await getEventsForSgtin(sgtinRecord.id);
   const availableLocales = await getAvailableLocalesForPassport(passport);
+  // Supply chain is keyed at Style level for now (ROADMAP.md)
+  const supplyChainGroups = await supplyChainRepository.getGroupedForEntity('style', passport.style.id);
 
   res.render('dpp-passport', {
     passport,
     scanStats,
     events,
     availableLocales,
+    supplyChainGroups,
     url: basePath,
     locale
   });

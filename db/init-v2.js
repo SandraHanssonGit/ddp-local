@@ -340,6 +340,39 @@ const init = () => {
     // Variant > Style) - see passport-resolver.js.
     db.run(`ALTER TABLE field_definitions ADD COLUMN editable_at_variant BOOLEAN DEFAULT 1`, () => {});
 
+    // Supply chain (ROADMAP.md): a repeating list of named process steps
+    // (Raw Material, Spinning, Weaving Mill, Thread Supplier, ...), each
+    // with a supplier - not a single scalar value, so this doesn't fit
+    // field_definitions/dpp_values. Modeled on the real structure
+    // observed on nudiejeans.com's Transparency panel. entity_type is
+    // 'style' for now (the level suppliers/processes are normally
+    // defined at); could extend to other levels later the same way
+    // dpp_values does, without a schema change.
+    db.run(`
+      CREATE TABLE IF NOT EXISTS supply_chain_steps (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entity_type TEXT NOT NULL DEFAULT 'style',
+        entity_id INTEGER NOT NULL,
+        step_category TEXT NOT NULL,
+        step_label TEXT NOT NULL,
+        sort_order INTEGER DEFAULT 0,
+        supplier_name TEXT,
+        city TEXT,
+        country TEXT,
+        employee_range TEXT,
+        visited_by_brand BOOLEAN DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `, (err) => {
+      if (err) console.error('[supply_chain_steps]', err);
+      else console.log('✓ supply_chain_steps table');
+    });
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_supply_chain_steps_entity ON supply_chain_steps(entity_type, entity_id)`, (err) => {
+      if (err) console.error('[index supply_chain_steps_entity]', err);
+    });
+
     db.run(`CREATE INDEX IF NOT EXISTS idx_passport_versions_entity ON passport_versions(entity_type, entity_id)`, (err) => {
       if (err) console.error('[index passport_versions_entity]', err);
     });
