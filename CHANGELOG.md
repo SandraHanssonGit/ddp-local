@@ -4,6 +4,25 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 26) — Fix data bug: 113756's SGTIN missing from batch planning
+
+User noticed "Created Garments" on the Batch detail page showed style
+113756, but it didn't appear anywhere in "Batch Planning" - looked like
+it "didn't even exist in the batch." Root cause: when
+`scripts/seed-supply-chain-113756.js` created a placeholder SGTIN to
+test the passport against (from an earlier session), it set
+`sgtins.batch_id = 1` directly but never added the corresponding
+`batch_gtins` row - "Created Garments" reads straight off
+`sgtins.batch_id` (always showed it), while "Batch Planning" and the
+new Scope tabs (etapp 25) both read off `batch_gtins` (never showed
+it) - two views of the same batch disagreeing with each other.
+
+Fixed by inserting the missing `batch_gtins` row (batch 1, GTIN
+5711814113756, planned_quantity 1) rather than moving the SGTIN to a
+different batch - it genuinely was produced under batch 1, the
+planning record was just never created. Verified: 113756 now appears
+consistently in Batch Planning and as a Scope tab option.
+
 ## 2026-09-16 (etapp 25) — Batch × Style/Variant scoped field overrides
 
 User: DPP Field Values didn't work right at Batch level - a batch can
