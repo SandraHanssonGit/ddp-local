@@ -4,6 +4,19 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 20) — Variant detail page: dedupe redundant info
+
+User feedback on `variant-detail.ejs`:
+- Page heading and `<title>` showed the Style's name ("Raw Hem
+  T-Shirt") instead of the Variant's own name - confusing now that
+  every variant has its own distinct name. Changed to
+  `variant.product_name`.
+- "Product Name (this variant)" row in the Variant Information card
+  removed - redundant with the heading now showing it directly.
+- Statistics sidebar card dropped its "Style:" and "Variant:" rows -
+  duplicated info already visible in the page header/subtitle and the
+  Variant Information card; kept only GTINs/SGTINs counts.
+
 ## 2026-09-16 (etapp 19) — Make Variant product name required in the edit form
 
 Follow-up to etapp 15/17's naming rule (every variant always has its

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= style.product_name %> - <%= variant.variant_name %> - Variant Detail</title>
+  <title><%= variant.product_name %> - Variant Detail</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/admin.css">
@@ -13,7 +13,7 @@
   <div class="wrap">
     <div class="detail-header">
       <div>
-        <h1><%= style.product_name %></h1>
+        <h1><%= variant.product_name %></h1>
         <p class="subtitle">Variant <strong><%= variant.variant_name %></strong></p>
       </div>
       <a href="/admin-v2?tab=variants" class="back-link">← Back to Variants</a>
@@ -40,13 +40,6 @@
               <div class="info-item">
                 <label class="label-sm">Variant Code</label>
                 <p class="value mono"><strong><%= variant.variant_name %></strong></p>
-              </div>
-              <div class="info-item">
-                <label class="label-sm">Product Name (this variant)</label>
-                <p class="value">
-                  <%= variant.product_name || style.product_name %>
-                  <% if (!variant.product_name) { %><span class="hint">(from Style)</span><% } %>
-                </p>
               </div>
               <div class="info-item">
                 <label class="label-sm">Product Type</label>
@@ -227,8 +220,6 @@
         <div class="card">
           <h3 style="margin-bottom:16px;">Statistics</h3>
           <div class="stat-list">
-            <div class="stat-row"><span class="k">Style:</span><span class="v"><%= style.style_number %></span></div>
-            <div class="stat-row"><span class="k">Variant:</span><span class="v mono"><%= variant.variant_name %></span></div>
             <div class="stat-row"><span class="k">GTINs:</span><span class="v"><%= gtinCount %></span></div>
             <div class="stat-row"><span class="k">SGTINs:</span><span class="v"><%= sgtinCount %></span></div>
           </div>
