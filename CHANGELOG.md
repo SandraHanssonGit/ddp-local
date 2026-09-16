@@ -4,6 +4,16 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 22) — GTINs tab: show the variant's own name, not the style's
+
+User feedback: the GTINs tab's "Product" column always showed the
+Style's generic name ("Raw Hem T-Shirt") even for GTINs belonging to a
+variant with its own distinct name ("Raw Hem T-Shirt Black"). Changed
+the query to `COALESCE(v.product_name, s.product_name)` - same pattern
+already used on the Variants tab and Style detail page - so each row
+shows the effective name for that specific GTIN. Renamed the column
+header from "Product" to "Name" to match.
+
 ## 2026-09-16 (etapp 21) — Add Batches count to Variant Statistics
 
 User suggestion while decluttering the Statistics card: useful to see

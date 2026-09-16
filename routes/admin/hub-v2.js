@@ -162,7 +162,7 @@ router.get('/', async (req, res) => {
           g.size_value_3,
           g.style_id,
           s.style_number,
-          s.product_name,
+          COALESCE(v.product_name, s.product_name) AS product_name,
           v.id as variant_id,
           v.variant_name,
           COUNT(DISTINCT sg.id) as sgtin_count
