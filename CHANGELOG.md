@@ -4,6 +4,17 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 19) — Make Variant product name required in the edit form
+
+Follow-up to etapp 15/17's naming rule (every variant always has its
+own product name, never a real fallback-to-Style case): the edit
+form's placeholder still said "Leave blank to use the Style's name",
+contradicting that. Removed the placeholder and made the field
+`required`. The database column stays nullable and the view-mode
+"(from Style)" fallback display stays as a defensive default for
+pre-existing data, per the earlier decision - only the edit form's
+encouragement to leave it blank was the actual bug.
+
 ## 2026-09-16 (etapp 18) — Rename "Product Variants" heading to "Style Variants"
 
 User feedback: "Product Variants" was the only place using "Product"
