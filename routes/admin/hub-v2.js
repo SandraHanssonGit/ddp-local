@@ -176,8 +176,15 @@ router.get('/', async (req, res) => {
       const conditions = [];
 
       if (search) {
-        conditions.push(`(g.gtin LIKE ? OR g.item_number LIKE ? OR s.style_number LIKE ?)`);
-        params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+        // Match every column actually visible in the table (GTIN, SKU,
+        // Style #, Name, Variant) - was only GTIN/SKU/Style #, so
+        // searching for a product or variant name (both shown columns)
+        // silently found nothing.
+        conditions.push(`(
+          g.gtin LIKE ? OR g.item_number LIKE ? OR s.style_number LIKE ?
+          OR s.product_name LIKE ? OR v.product_name LIKE ? OR v.variant_name LIKE ?
+        )`);
+        params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
       }
 
       if (styleId) {

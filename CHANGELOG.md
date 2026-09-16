@@ -4,6 +4,20 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 28) — GTINs tab: search now covers every visible column
+
+User feedback: "why does it only search by style here, shouldn't you
+be able to search the data that's actually shown?" - the search box
+only matched `gtin`, `item_number`, and `style_number`, but the table
+also visibly shows a Name and Variant column that silently couldn't be
+searched (typing a product or variant name found nothing). Extended
+the `WHERE` clause to also match `s.product_name`, `v.product_name`,
+and `v.variant_name`. Updated the placeholder text from "Search
+GTIN/Item..." to "Search GTIN, SKU, Style #, Name, Variant..." so it's
+no longer a guess what's actually searchable. Verified: searching
+"Raw Hem" and "BLK" (a variant code, not previously matchable) both
+now return the expected rows; existing GTIN-number search unaffected.
+
 ## 2026-09-16 (etapp 27) — Fix Batches tab style filter, confirm no "create batch" UI
 
 User asked how to create a new batch, pointing at the dropdown next to
