@@ -9,10 +9,36 @@
 
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const db = require('../../db/init-v2').db;
 const batchGtinsRouter = require('./batch-gtins');
 const fieldRepository = require('../../repositories/fields');
 const variantRepository = require('../../repositories/variants');
+
+// Image upload config for variants - mirrors routes/admin/styles.js's
+// style image upload (found missing entirely for variants alongside
+// the missing product_name/image_url columns)
+const variantUploadDir = path.join(__dirname, '../../public/uploads/variants');
+if (!fs.existsSync(variantUploadDir)) {
+  fs.mkdirSync(variantUploadDir, { recursive: true });
+}
+
+const variantUpload = multer({
+  storage: multer.diskStorage({
+    destination: variantUploadDir,
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, `variant-${req.params.variantId}-${Date.now()}${ext}`);
+    }
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Only image files are allowed'));
+  }
+});
 const fieldService = require('../../services/field-service');
 const passportVersionRepository = require('../../repositories/passport-versions');
 
@@ -88,6 +114,7 @@ router.get('/', async (req, res) => {
           v.variant_name,
           s.style_number,
           s.product_name,
+          COALESCE(v.product_name, s.product_name) AS effective_product_name,
           COUNT(DISTINCT g.id) as gtin_count,
           COUNT(DISTINCT sg.id) as sgtin_count
         FROM variants v
@@ -454,6 +481,44 @@ router.patch('/variant/:variantId', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('[variant-update]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Upload a variant's own image (mirrors POST /:styleId/image in
+// routes/admin/styles.js) - the edit form previously only had a raw
+// text input for image_url, no actual upload
+router.post('/variant/:variantId/image', variantUpload.single('image'), async (req, res) => {
+  try {
+    const variant = await getOne('SELECT * FROM variants WHERE id = ?', [req.params.variantId]);
+    if (!variant) return res.status(404).json({ success: false, error: 'Variant not found' });
+    if (!req.file) return res.status(400).json({ success: false, error: 'No image file provided' });
+
+    const imageUrl = `/uploads/variants/${req.file.filename}`;
+    await variantRepository.update(variant.id, { image_url: imageUrl });
+
+    res.json({ success: true, image_url: imageUrl });
+  } catch (err) {
+    if (req.file) fs.unlink(req.file.path, () => {});
+    console.error('[variant-image-upload]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Delete a variant's own image (reverts to the style's image)
+router.delete('/variant/:variantId/image', async (req, res) => {
+  try {
+    const variant = await getOne('SELECT * FROM variants WHERE id = ?', [req.params.variantId]);
+    if (!variant) return res.status(404).json({ success: false, error: 'Variant not found' });
+    if (!variant.image_url) return res.status(404).json({ success: false, error: 'No image to delete' });
+
+    const filePath = path.join(__dirname, `../../public${variant.image_url}`);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
+    await variantRepository.update(variant.id, { image_url: null });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[variant-image-delete]', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

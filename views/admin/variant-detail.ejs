@@ -60,16 +60,38 @@
                   <p class="text-gray-900 text-lg"><%= new Date(variant.created_at).toLocaleDateString('en-US') %></p>
                 </div>
               </div>
-              <div>
-                <label class="text-xs text-gray-500 uppercase tracking-wide font-semibold">Image (this variant)</label>
-                <% const effectiveImage = variant.image_url || style.image_url; %>
-                <% if (effectiveImage) { %>
-                  <img src="<%= effectiveImage %>" alt="" class="w-40 h-40 object-cover rounded border border-gray-200 mt-2">
-                  <% if (!variant.image_url) { %><p class="text-xs text-gray-400 mt-1">(from Style)</p><% } %>
-                <% } else { %>
-                  <p class="text-gray-500 text-sm mt-2">No image set</p>
-                <% } %>
+            </div>
+          </div>
+
+          <!-- Image Management Card -->
+          <div class="bg-white rounded-lg shadow-md p-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Variant Image</h2>
+
+            <% if (variant.image_url) { %>
+              <div class="mb-6">
+                <p class="text-sm text-gray-600 mb-2">Current image (this variant):</p>
+                <img src="<%= variant.image_url %>" alt="" class="w-64 h-64 object-cover rounded border border-gray-200">
+                <button onclick="deleteVariantImage()" class="mt-3 text-red-600 hover:text-red-800 text-sm font-semibold">
+                  Delete Image (revert to Style's)
+                </button>
               </div>
+            <% } else if (style.image_url) { %>
+              <div class="mb-6">
+                <p class="text-sm text-gray-600 mb-2">Using Style's image (no variant-specific image set):</p>
+                <img src="<%= style.image_url %>" alt="" class="w-64 h-64 object-cover rounded border border-gray-200 opacity-75">
+              </div>
+            <% } else { %>
+              <div class="mb-6 p-6 bg-gray-50 rounded border-2 border-dashed border-gray-300 text-center">
+                <p class="text-gray-500">No image uploaded yet</p>
+              </div>
+            <% } %>
+
+            <div class="border-t pt-6">
+              <label class="block text-sm font-bold text-gray-700 mb-3">Upload New Image for this Variant</label>
+              <input type="file" id="variant-image-upload" accept="image/*" class="w-full border border-gray-300 rounded px-4 py-3 focus:outline-none focus:border-gray-900 mb-3">
+              <button type="button" onclick="uploadVariantImage()" class="bg-gray-900 text-white px-6 py-3 rounded hover:bg-gray-800 font-semibold">
+                Upload Image
+              </button>
             </div>
 
             <!-- Edit Mode -->
@@ -82,10 +104,7 @@
                 <label class="block text-sm font-bold text-gray-700 mb-2">Product Name for this variant</label>
                 <input type="text" id="edit-product-name" value="<%= variant.product_name || '' %>" placeholder="Leave blank to use the Style's name (<%= style.product_name %>)" class="w-full border border-gray-300 rounded px-4 py-3 focus:outline-none focus:border-gray-900">
               </div>
-              <div>
-                <label class="block text-sm font-bold text-gray-700 mb-2">Image URL for this variant</label>
-                <input type="text" id="edit-image-url" value="<%= variant.image_url || '' %>" placeholder="Leave blank to use the Style's image" class="w-full border border-gray-300 rounded px-4 py-3 focus:outline-none focus:border-gray-900">
-              </div>
+              <p class="text-xs text-gray-500">Image is managed separately below, in the Variant Image card.</p>
               <div class="flex gap-3">
                 <button type="submit" class="bg-gray-900 text-white px-6 py-3 rounded hover:bg-gray-800 font-semibold">
                   Save Changes
@@ -268,8 +287,7 @@
 
       const data = {
         variant_name: document.getElementById('edit-variant-name').value,
-        product_name: document.getElementById('edit-product-name').value,
-        image_url: document.getElementById('edit-image-url').value
+        product_name: document.getElementById('edit-product-name').value
       };
 
       try {
@@ -285,6 +303,37 @@
         } else {
           alert('Error updating variant');
         }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function uploadVariantImage() {
+      const fileInput = document.getElementById('variant-image-upload');
+      if (!fileInput.files[0]) { alert('Please select an image'); return; }
+
+      const formData = new FormData();
+      formData.append('image', fileInput.files[0]);
+
+      try {
+        const res = await fetch('/admin-v2/variant/<%= variant.id %>/image', {
+          method: 'POST',
+          body: formData
+        });
+        if (res.ok) { alert('Image uploaded successfully'); location.reload(); }
+        else { alert('Error uploading image'); }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function deleteVariantImage() {
+      if (!confirm('Delete this image? The variant will revert to using the Style\'s image.')) return;
+
+      try {
+        const res = await fetch('/admin-v2/variant/<%= variant.id %>/image', { method: 'DELETE' });
+        if (res.ok) { alert('Image deleted'); location.reload(); }
+        else { alert('Error deleting image'); }
       } catch (err) {
         alert('Error: ' + err.message);
       }
