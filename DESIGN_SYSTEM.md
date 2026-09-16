@@ -98,13 +98,31 @@ textured gradient (`radial-gradient` + a faint diagonal repeating
 pattern) evokes the same moody, concrete tone without copying a
 specific image.
 
+## Responsive
+
+Mobile-width (390px) versions of the consumer passport exist for both
+light and dark mode ("Consumer passport — light/dark (mobile)" on the
+canvas). Adjustments made for the smaller viewport:
+- Top nav collapses to logo + menu icon — the kritiker.se-style text
+  links don't fit at 390px and would need a drawer/sheet pattern (not
+  designed yet — the icon is a placeholder for that interaction)
+- Stat pills (CO₂/water) stack vertically instead of sitting side by
+  side
+- Headline drops from 40px to 26px; section padding tightens from
+  56px to 20px
+- Supply-chain steps go single-column with smaller type; content is
+  unchanged from desktop
+
+The admin hub was **not** given a mobile layout — it's an internal
+tool used from a desk, and mobile was prioritized for the consumer
+passport specifically, per explicit direction (most scans happen on a
+phone). Revisit if that assumption turns out wrong.
+
 ## Open items
 
-- **Mobile/responsive layout — priority, especially for the consumer
-  passport.** Confirmed important: most scans happen on a phone, and
-  none of the current artboards have been designed or tested below
-  desktop width. This should be resolved before the redesign is built
-  in code, not treated as a later polish pass. Next design step.
+- **Mobile nav interaction undesigned.** The mobile passport's menu
+  icon has no defined behavior yet — needs a drawer/sheet design
+  before this ships.
 - No interaction/motion spec yet (hover states, transitions) — the
   mockups are static.
 - No dark-mode status colors for warning/lock banners (see above).
