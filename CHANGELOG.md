@@ -4,6 +4,24 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 1) — Admin visual redesign: DPP Hub
+
+- New shared `public/css/admin.css` - the Nudie brand tokens/components
+  from DESIGN_SYSTEM.md (nav, card, table, badge, button, input, level
+  pill, lock banner), light mode only (internal desk tool, no mobile
+  layout needed per DESIGN_SYSTEM.md's "Responsive" section).
+- Rewrote `views/admin/hub-v2.ejs` (all 7 tabs: Styles, Variants,
+  GTINs, Batches, SGTINs, DPP Fields, Scan Analytics) onto it, dropping
+  the Tailwind CDN utility classes for the new component classes.
+  Behavior/markup structure otherwise unchanged - same forms, same JS,
+  same routes.
+- Verified every tab renders 200 with no server-side errors (minted a
+  local JWT to test without needing the real login password).
+- Scoped as etapp 1 of the admin redesign - detail pages (Style/
+  Variant/Batch/GTIN/SGTIN, field-form, import) still use the old
+  Tailwind styling; follow-up commits will move them onto
+  `admin.css` the same way.
+
 ## 2026-09-16 (no really, final) — JSON export: version + full supply chain
 
 - The public `/json` passport export was missing the "as of when" info

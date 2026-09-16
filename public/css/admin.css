@@ -1,0 +1,338 @@
+/* Nudie DPP admin — shared design tokens + components (DESIGN_SYSTEM.md).
+   Internal tool, desk use only — light mode only, no mobile layout
+   (see DESIGN_SYSTEM.md "Responsive"). */
+
+:root {
+  --bg: #f2f0ea;
+  --surface: #faf8f3;
+  --surface-2: #ece7db;
+  --text: #1c1b18;
+  --muted: #726f66;
+  --hairline: #ddd8ca;
+  --accent: #2f4d78;
+  --accent-soft: #e7ecf2;
+
+  --lock-bg: #f3ead8;
+  --lock-text: #7a5a20;
+  --lock-border: #e3d3ac;
+
+  --danger: #8a2f2f;
+  --danger-soft: #f2e4e4;
+  --success: #2f6d4a;
+  --success-soft: #e4ede8;
+}
+
+* { box-sizing: border-box; }
+
+.hidden { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Work Sans', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Archivo', system-ui, sans-serif;
+  font-weight: 600;
+  margin: 0;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+/* Header */
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 20px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.admin-header .brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo-crop { height: 20px; width: 146px; overflow: hidden; position: relative; }
+.logo-crop img { position: absolute; top: -70px; left: -8px; width: 163px; height: 163px; }
+
+.admin-header h1 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  border-left: 1px solid var(--hairline);
+  padding-left: 14px;
+}
+
+.admin-header .user-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Nav — plain text, underline-on-active (kritiker.se pattern) */
+.admin-nav {
+  display: flex;
+  gap: 28px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.admin-nav a {
+  display: inline-block;
+  padding: 4px 0 14px;
+  color: var(--muted);
+  font-family: 'Archivo', system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.admin-nav a:hover { color: var(--text); text-decoration: none; }
+
+.admin-nav a.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+/* Card */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: 28px;
+}
+
+.card + .card { margin-top: 20px; }
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.section-head h2 { font-size: 20px; }
+
+.label-sm {
+  font-family: 'Work Sans', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* Table */
+.table-wrap { overflow-x: auto; }
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+
+thead th {
+  text-align: left;
+  padding: 10px 14px;
+  font-family: 'Work Sans', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom: 1px solid var(--hairline);
+}
+
+thead th.center, td.center { text-align: center; }
+
+tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--hairline);
+  vertical-align: middle;
+}
+
+tbody tr:hover { background: var(--surface-2); }
+
+.mono { font-family: 'SFMono-Regular', Consolas, monospace; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+
+.empty-state {
+  text-align: center;
+  padding: 48px 0;
+  color: var(--muted);
+}
+
+/* Badge / pill */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.badge-accent { background: var(--accent-soft); color: var(--accent); }
+.badge-success { background: var(--success-soft); color: var(--success); }
+.badge-danger { background: var(--danger-soft); color: var(--danger); }
+.badge-muted { background: var(--surface-2); color: var(--muted); }
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 6px;
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  color: var(--text);
+  font-family: 'Work Sans', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn:hover { background: var(--surface-2); text-decoration: none; }
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn-primary:hover { background: #26405f; }
+
+.btn-danger { color: var(--danger); }
+
+.link-action { font-size: 13px; font-weight: 600; }
+.link-action.danger { color: var(--danger); }
+
+/* Forms */
+label { font-size: 13px; font-weight: 600; color: var(--text); }
+
+input[type=text], input[type=number], input[type=date], input[type=url],
+textarea, select {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: 'Work Sans', sans-serif;
+  font-size: 14px;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.field-row { margin-bottom: 16px; }
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.field-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+.checkbox-row { display: flex; align-items: center; gap: 8px; font-weight: 400; font-size: 14px; }
+.checkbox-row input { width: auto; }
+
+.form-panel {
+  background: var(--surface-2);
+  border: 1px dashed var(--hairline);
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.hint-panel {
+  background: var(--accent-soft);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+/* Level pills (S/V/B/G/SG) */
+.level-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--surface-2);
+  color: var(--hairline);
+}
+
+.level-pill.on { background: var(--success-soft); color: var(--success); }
+
+/* Lock / warning banner */
+.lock-banner {
+  background: var(--lock-bg);
+  border: 1px solid var(--lock-border);
+  color: var(--lock-text);
+  border-radius: 6px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+/* Category filter pills */
+.filter-pills { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+
+.filter-pills a {
+  padding: 7px 16px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.filter-pills a:hover { text-decoration: none; background: var(--hairline); }
+
+.filter-pills a.active { background: var(--text); color: var(--surface); }
+
+/* Summary stat cards (analytics) */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.stat-card {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: 18px 20px;
+}
+
+.stat-card .stat-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.stat-card .stat-value { font-family: 'Archivo', sans-serif; font-size: 26px; font-weight: 600; }
+
+.bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.bar-row .bar-label { width: 110px; font-size: 13px; color: var(--muted); }
+.bar-row .bar-track { flex: 1; background: var(--surface-2); border-radius: 4px; height: 20px; overflow: hidden; }
+.bar-row .bar-fill { background: var(--accent); height: 100%; }
+.bar-row .bar-count { width: 36px; text-align: right; font-size: 13px; font-weight: 600; }

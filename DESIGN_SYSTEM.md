@@ -2,8 +2,16 @@
 
 Status: **consumer passport implemented in code** (`views/dpp-passport.ejs`,
 2026-09-16) - light/dark toggle, responsive at phone width, real
-language switcher wired to actual available locales. Admin pages
-(`views/admin/*.ejs`) are still the old generic styling; not started.
+language switcher wired to actual available locales.
+
+**Admin redesign in progress** (`public/css/admin.css`, 2026-09-16):
+a shared stylesheet implementing the light-mode tokens/components
+below (nav, card, table, badge, button, input, level pills, lock
+banner) replaces the Tailwind-CDN utility markup page by page. Light
+mode only, no mobile layout - internal desk tool, per "Responsive"
+below. Done: `views/admin/hub-v2.ejs` (Styles/Variants/GTINs/Batches/
+SGTINs/Fields/Analytics tabs). Not yet done: style-detail, variant-detail,
+batch-detail, gtin-detail, sgtin-detail, field-form, import.
 
 Live mockups: [Nudie DPP Brand Redesign](https://claude.ai/artifact/54jb72xppoKyoV7fQAUNzj)
 — a multi-artboard canvas covering the consumer passport (light + dark
