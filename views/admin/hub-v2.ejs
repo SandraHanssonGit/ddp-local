@@ -209,9 +209,9 @@
           <h2>Production Batches</h2>
           <% if (styles && styles.length > 0) { %>
             <select id="filterStyle" onchange="window.location = '/admin-v2?tab=batches&style=' + this.value" style="width:auto;">
-              <option value="">All Batches</option>
+              <option value="">All Styles</option>
               <% styles.forEach(s => { %>
-                <option value="<%= s.id %>"><%= s.style_number %> - <%= s.product_name %></option>
+                <option value="<%= s.id %>" <%= typeof selectedStyleId !== 'undefined' && selectedStyleId == s.id ? 'selected' : '' %>><%= s.style_number %> - <%= s.product_name %></option>
               <% }); %>
             </select>
           <% } %>

@@ -442,6 +442,15 @@ phase. Each item below is a decision/plan, not yet implemented.
   preserving existing behavior. Real authenticated, per-role login is
   a separate, later concern (see "Role-based / authority access"
   above) — this is just the visibility-filtering mechanism.
+- **No admin UI to create a new Batch at all.** Same class of gap as
+  the Variant and SGTIN ones below - the only `INSERT INTO batches` in
+  the codebase are old v1 code in `routes/api.js` (different schema
+  entirely - `total_units`, `partner_name`, not v2's `production_order`/
+  `factory`/`operator_id` shape) and seed scripts. Found when the user
+  asked how to create a batch and pointed at the Batches tab's style
+  filter dropdown, mistaking it for a batch-creation control (its
+  placeholder said "All Batches" while listing Styles - separately
+  fixed, see CHANGELOG.md). No "+ Add Batch" exists anywhere in the hub.
 - **No admin UI to create a new Variant at all.** Same class of gap as
   the SGTIN generator below - `variants` rows only ever come from seed
   scripts (`scripts/seed.js`), there's no "+ Add Variant" anywhere in

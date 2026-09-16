@@ -248,6 +248,7 @@ router.get('/', async (req, res) => {
 
       data.batches = await getAll(query, params);
       data.styles = await getAll(`SELECT id, style_number, product_name FROM styles ORDER BY style_number`);
+      data.selectedStyleId = styleId;
     }
 
     // SGTINS TAB (Individual garments)

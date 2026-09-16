@@ -4,6 +4,24 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 27) — Fix Batches tab style filter, confirm no "create batch" UI
+
+User asked how to create a new batch, pointing at the dropdown next to
+"Production Batches" - it looked like it might be batch-related but
+actually lists Styles to filter by. Confirmed via grep: there is no
+admin route to create a Batch at all in v2 (only old v1 code in
+routes/api.js with a completely different schema, and seed scripts) -
+same class of gap as the missing Variant-creation UI and SGTIN
+generator.
+
+Fixed the dropdown itself while investigating: its placeholder said
+"All Batches" despite listing Styles (copy-paste artifact from a
+different tab) - changed to "All Styles" to match the same filter on
+the Variants/GTINs tabs. Also added the missing `selected` state (the
+route computed `styleId` but never passed it back to the view as
+`selectedStyleId`, so the dropdown always reset to the placeholder
+after filtering).
+
 ## 2026-09-16 (etapp 26) — Fix data bug: 113756's SGTIN missing from batch planning
 
 User noticed "Created Garments" on the Batch detail page showed style
