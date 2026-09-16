@@ -253,7 +253,7 @@ back to "no operator" gracefully (no FK enforcement in SQLite here, so
 `resolveForBatchAndStyle` treats a stale id as unset rather than
 erroring) rather than breaking the passport.
 
-## Phase 5 — Expanded field definitions
+## Phase 5 — Expanded field definitions (not started - planning only)
 
 New `field_definitions.category` values: `svhc_reach`,
 `environmental_pef`, `reparability`, `end_of_life`. Candidate fields
@@ -263,6 +263,33 @@ COMPLIANCE.md open questions):
 - `carbon_footprint`, `water_usage` (PEF)
 - `repairability_score`, `spare_parts_availability` (reparability)
 - `recycling_instructions`, `takeback_program` (end-of-life)
+
+**Level assignment decided 2026-09-16** (which `editable_at_*` boxes to
+pre-check when these fields are created via the existing DPP Fields
+tab - no new mechanism needed, this reuses the level system built in
+Phase 0):
+- **SVHC/REACH + PEF** (`hazardous_substances_declaration`,
+  `carbon_footprint`, `water_usage`): **Style + Variant + Batch**.
+  Chemical content and environmental footprint can differ per Variant
+  (e.g. a printed/embroidered variant needs different chemicals than a
+  plain one) and per Batch (a different factory/supplier for one
+  production run) - not fixed to the base Style like a pure design
+  property.
+- **Reparability** (`repairability_score`,
+  `spare_parts_availability`) and **end-of-life**
+  (`recycling_instructions`, `takeback_program`): **Style + Variant**
+  only. These are properties of the garment's construction/the brand's
+  program, not the production run - a Variant with different
+  hardware (buttons, zippers) or material can need its own value, but
+  it doesn't vary between Batches of the same Variant. No Batch
+  override.
+- GTIN and SGTIN are deliberately left unchecked for all of these -
+  size/color (GTIN) and an individual physical garment (SGTIN) don't
+  change chemical content, environmental footprint, repairability, or
+  end-of-life instructions.
+
+Not yet built - waiting on other things to be checked first before
+starting implementation.
 
 ## Separately tracked (not phased — do independently)
 
