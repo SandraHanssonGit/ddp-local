@@ -4,6 +4,7 @@ const batchRepository = require('../repositories/batches');
 const gtinRepository = require('../repositories/gtins');
 const sgtinRepository = require('../repositories/sgtins');
 const fieldRepository = require('../repositories/fields');
+const economicOperatorRepository = require('../repositories/economic-operators');
 
 class PassportResolver {
   /**
@@ -63,12 +64,18 @@ class PassportResolver {
       this._resolveFieldValueLocaleAware(fieldDef, levels, ['sgtin', 'gtin', 'batch', 'variant', 'style'], locale)
     );
 
+    // ROADMAP.md Phase 4: economic operator (manufacturer/importer/
+    // authorized representative) - Batch overrides Style, same
+    // precedence pattern as everywhere else.
+    const economicOperator = await economicOperatorRepository.resolveForBatchAndStyle(batch.operator_id, style.operator_id);
+
     return {
       sgtin,
       gtin,
       batch,
       variant,
       style,
+      economicOperator,
       resolvedFields,
       hierarchy: {
         styleId: style.id,

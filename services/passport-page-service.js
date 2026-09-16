@@ -174,6 +174,14 @@ async function renderPassportJson(req, res, sgtinRecord) {
       factory: passport.batch.factory,
       productionDate: passport.batch.production_date
     },
+    economicOperator: passport.economicOperator ? {
+      role: passport.economicOperator.role,
+      legalName: passport.economicOperator.legal_name,
+      address: passport.economicOperator.address,
+      country: passport.economicOperator.country,
+      registrationNumber: passport.economicOperator.registration_number,
+      source: passport.economicOperator.source
+    } : null,
     fields,
     supplyChain
   });

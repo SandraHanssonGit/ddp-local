@@ -29,7 +29,7 @@ Updated priority order for what's left, decided 2026-09-16:
 |---|---|---|
 | 1 | ~~DPP Fields tab: Levels column + Edit/Delete~~ | ✅ Done (2026-09-16) - see below |
 | 2 | Visual redesign in code — **done** (2026-09-16): consumer passport, DPP Hub, all 5 detail pages, login, confirm/alert modal. `import.ejs` still old Tailwind layout (not linked from the hub nav; left as-is). `/admin-config` (field-form/config-dashboard) turned out to be an abandoned parallel field-CRUD system duplicating the Fields tab - deleted rather than redesigned. | Design is approved (see DESIGN_SYSTEM.md) |
-| 3 | Phase 4 — Economic operators | Isolated, low-risk |
+| 3 | ~~Phase 4 — Economic operators~~ | ✅ Done (2026-09-16) - see below |
 | 4 | Phase 5 — Expanded field definitions | Pure content |
 | 5 | Auth-hardening the v2 admin API | Larger, separate task (see security note below) |
 | 6 | Known low-priority bugs (unreachable scan-form route, `passports.js`'s missing method) | Edge-case/unused paths |
@@ -217,13 +217,41 @@ registration order preserved) and is separate from this SGTIN feature
 being incomplete anyway (missing `dpp-scan-form.ejs`, found earlier
 this session).
 
-## Phase 4 — Economic operators
+## Phase 4 — Economic operators ✅ Done (2026-09-16)
 
-**New table:** `economic_operators` (`role`, `legal_name`, `address`,
-`country`, `registration_number`).
-**New columns:** `styles.operator_id`, `batches.operator_id` (both
-nullable — a batch without one inherits the style's operator). Simple
-CRUD screen in the admin hub; shown on the public passport.
+**Built**: `economic_operators` table (`role`, `legal_name`, `address`,
+`country`, `registration_number`) + nullable `styles.operator_id` /
+`batches.operator_id` columns - a batch without its own operator falls
+back to its GTINs' style's operator, same precedence pattern used
+everywhere else in this schema (`repositories/economic-operators.js`'s
+`resolveForBatchAndStyle`).
+
+- New **"Economic Operators" tab** in the admin hub (`hub-v2.ejs`) -
+  list/add/edit/delete, same inline-edit-row pattern as DPP Fields.
+- **"Legal Responsibility" card** on the Style detail page (assign an
+  operator) and a **"Legal Responsibility Override" card** on the
+  Batch detail page (optional override, with an explicit note that a
+  batch can span multiple styles so this is opt-in, not "inherited
+  from Style" like the DPP field cards).
+- `passport-resolver.js`'s `resolveSgtinPassport` now resolves and
+  returns `economicOperator` alongside the existing fields.
+- Public passport (`dpp-passport.ejs`): the resolved operator renders
+  as a field row inside the existing "EU Required Information"
+  accordion (role → e.g. "Manufacturer" as the label, legal name +
+  address/country as the value) - it's EU-mandated info, so it belongs
+  in that section rather than a new one.
+- JSON export (`passport-page-service.js`): new `economicOperator`
+  object (`role`, `legalName`, `address`, `country`,
+  `registrationNumber`, `source`).
+
+**Verified end-to-end**: created a manufacturer ("Nudie Jeans AB",
+Sweden) via the admin tab, assigned it to style 113756, confirmed it
+rendered correctly on both the admin Style page (dropdown pre-selected)
+and the public passport/JSON (`source: "style"`); tested the Batch
+override, then deleted an operator and confirmed the reference falls
+back to "no operator" gracefully (no FK enforcement in SQLite here, so
+`resolveForBatchAndStyle` treats a stale id as unset rather than
+erroring) rather than breaking the passport.
 
 ## Phase 5 — Expanded field definitions
 

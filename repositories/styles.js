@@ -26,7 +26,7 @@ class StyleRepository {
   }
 
   async update(id, updates) {
-    const allowedFields = ['product_name', 'product_type'];
+    const allowedFields = ['product_name', 'product_type', 'operator_id'];
     const setClauses = [];
     const values = [];
 

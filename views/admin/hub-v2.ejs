@@ -31,6 +31,7 @@
       <a href="/admin-v2?tab=batches" class="<%= tab === 'batches' ? 'active' : '' %>">Batches</a>
       <a href="/admin-v2?tab=sgtins" class="<%= tab === 'sgtins' ? 'active' : '' %>">SGTINs</a>
       <a href="/admin-v2?tab=fields" class="<%= tab === 'fields' ? 'active' : '' %>">DPP Fields</a>
+      <a href="/admin-v2?tab=operators" class="<%= tab === 'operators' ? 'active' : '' %>">Economic Operators</a>
       <a href="/admin-v2?tab=analytics" class="<%= tab === 'analytics' ? 'active' : '' %>">Scan Analytics</a>
     </div>
 
@@ -556,6 +557,195 @@
               const result = await response.json();
               if (result.success) {
                 await dppAlert('Field created successfully');
+                location.reload();
+              } else {
+                await dppAlert('Error: ' + (result.error || 'Unknown error'));
+              }
+            } catch (err) {
+              await dppAlert('Error: ' + err.message);
+            }
+          });
+        </script>
+      <% } %>
+
+      <!-- ECONOMIC OPERATORS TAB (ROADMAP.md Phase 4) -->
+      <% if (tab === 'operators') { %>
+        <div class="section-head">
+          <h2>Economic Operators</h2>
+          <button onclick="document.getElementById('addOperatorForm').classList.toggle('hidden')" class="btn btn-primary">
+            + Add Operator
+          </button>
+        </div>
+
+        <p class="small muted" style="margin-bottom:20px;">
+          ESPR requires the passport to name who is legally responsible
+          for the product (manufacturer, importer, or authorized
+          representative). Assign an operator on a Style's detail page -
+          a Batch can optionally override it for that production run.
+        </p>
+
+        <!-- Add Operator Form -->
+        <div id="addOperatorForm" class="form-panel hidden">
+          <h3 style="margin-bottom:16px; font-size:16px;">Add Economic Operator</h3>
+          <form id="operatorForm">
+            <div class="field-grid">
+              <div>
+                <label>Role *</label>
+                <select name="role" required>
+                  <option value="">-- Select Role --</option>
+                  <option value="manufacturer">Manufacturer</option>
+                  <option value="importer">Importer</option>
+                  <option value="authorized_representative">Authorized Representative</option>
+                </select>
+              </div>
+              <div>
+                <label>Legal Name *</label>
+                <input type="text" name="legal_name" placeholder="Nudie Jeans AB" required />
+              </div>
+              <div>
+                <label>Country</label>
+                <input type="text" name="country" placeholder="Sweden" />
+              </div>
+              <div>
+                <label>Registration Number</label>
+                <input type="text" name="registration_number" placeholder="Org./VAT number" />
+              </div>
+            </div>
+            <div class="field-row">
+              <label>Address</label>
+              <input type="text" name="address" placeholder="Street, postcode, city" />
+            </div>
+            <button type="submit" class="btn btn-primary">Add Operator</button>
+          </form>
+        </div>
+
+        <% if (operators && operators.length > 0) { %>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Legal Name</th>
+                  <th>Role</th>
+                  <th>Country</th>
+                  <th>Registration #</th>
+                  <th class="center">Styles</th>
+                  <th class="center">Batches</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% operators.forEach(op => { %>
+                  <tr>
+                    <td><strong><%= op.legal_name %></strong></td>
+                    <td><span class="badge badge-accent"><%= op.role.replace(/_/g, ' ') %></span></td>
+                    <td class="small"><%= op.country || '—' %></td>
+                    <td class="mono small"><%= op.registration_number || '—' %></td>
+                    <td class="center"><%= op.style_count || 0 %></td>
+                    <td class="center"><%= op.batch_count || 0 %></td>
+                    <td style="white-space:nowrap;">
+                      <a href="#" onclick="toggleOperatorEdit(<%= op.id %>); return false;" class="link-action" style="margin-right:12px;">Edit</a>
+                      <a href="#" onclick="deleteOperator(<%= op.id %>, '<%= op.legal_name %>'); return false;" class="link-action danger">Delete</a>
+                    </td>
+                  </tr>
+                  <tr id="operator-edit-row-<%= op.id %>" class="hidden">
+                    <td colspan="7" style="background:var(--surface-2); padding:20px;">
+                      <form onsubmit="saveOperatorEdit(event, <%= op.id %>)">
+                        <div class="field-grid-3" style="margin-bottom:14px;">
+                          <div>
+                            <label class="label-sm">Legal Name</label>
+                            <input type="text" name="legal_name" value="<%= op.legal_name %>" required />
+                          </div>
+                          <div>
+                            <label class="label-sm">Role</label>
+                            <select name="role">
+                              <option value="manufacturer" <%= op.role === 'manufacturer' ? 'selected' : '' %>>Manufacturer</option>
+                              <option value="importer" <%= op.role === 'importer' ? 'selected' : '' %>>Importer</option>
+                              <option value="authorized_representative" <%= op.role === 'authorized_representative' ? 'selected' : '' %>>Authorized Representative</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label class="label-sm">Country</label>
+                            <input type="text" name="country" value="<%= op.country || '' %>" />
+                          </div>
+                        </div>
+                        <div class="field-grid" style="margin-bottom:14px;">
+                          <div>
+                            <label class="label-sm">Registration Number</label>
+                            <input type="text" name="registration_number" value="<%= op.registration_number || '' %>" />
+                          </div>
+                          <div>
+                            <label class="label-sm">Address</label>
+                            <input type="text" name="address" value="<%= op.address || '' %>" />
+                          </div>
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                          <button type="submit" class="btn btn-primary">Save</button>
+                          <button type="button" onclick="toggleOperatorEdit(<%= op.id %>)" class="btn">Cancel</button>
+                        </div>
+                      </form>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } else { %>
+          <div class="empty-state">No economic operators added yet</div>
+        <% } %>
+
+        <script>
+          function toggleOperatorEdit(id) {
+            document.getElementById('operator-edit-row-' + id).classList.toggle('hidden');
+          }
+
+          async function saveOperatorEdit(e, id) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            try {
+              const response = await fetch('/admin-v2/operators/' + id, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+              });
+              const result = await response.json();
+              if (result.success) {
+                location.reload();
+              } else {
+                await dppAlert('Error: ' + (result.error || 'Unknown error'));
+              }
+            } catch (err) {
+              await dppAlert('Error: ' + err.message);
+            }
+          }
+
+          async function deleteOperator(id, legalName) {
+            if (!(await dppConfirm('Delete operator "' + legalName + '"? Styles/batches referencing it will fall back to no operator assigned.'))) return;
+            try {
+              const response = await fetch('/admin-v2/operators/' + id, { method: 'DELETE' });
+              const result = await response.json();
+              if (result.success) {
+                location.reload();
+              } else {
+                await dppAlert('Error: ' + (result.error || 'Unknown error'));
+              }
+            } catch (err) {
+              await dppAlert('Error: ' + err.message);
+            }
+          }
+
+          document.getElementById('operatorForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            try {
+              const response = await fetch('/admin-v2/operators', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+              });
+              const result = await response.json();
+              if (result.success) {
                 location.reload();
               } else {
                 await dppAlert('Error: ' + (result.error || 'Unknown error'));

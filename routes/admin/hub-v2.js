@@ -17,6 +17,7 @@ const batchGtinsRouter = require('./batch-gtins');
 const fieldRepository = require('../../repositories/fields');
 const variantRepository = require('../../repositories/variants');
 const supplyChainRepository = require('../../repositories/supply-chain');
+const economicOperatorRepository = require('../../repositories/economic-operators');
 
 // Image upload config for variants - mirrors routes/admin/styles.js's
 // style image upload (found missing entirely for variants alongside
@@ -340,6 +341,17 @@ router.get('/', async (req, res) => {
       `);
     }
 
+    // ECONOMIC OPERATORS TAB (ROADMAP.md Phase 4)
+    else if (tab === 'operators') {
+      data.operators = await getAll(`
+        SELECT eo.*,
+          (SELECT COUNT(*) FROM styles WHERE operator_id = eo.id) as style_count,
+          (SELECT COUNT(*) FROM batches WHERE operator_id = eo.id) as batch_count
+        FROM economic_operators eo
+        ORDER BY eo.legal_name ASC
+      `);
+    }
+
     res.render('admin/hub-v2', data);
   } catch (err) {
     console.error('[hub-v2]', err);
@@ -394,6 +406,7 @@ router.get('/style/:styleId', async (req, res) => {
     const dppValues = await fieldRepository.getFieldsForLevel('style', style.id, locale);
     const availableLocales = await fieldRepository.getAvailableLocales('style', style.id);
     const supplyChainGroups = await supplyChainRepository.getGroupedForEntity('style', style.id);
+    const operators = await economicOperatorRepository.list();
 
     res.render('admin/style-detail', {
       style,
@@ -406,6 +419,7 @@ router.get('/style/:styleId', async (req, res) => {
       locale,
       availableLocales,
       supplyChainGroups,
+      operators,
       user: { username: 'demo', role: 'admin' }
     });
   } catch (err) {
@@ -454,6 +468,63 @@ router.delete('/supply-chain/:stepId', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('[supply-chain-delete]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Economic operators (ROADMAP.md Phase 4): CRUD + assignment to
+// Style/Batch. Kept in hub-v2.js alongside the other admin CRUD
+// routes rather than a separate file, same as supply-chain above.
+router.post('/operators', async (req, res) => {
+  try {
+    const { role, legal_name, address, country, registration_number } = req.body;
+    if (!role || !legal_name) {
+      return res.status(400).json({ success: false, error: 'role and legal_name are required' });
+    }
+    const id = await economicOperatorRepository.create({ role, legal_name, address, country, registration_number });
+    res.json({ success: true, id });
+  } catch (err) {
+    console.error('[operator-create]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.put('/operators/:operatorId', async (req, res) => {
+  try {
+    await economicOperatorRepository.update(req.params.operatorId, req.body);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[operator-update]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.delete('/operators/:operatorId', async (req, res) => {
+  try {
+    await economicOperatorRepository.delete(req.params.operatorId);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[operator-delete]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/style/:styleId/operator', async (req, res) => {
+  try {
+    await economicOperatorRepository.setForStyle(req.params.styleId, req.body.operator_id || null);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[style-operator]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/batch/:batchId/operator', async (req, res) => {
+  try {
+    await economicOperatorRepository.setForBatch(req.params.batchId, req.body.operator_id || null);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[batch-operator]', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -686,6 +757,7 @@ router.get('/batch/:batchId', async (req, res) => {
     const locale = req.query.lang || null;
     const dppValues = await fieldRepository.getFieldsForLevel('batch', batch.id, locale);
     const availableLocales = await fieldRepository.getAvailableLocales('batch', batch.id);
+    const operators = await economicOperatorRepository.list();
 
     res.render('admin/batch-detail', {
       batch,
@@ -700,6 +772,7 @@ router.get('/batch/:batchId', async (req, res) => {
       sgtin_count,
       planned_total,
       dppValues,
+      operators,
       user: { username: 'demo', role: 'admin' }
     });
   } catch (err) {

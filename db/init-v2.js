@@ -373,6 +373,32 @@ const init = () => {
       if (err) console.error('[index supply_chain_steps_entity]', err);
     });
 
+    // ROADMAP.md Phase 4: ESPR requires the passport to name who is
+    // legally responsible for the product (manufacturer, importer, or
+    // authorized representative - name and address). Assigned at Style
+    // level (the default) with an optional Batch-level override, same
+    // nullable-FK-inherits-from-parent pattern as everywhere else in
+    // this schema - a batch without its own operator_id falls back to
+    // its style's.
+    db.run(`
+      CREATE TABLE IF NOT EXISTS economic_operators (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        role TEXT NOT NULL,
+        legal_name TEXT NOT NULL,
+        address TEXT,
+        country TEXT,
+        registration_number TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `, (err) => {
+      if (err) console.error('[economic_operators]', err);
+      else console.log('✓ economic_operators table');
+    });
+
+    db.run(`ALTER TABLE styles ADD COLUMN operator_id INTEGER REFERENCES economic_operators(id)`, () => {});
+    db.run(`ALTER TABLE batches ADD COLUMN operator_id INTEGER REFERENCES economic_operators(id)`, () => {});
+
     db.run(`CREATE INDEX IF NOT EXISTS idx_passport_versions_entity ON passport_versions(entity_type, entity_id)`, (err) => {
       if (err) console.error('[index passport_versions_entity]', err);
     });

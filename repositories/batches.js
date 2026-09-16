@@ -66,7 +66,7 @@ class BatchRepository {
   }
 
   async update(id, updates) {
-    const allowedFields = ['production_order', 'production_date', 'supplier', 'factory', 'country_of_production'];
+    const allowedFields = ['production_order', 'production_date', 'supplier', 'factory', 'country_of_production', 'operator_id'];
     const setClauses = [];
     const values = [];
 

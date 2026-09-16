@@ -4,6 +4,30 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 12) — Phase 4: Economic operators
+
+Built the ESPR-required "who is legally responsible" identity
+(manufacturer/importer/authorized representative):
+- New `economic_operators` table + nullable `styles.operator_id` /
+  `batches.operator_id` (batch overrides style, same pattern as every
+  other level in this schema).
+- New "Economic Operators" admin tab (list/add/edit/delete), a "Legal
+  Responsibility" assignment card on Style detail, and a "Legal
+  Responsibility Override" card on Batch detail (explicitly optional,
+  since one batch can span multiple styles).
+- `passport-resolver.js` resolves it onto the SGTIN passport; the
+  public passport shows it inside the existing "EU Required
+  Information" section (it's EU-mandated data, not a new category);
+  the JSON export gained an `economicOperator` object.
+
+Verified end-to-end on style 113756: created "Nudie Jeans AB"
+(manufacturer, Sweden), assigned it, confirmed it appears correctly on
+the admin page, the public passport, and the JSON export
+(`source: "style"`); tested the Batch-level override; deleted an
+operator and confirmed a stale reference degrades to "no operator"
+instead of breaking the passport (no FK enforcement in this SQLite
+setup).
+
 ## 2026-09-16 (etapp 11) — Remove abandoned /admin-config field-CRUD system
 
 While closing out the visual redesign backlog item, found that
