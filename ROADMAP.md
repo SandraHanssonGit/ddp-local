@@ -22,6 +22,18 @@ GTIN-only architecture for reference only.
 | 4 | Economic operators | Isolated, low-risk, can land whenever |
 | 5 | Expanded field definitions (SVHC/REACH, PEF, reparability, end-of-life) | Pure content once Phase 0 + 1 are in place |
 
+**Phases 0–3 and the Variant architecture fix are done** (2026-09-16).
+Updated priority order for what's left, decided 2026-09-16:
+
+| # | Item | Why this position |
+|---|---|---|
+| 1 | DPP Fields tab: Levels column + Edit/Delete (see below) | Small, contained, and the last missing piece for admins to manage what's already built (Phase 0 + Variant) before moving to net-new scope |
+| 2 | Visual redesign in code | Design is approved (see DESIGN_SYSTEM.md); implementation hasn't started - admin pages and the consumer passport still use the old generic styling |
+| 3 | Phase 4 — Economic operators | Isolated, low-risk |
+| 4 | Phase 5 — Expanded field definitions | Pure content |
+| 5 | Auth-hardening the v2 admin API | Larger, separate task (see security note below) |
+| 6 | Known low-priority bugs (unreachable scan-form route, `passports.js`'s missing method) | Edge-case/unused paths |
+
 ---
 
 ## Phase 0 — Field administration gap ✅ Done (2026-09-16)
@@ -226,14 +238,19 @@ COMPLIANCE.md open questions):
 
 ## Separately tracked (not phased — do independently)
 
-- **DPP Fields tab has no edit/delete UI.** `/admin-v2?tab=fields`
-  only lists field definitions and lets you create new ones. The
-  backend (`PUT /api/admin/fields/:fieldId`) already supports editing
-  a field's metadata, but nothing in the UI calls it — there's no
-  Edit or Delete action per row, and the list doesn't show which
-  levels (`editable_at_style`/`_batch`/`_gtin`/`_sgtin`) a field
-  actually applies to (that's only visible in the create form, not
-  afterward).
+- **DPP Fields tab has no edit/delete UI, and no Levels column** ⏭
+  Next up. `/admin-v2?tab=fields` only lists field definitions and lets
+  you create new ones. The backend (`PUT /api/admin/fields/:fieldId`)
+  already supports editing a field's metadata, but nothing in the UI
+  calls it — there's no Edit or Delete action per row, and the list
+  doesn't show which levels (`editable_at_style`/`_variant`/`_batch`/
+  `_gtin`/`_sgtin`) a field actually applies to (that's only visible in
+  the create form, not afterward). More pressing now that Variant is a
+  real fifth level — five levels to track per field, invisible after
+  creation. Prioritized ahead of Phase 4/5 and the visual redesign:
+  small and contained, and it's the last missing piece for admins to
+  actually manage what Phase 0 and the Variant fix already built,
+  rather than moving on to net-new scope with this loose end open.
 - ~~**Variant is missing as a DPP value level entirely.**~~ ✅ Done -
   see "Variant architecture fix" section above.
 
