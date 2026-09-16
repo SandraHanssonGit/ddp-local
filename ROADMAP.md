@@ -28,7 +28,7 @@ Updated priority order for what's left, decided 2026-09-16:
 | # | Item | Why this position |
 |---|---|---|
 | 1 | ~~DPP Fields tab: Levels column + Edit/Delete~~ | ✅ Done (2026-09-16) - see below |
-| 2 | Visual redesign in code | Design is approved (see DESIGN_SYSTEM.md); implementation hasn't started - admin pages and the consumer passport still use the old generic styling |
+| 2 | Visual redesign in code — **consumer passport done** (2026-09-16), admin pages not started | Design is approved (see DESIGN_SYSTEM.md) |
 | 3 | Phase 4 — Economic operators | Isolated, low-risk |
 | 4 | Phase 5 — Expanded field definitions | Pure content |
 | 5 | Auth-hardening the v2 admin API | Larger, separate task (see security note below) |

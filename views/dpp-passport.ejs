@@ -4,158 +4,154 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Digital Product Passport - <%= passport.sgtin.serial_number %></title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap">
   <style>
-    .collapsible-section {
-      border-bottom: 1px solid #e5e7eb;
+    :root{
+      --bg:#f2f0ea; --surface:#faf8f3; --surface-2:#ece7db;
+      --text:#1c1b18; --muted:#726f66; --hairline:#ddd8ca;
+      --accent:#2f4d78; --accent-soft:#e7ecf2;
+      --logo-filter:none;
     }
-    .collapsible-header {
-      cursor: pointer;
-      user-select: none;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem 0;
+    html[data-theme="dark"]{
+      --bg:#171613; --surface:#201f1b; --surface-2:#2a2823;
+      --text:#f1efe8; --muted:#9c988e; --hairline:#37342d;
+      --accent:#7f9dc9; --accent-soft:#26344a;
+      --logo-filter:invert(1);
     }
-    .collapsible-header:hover {
-      background-color: #f9fafb;
-    }
-    .collapsible-content {
-      display: none;
-      padding-bottom: 1rem;
-    }
-    .collapsible-content.open {
-      display: block;
-    }
-    .field-row {
-      display: grid;
-      grid-template-columns: 150px 1fr;
-      gap: 1rem;
-      padding: 0.75rem 0;
-      border-bottom: 1px solid #f3f4f6;
-    }
-    .field-row:last-child {
-      border-bottom: none;
-    }
-    .field-label {
-      font-size: 0.875rem;
-      color: #6b7280;
-      font-weight: 500;
-    }
-    .field-value {
-      color: #1f2937;
-      font-size: 0.95rem;
-    }
-    .field-source {
-      font-size: 0.75rem;
-      color: #9ca3af;
-      font-style: italic;
-      margin-top: 0.25rem;
+    *{box-sizing:border-box;}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:'Work Sans',sans-serif;}
+    h1,h2{font-family:'Archivo',sans-serif;letter-spacing:-0.01em;margin:0;}
+    a{color:var(--accent);text-decoration:none;}
+    a:hover{text-decoration:underline;}
+    .cap{font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+    .row{display:flex;align-items:center;}
+    .icon{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none;}
+    .wrap{max-width:720px;margin:0 auto;padding:0 20px;}
+    .logo-crop{height:24px;width:176px;overflow:hidden;position:relative;}
+    .logo-crop img{position:absolute;top:-85px;left:-10px;width:196px;height:196px;filter:var(--logo-filter);}
+    .icon-btn{background:none;border:1px solid var(--hairline);border-radius:100px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);}
+    .lang-link{font-size:12px;font-weight:600;padding:6px 10px;border-radius:100px;color:var(--muted);}
+    .lang-link.active{background:var(--text);color:var(--bg);}
+    .accordion-header{cursor:pointer;user-select:none;}
+    .accordion-content{display:none;}
+    .accordion-content.open{display:block;}
+    .field-row{padding:14px 0;border-top:1px solid var(--hairline);}
+    .field-label{font-size:13px;color:var(--muted);font-weight:500;margin-bottom:4px;}
+    .field-value{font-size:15px;}
+    .field-source{font-size:12px;color:var(--muted);margin-top:4px;}
+    @media (max-width:640px){
+      .wrap{padding:0 16px;}
+      h1{font-size:24px !important;}
     }
   </style>
 </head>
-<body class="bg-white">
-  <!-- Header with Logo and Title -->
-  <div class="border-b border-gray-300">
-    <div class="max-w-6xl mx-auto py-8 px-4 sm:px-6">
-      <p class="text-sm text-gray-600 mb-2">Nudie Jeans co</p>
-      <h1 class="text-3xl font-bold text-gray-900"><%= passport.style.product_name %></h1>
-      <p class="text-sm text-gray-600 mt-2"><%= passport.style.style_number %> | <%= passport.sgtin.serial_number %></p>
+<body>
+
+  <!-- Top bar -->
+  <div class="wrap" style="border-bottom:1px solid var(--hairline);">
+    <div class="row" style="justify-content:space-between;padding:20px 0;">
+      <div class="logo-crop" title="Nudie Jeans co">
+        <img src="/nudie-logo.png" alt="Nudie Jeans co">
+      </div>
+      <div class="row" style="gap:10px;">
+        <% if (typeof availableLocales !== 'undefined' && availableLocales.length > 0) { %>
+          <div class="row" style="gap:2px;">
+            <a href="?" class="lang-link <%= (typeof locale === 'undefined' || !locale) ? 'active' : '' %>">Default</a>
+            <% availableLocales.forEach(loc => { %>
+              <a href="?lang=<%= encodeURIComponent(loc) %>" class="lang-link <%= locale === loc ? 'active' : '' %>"><%= loc %></a>
+            <% }); %>
+          </div>
+        <% } %>
+        <button class="icon-btn" onclick="toggleTheme()" aria-label="Toggle dark mode">
+          <svg class="icon" style="width:16px;height:16px;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        </button>
+      </div>
     </div>
   </div>
 
-  <div class="max-w-6xl mx-auto py-8 px-4 sm:px-6">
-
-    <!-- Basic Info -->
-    <div class="mb-12">
-      <div class="field-row">
-        <div class="field-label">GTIN</div>
-        <div class="field-value font-mono"><%= passport.gtin.gtin %></div>
-      </div>
-      <div class="field-row">
-        <div class="field-label">Serial Number</div>
-        <div class="field-value font-mono"><%= passport.sgtin.serial_number %></div>
-      </div>
-      <% if (passport.variant) { %>
-        <div class="field-row">
-          <div class="field-label">Variant</div>
-          <div class="field-value"><%= passport.variant.variant_name %></div>
-        </div>
+  <!-- Hero -->
+  <div class="wrap" style="padding:36px 20px 24px 20px;">
+    <div class="cap" style="margin-bottom:8px;">Digital Product Passport &middot; Style <%= passport.style.style_number %></div>
+    <h1 style="font-size:32px;font-weight:600;"><%= passport.style.product_name %></h1>
+    <div class="row" style="gap:14px;margin-top:12px;flex-wrap:wrap;">
+      <span class="cap" style="color:var(--text);font-family:monospace;letter-spacing:0.02em;">GTIN <%= passport.gtin.gtin %></span>
+      <span style="color:var(--hairline);">&bull;</span>
+      <span class="cap" style="color:var(--text);">Serial <%= passport.sgtin.serial_number %></span>
+      <% if (typeof locale !== 'undefined' && locale) { %>
+        <span style="color:var(--hairline);">&bull;</span>
+        <span class="cap" style="color:var(--text);"><%= locale %></span>
       <% } %>
-      <div class="field-row">
-        <div class="field-label">Created</div>
-        <div class="field-value"><%= new Date(passport.sgtin.created_at).toLocaleDateString('sv-SE') %></div>
-      </div>
     </div>
+  </div>
 
-    <!-- DPP Sections -->
+  <div class="wrap" style="padding-bottom:48px;">
     <%
       const euValues = passport.resolvedFields.filter(f => f.category === 'eu_required' && f.value);
       const nudieValues = passport.resolvedFields.filter(f => f.category === 'nudie' && f.value);
+      const sourceLabel = (s) => s === 'batch' ? 'Batch' : s === 'gtin' ? 'GTIN' : s === 'variant' ? 'Variant' : s === 'style' ? 'Style' : s;
     %>
 
-    <!-- EU Required Section -->
+    <!-- EU Required -->
     <% if (euValues.length > 0) { %>
-      <div class="collapsible-section">
-        <div class="collapsible-header" onclick="this.nextElementSibling.classList.toggle('open')">
-          <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide">EU Required Information</h2>
-          <span class="text-lg text-gray-400">−</span>
+      <div style="border-top:1px solid var(--hairline);">
+        <div class="row accordion-header" style="justify-content:space-between;padding:18px 0;" onclick="this.nextElementSibling.classList.toggle('open')">
+          <div class="row" style="gap:12px;">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23Z"/></svg>
+            <span style="font-size:16px;font-weight:600;">EU Required Information</span>
+          </div>
+          <svg class="icon" style="color:var(--muted);" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
         </div>
-        <div class="collapsible-content open">
+        <div class="accordion-content open">
           <% euValues.forEach(field => { %>
             <div class="field-row">
               <div class="field-label"><%= field.label %></div>
-              <div>
-                <div class="field-value"><%= field.value %></div>
-                <% if (field.source && field.source !== 'sgtin') { %>
-                  <%
-                    let sourceLabel = field.source === 'batch' ? 'Batch' : field.source === 'gtin' ? 'GTIN' : field.source === 'style' ? 'Style' : field.source;
-                  %>
-                  <div class="field-source">från <%= sourceLabel %></div>
-                <% } %>
-              </div>
+              <div class="field-value"><%= field.value %></div>
+              <% if (field.source && field.source !== 'sgtin') { %>
+                <div class="field-source">från <%= sourceLabel(field.source) %></div>
+              <% } %>
             </div>
           <% }); %>
         </div>
       </div>
     <% } %>
 
-    <!-- Nudie Specific Section -->
+    <!-- Nudie -->
     <% if (nudieValues.length > 0) { %>
-      <div class="collapsible-section">
-        <div class="collapsible-header" onclick="this.nextElementSibling.classList.toggle('open')">
-          <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide">Nudie Information</h2>
-          <span class="text-lg text-gray-400">−</span>
+      <div style="border-top:1px solid var(--hairline);">
+        <div class="row accordion-header" style="justify-content:space-between;padding:18px 0;" onclick="this.nextElementSibling.classList.toggle('open')">
+          <div class="row" style="gap:12px;">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+            <span style="font-size:16px;font-weight:600;">Nudie Information</span>
+          </div>
+          <svg class="icon" style="color:var(--muted);" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
         </div>
-        <div class="collapsible-content open">
+        <div class="accordion-content open">
           <% nudieValues.forEach(field => { %>
             <div class="field-row">
               <div class="field-label"><%= field.label %></div>
-              <div>
-                <div class="field-value"><%= field.value %></div>
-                <% if (field.source && field.source !== 'sgtin') { %>
-                  <%
-                    let sourceLabel = field.source === 'batch' ? 'Batch' : field.source === 'gtin' ? 'GTIN' : field.source === 'style' ? 'Style' : field.source;
-                  %>
-                  <div class="field-source">från <%= sourceLabel %></div>
-                <% } %>
-              </div>
+              <div class="field-value"><%= field.value %></div>
+              <% if (field.source && field.source !== 'sgtin') { %>
+                <div class="field-source">från <%= sourceLabel(field.source) %></div>
+              <% } %>
             </div>
           <% }); %>
         </div>
       </div>
     <% } %>
 
-    <!-- Production Information -->
-    <div class="collapsible-section">
-      <div class="collapsible-header" onclick="this.nextElementSibling.classList.toggle('open')">
-        <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide">Production</h2>
-        <span class="text-lg text-gray-400">−</span>
+    <!-- Production -->
+    <div style="border-top:1px solid var(--hairline);">
+      <div class="row accordion-header" style="justify-content:space-between;padding:18px 0;" onclick="this.nextElementSibling.classList.toggle('open')">
+        <div class="row" style="gap:12px;">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+          <span style="font-size:16px;font-weight:600;">Production</span>
+        </div>
+        <svg class="icon" style="color:var(--muted);" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
       </div>
-      <div class="collapsible-content open">
+      <div class="accordion-content open">
         <div class="field-row">
           <div class="field-label">Batch ID</div>
-          <div class="field-value font-mono"><%= passport.batch.batch_id %></div>
+          <div class="field-value" style="font-family:monospace;"><%= passport.batch.batch_id %></div>
         </div>
         <% if (passport.batch.production_order) { %>
           <div class="field-row">
@@ -186,34 +182,33 @@
 
     <!-- Lifecycle Events -->
     <% if (typeof events !== 'undefined' && events.length > 0) { %>
-      <div class="collapsible-section">
-        <div class="collapsible-header" onclick="this.nextElementSibling.classList.toggle('open')">
-          <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide">Lifecycle Events</h2>
-          <span class="text-lg text-gray-400">−</span>
+      <div style="border-top:1px solid var(--hairline);">
+        <div class="row accordion-header" style="justify-content:space-between;padding:18px 0;" onclick="this.nextElementSibling.classList.toggle('open')">
+          <div class="row" style="gap:12px;">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <span style="font-size:16px;font-weight:600;">Lifecycle Events</span>
+          </div>
+          <svg class="icon" style="color:var(--muted);" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
         </div>
-        <div class="collapsible-content open">
+        <div class="accordion-content open">
           <% events.forEach(event => { %>
             <div class="field-row">
               <div class="field-label"><%= event.event_type %></div>
-              <div>
-                <div class="field-value">
-                  <%= new Date(event.created_at).toLocaleDateString('sv-SE') %>
-                </div>
-                <% if (event.event_data) { %>
-                  <% try { %>
-                    <% const data = JSON.parse(event.event_data); %>
-                    <% if (Object.keys(data).length > 0) { %>
-                      <div class="field-source">
-                        <% Object.entries(data).forEach(([key, value]) => { %>
-                          <%= key %>: <%= JSON.stringify(value) %><br>
-                        <% }); %>
-                      </div>
-                    <% } %>
-                  <% } catch(e) { %>
-                    <div class="field-source"><%= event.event_data %></div>
+              <div class="field-value"><%= new Date(event.created_at).toLocaleDateString('sv-SE') %></div>
+              <% if (event.event_data) { %>
+                <% try { %>
+                  <% const data = JSON.parse(event.event_data); %>
+                  <% if (Object.keys(data).length > 0) { %>
+                    <div class="field-source">
+                      <% Object.entries(data).forEach(([key, value]) => { %>
+                        <%= key %>: <%= JSON.stringify(value) %><br>
+                      <% }); %>
+                    </div>
                   <% } %>
+                <% } catch(e) { %>
+                  <div class="field-source"><%= event.event_data %></div>
                 <% } %>
-              </div>
+              <% } %>
             </div>
           <% }); %>
         </div>
@@ -222,88 +217,81 @@
 
     <!-- Scan History -->
     <% if (scanStats && scanStats.total_scans > 0) { %>
-      <div class="collapsible-section">
-        <div class="collapsible-header" onclick="this.nextElementSibling.classList.toggle('open')">
-          <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide">Scan History</h2>
-          <span class="text-lg text-gray-400">−</span>
+      <div style="border-top:1px solid var(--hairline);">
+        <div class="row accordion-header" style="justify-content:space-between;padding:18px 0;" onclick="this.nextElementSibling.classList.toggle('open')">
+          <div class="row" style="gap:12px;">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>
+            <span style="font-size:16px;font-weight:600;">Scan History</span>
+          </div>
+          <svg class="icon" style="color:var(--muted);" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
         </div>
-        <div class="collapsible-content open">
+        <div class="accordion-content open">
           <div class="field-row">
             <div class="field-label">Total Scans</div>
             <div class="field-value"><%= scanStats.total_scans %></div>
           </div>
           <div class="field-row">
             <div class="field-label">First Scan</div>
-            <div class="field-value">
-              <% if (scanStats.first_scan) { %>
-                <%= new Date(scanStats.first_scan).toLocaleDateString('sv-SE') %>
-              <% } else { %>
-                Never
-              <% } %>
-            </div>
+            <div class="field-value"><%= scanStats.first_scan ? new Date(scanStats.first_scan).toLocaleDateString('sv-SE') : 'Never' %></div>
           </div>
           <div class="field-row">
             <div class="field-label">Last Scan</div>
-            <div class="field-value">
-              <% if (scanStats.last_scan) { %>
-                <%= new Date(scanStats.last_scan).toLocaleDateString('sv-SE') %>
-              <% } else { %>
-                Never
-              <% } %>
-            </div>
+            <div class="field-value"><%= scanStats.last_scan ? new Date(scanStats.last_scan).toLocaleDateString('sv-SE') : 'Never' %></div>
           </div>
         </div>
       </div>
     <% } %>
 
     <!-- Identifiers -->
-    <div class="collapsible-section">
-      <div class="collapsible-header" onclick="this.nextElementSibling.classList.toggle('open')">
-        <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide">Identifiers</h2>
-        <span class="text-lg text-gray-400">−</span>
+    <div style="border-top:1px solid var(--hairline);border-bottom:1px solid var(--hairline);">
+      <div class="row accordion-header" style="justify-content:space-between;padding:18px 0;" onclick="this.nextElementSibling.classList.toggle('open')">
+        <div class="row" style="gap:12px;">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          <span style="font-size:16px;font-weight:600;">Identifiers</span>
+        </div>
+        <svg class="icon" style="color:var(--muted);" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
       </div>
-      <div class="collapsible-content open">
+      <div class="accordion-content open">
         <div class="field-row">
           <div class="field-label">GTIN</div>
-          <div class="field-value font-mono"><%= passport.gtin.gtin %></div>
+          <div class="field-value" style="font-family:monospace;"><%= passport.gtin.gtin %></div>
         </div>
         <div class="field-row">
           <div class="field-label">Serial</div>
-          <div class="field-value font-mono"><%= passport.sgtin.serial_number %></div>
+          <div class="field-value" style="font-family:monospace;"><%= passport.sgtin.serial_number %></div>
         </div>
         <div class="field-row">
-          <div class="field-label">Passport</div>
-          <div class="field-value">
-            <a href="<%= url %>" class="text-blue-600 hover:underline break-all text-sm">
-              <%= url %>
-            </a>
-          </div>
+          <div class="field-label">Passport URL (GS1 Digital Link)</div>
+          <div class="field-value"><a href="<%= url %>" style="word-break:break-all;font-size:13px;"><%= url %></a></div>
         </div>
         <div class="field-row">
           <div class="field-label">Machine-readable (JSON)</div>
-          <div class="field-value">
-            <% const jsonUrl = url + '/json' + (typeof locale !== 'undefined' && locale ? '?lang=' + encodeURIComponent(locale) : ''); %>
-            <a href="<%= jsonUrl %>" class="text-blue-600 hover:underline break-all text-sm">
-              <%= jsonUrl %>
-            </a>
-          </div>
+          <% const jsonUrl = url + '/json' + (typeof locale !== 'undefined' && locale ? '?lang=' + encodeURIComponent(locale) : ''); %>
+          <div class="field-value"><a href="<%= jsonUrl %>" style="word-break:break-all;font-size:13px;"><%= jsonUrl %></a></div>
         </div>
-        <% if (typeof locale !== 'undefined' && locale) { %>
-          <div class="field-row">
-            <div class="field-label">Language</div>
-            <div class="field-value"><%= locale %></div>
-          </div>
-        <% } %>
       </div>
     </div>
 
     <!-- Footer -->
-    <div class="mt-12 pt-8 border-t border-gray-300">
-      <p class="text-xs text-gray-600">
-        Digital Product Passport. Nudie Jeans. | Version 2
-      </p>
+    <div style="padding-top:24px;">
+      <p class="cap">Digital Product Passport &middot; Nudie Jeans</p>
     </div>
-
   </div>
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('dpp-theme');
+        if (saved) document.documentElement.setAttribute('data-theme', saved);
+        else if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.setAttribute('data-theme', 'dark');
+      } catch (e) {}
+    })();
+    function toggleTheme() {
+      var current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+      var next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('dpp-theme', next); } catch (e) {}
+    }
+  </script>
 </body>
 </html>

@@ -25,9 +25,13 @@ app.use(helmet());
 app.use(helmet.contentSecurityPolicy({
   directives: {
     defaultSrc: ["'self'"],
-    styleSrc: ["'self'", "https://cdn.tailwindcss.com", "'unsafe-inline'"],
+    styleSrc: ["'self'", "https://cdn.tailwindcss.com", "https://fonts.googleapis.com", "'unsafe-inline'"],
     scriptSrc: ["'self'", "https://cdn.tailwindcss.com", "'unsafe-inline'"],
     scriptSrcAttr: ["'unsafe-inline'"],
+    // Brand redesign (DESIGN_SYSTEM.md) loads Archivo/Work Sans from
+    // Google Fonts - googleapis.com serves the CSS, gstatic.com the
+    // actual font files.
+    fontSrc: ["'self'", "https://fonts.gstatic.com"],
     imgSrc: ["'self'", "data:"],
     connectSrc: ["'self'"]
   }

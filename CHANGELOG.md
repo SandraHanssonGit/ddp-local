@@ -4,6 +4,49 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (truly final) — Visual redesign: consumer passport in code
+
+- Rewrote `views/dpp-passport.ejs` to the approved Nudie brand language
+  (DESIGN_SYSTEM.md): real logo (cropped with the exact pixel math
+  worked out for the design canvas), Archivo/Work Sans, warm
+  light/charcoal dark tokens, hand-drawn Lucide-style section icons,
+  hairline dividers - one responsive template (not a separate mobile
+  page) that adapts at 640px.
+- **Adapted rather than copied the mockup's content**: the design
+  canvas used illustrative demo content (CO2/water stats, named supply
+  chain partners) that doesn't exist as real data yet - the real page
+  applies the visual language to the actual sections (EU Required,
+  Nudie, Production, Lifecycle Events, Scan History, Identifiers)
+  instead of fabricating fields that aren't there. Also skipped a
+  "Responsible manufacturer" footer the mockup had, since Economic
+  Operators (Phase 4) isn't built.
+- Real dark-mode toggle (button, `data-theme` attribute + localStorage,
+  falls back to `prefers-color-scheme`) - the mockup only showed two
+  static light/dark artboards.
+- Real language switcher: new `getAvailableLocalesForPassport()` in
+  `passport-page-service.js` unions every locale that has a
+  translation anywhere across the SGTIN's full chain
+  (SGTIN/GTIN/Batch/Variant/Style), rendered as GET-navigated links
+  (`?lang=`), consistent with the admin pages' pattern.
+- Fixed a small content bug while rewriting: the old template's
+  `sourceLabel` mapping (batch/gtin/style) never had an entry for
+  `variant` - a Variant-sourced field would have shown the raw string
+  "variant" instead of "Variant".
+- **Required a CSP change**: `server.js`'s `helmet.contentSecurityPolicy`
+  only allowed `cdn.tailwindcss.com` for styles and had no `font-src`
+  directive - Google Fonts (`fonts.googleapis.com` for the CSS,
+  `fonts.gstatic.com` for the actual font files) would have been
+  silently blocked by the browser. Added both.
+- Verified end-to-end: page renders (200) with all key elements
+  present; CSP header confirmed to include the new domains; logo
+  serves; language switcher correctly toggles the `active` state and
+  shows the French value when `?lang=fr-FR` is requested, English
+  default otherwise; legacy `/dpp/...` route and every admin page
+  unaffected.
+- **Scope**: only the consumer passport. Admin pages
+  (`views/admin/*.ejs`) still use the old generic Tailwind styling -
+  next up per the roadmap.
+
 ## 2026-09-16 (very final) — DPP Fields tab: Levels + Edit/Delete
 
 - New Levels column (S/V/B/G/SG tags, green/grey) on `/admin-v2?tab=fields`.

@@ -40,6 +40,26 @@ function findSgtinByBatchGtinSerial(batch, gtin, serial) {
   });
 }
 
+// Union of every locale that has a translation ANYWHERE in the
+// passport's chain (SGTIN/GTIN/Batch/Variant/Style) - drives the
+// consumer-facing language switcher.
+async function getAvailableLocalesForPassport(passport) {
+  const levels = [
+    ['sgtin', passport.sgtin.id],
+    ['gtin', passport.gtin.id],
+    ['batch', passport.batch.id],
+    ...(passport.variant ? [['variant', passport.variant.id]] : []),
+    ['style', passport.style.id]
+  ];
+
+  const locales = new Set();
+  for (const [entityType, entityId] of levels) {
+    const found = await fieldRepository.getAvailableLocales(entityType, entityId);
+    found.forEach(l => locales.add(l));
+  }
+  return Array.from(locales).sort();
+}
+
 function getEventsForSgtin(sgtinId) {
   return new Promise((resolve, reject) => {
     db.all(
@@ -64,11 +84,13 @@ async function renderPassportPage(req, res, sgtinRecord, basePath) {
   const passport = await passportResolver.resolveSgtinPassport(sgtinRecord.id, locale);
   const scanStats = await scanService.getScanStats(sgtinRecord.id);
   const events = await getEventsForSgtin(sgtinRecord.id);
+  const availableLocales = await getAvailableLocalesForPassport(passport);
 
   res.render('dpp-passport', {
     passport,
     scanStats,
     events,
+    availableLocales,
     url: basePath,
     locale
   });

@@ -1,8 +1,9 @@
 # DPP v2 — Visual Design System (proposal)
 
-Status: **design proposal only, not yet implemented in code.** Approved
-direction, not yet built into `views/admin/hub-v2.ejs`,
-`views/dpp-passport.ejs`, or any other live template.
+Status: **consumer passport implemented in code** (`views/dpp-passport.ejs`,
+2026-09-16) - light/dark toggle, responsive at phone width, real
+language switcher wired to actual available locales. Admin pages
+(`views/admin/*.ejs`) are still the old generic styling; not started.
 
 Live mockups: [Nudie DPP Brand Redesign](https://claude.ai/artifact/54jb72xppoKyoV7fQAUNzj)
 — a multi-artboard canvas covering the consumer passport (light + dark
