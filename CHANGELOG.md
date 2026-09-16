@@ -4,6 +4,18 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 5) — Supply Chain: collapsible sub-categories
+
+User feedback on the consumer passport's Supply Chain section (style
+113756's real 7-category, 19-step data): once the section itself was
+expanded, every category (Raw Material, Yarn Process, Trims, ...) was
+always fully shown with no way to collapse individual ones - long list
+to scroll through. Each category is now its own nested accordion
+(`.sub-accordion-header` + `.accordion-content.sub`), open by default
+so nothing changes until the visitor clicks. Also extended the rounded
+hover-highlight from etapp 4 to both the outer section headers and the
+new per-category headers, for the same "kritiker.se" hover feel.
+
 ## 2026-09-16 (etapp 4) — Nav hover: rounded highlight (kritiker.se)
 
 User pointed out that DESIGN_SYSTEM.md's "modeled on kritiker.se" nav

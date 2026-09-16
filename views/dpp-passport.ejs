@@ -34,9 +34,13 @@
     .lang-link:hover{background:var(--surface-2);color:var(--text);text-decoration:none;}
     .lang-link.active{background:var(--text);color:var(--bg);}
     .lang-link.active:hover{background:var(--text);color:var(--bg);}
-    .accordion-header{cursor:pointer;user-select:none;}
+    .accordion-header{cursor:pointer;user-select:none;border-radius:8px;transition:background-color 0.15s ease;margin:0 -10px;padding-left:10px;padding-right:10px;width:calc(100% + 20px);}
+    .accordion-header:hover{background:var(--surface-2);}
+    .sub-accordion-header{border-radius:6px;transition:background-color 0.15s ease;margin:0 -8px;padding-left:8px;padding-right:8px;width:calc(100% + 16px);}
+    .sub-accordion-header:hover{background:var(--surface-2);}
     .accordion-content{display:none;}
     .accordion-content.open{display:block;}
+    .accordion-content.sub{padding-left:2px;}
     .field-row{padding:14px 0;border-top:1px solid var(--hairline);}
     .field-label{font-size:13px;color:var(--muted);font-weight:500;margin-bottom:4px;}
     .field-value{font-size:15px;}
@@ -170,26 +174,31 @@
         </div>
         <div class="accordion-content">
           <% supplyChainGroups.forEach(group => { %>
-            <div style="padding:14px 0 4px 0;">
-              <div class="cap" style="margin-bottom:8px;"><%= group.category %></div>
-              <% group.steps.forEach(step => { %>
-                <div class="field-row" style="display:flex;justify-content:space-between;align-items:flex-start;">
-                  <div>
-                    <div style="font-size:13px;color:var(--muted);"><%= step.step_label %></div>
-                    <% if (step.supplier_name) { %><div style="font-size:15px;font-weight:600;margin-top:2px;"><%= step.supplier_name %></div><% } %>
-                    <div style="font-size:13px;color:var(--muted);margin-top:2px;">
-                      <%= [step.city, step.country].filter(Boolean).join(', ') || '—' %>
-                      <% if (step.employee_range) { %> &middot; Employees: <%= step.employee_range %><% } %>
+            <div style="padding:6px 0;">
+              <div class="row sub-accordion-header" style="justify-content:space-between;padding:8px 0;cursor:pointer;user-select:none;" onclick="this.nextElementSibling.classList.toggle('open')">
+                <span class="cap"><%= group.category %></span>
+                <svg class="icon" style="width:16px;height:16px;color:var(--muted);" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+              <div class="accordion-content sub open">
+                <% group.steps.forEach(step => { %>
+                  <div class="field-row" style="display:flex;justify-content:space-between;align-items:flex-start;">
+                    <div>
+                      <div style="font-size:13px;color:var(--muted);"><%= step.step_label %></div>
+                      <% if (step.supplier_name) { %><div style="font-size:15px;font-weight:600;margin-top:2px;"><%= step.supplier_name %></div><% } %>
+                      <div style="font-size:13px;color:var(--muted);margin-top:2px;">
+                        <%= [step.city, step.country].filter(Boolean).join(', ') || '—' %>
+                        <% if (step.employee_range) { %> &middot; Employees: <%= step.employee_range %><% } %>
+                      </div>
                     </div>
+                    <% if (step.visited_by_brand) { %>
+                      <div class="row" style="gap:6px;color:var(--accent);white-space:nowrap;">
+                        <svg class="icon" style="width:14px;height:14px;" viewBox="0 0 24 24"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>
+                        <span style="font-size:11px;font-weight:600;">Visited</span>
+                      </div>
+                    <% } %>
                   </div>
-                  <% if (step.visited_by_brand) { %>
-                    <div class="row" style="gap:6px;color:var(--accent);white-space:nowrap;">
-                      <svg class="icon" style="width:14px;height:14px;" viewBox="0 0 24 24"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>
-                      <span style="font-size:11px;font-weight:600;">Visited</span>
-                    </div>
-                  <% } %>
-                </div>
-              <% }); %>
+                <% }); %>
+              </div>
             </div>
           <% }); %>
         </div>
