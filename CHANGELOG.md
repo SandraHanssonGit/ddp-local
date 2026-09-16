@@ -4,6 +4,23 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 11) — Remove abandoned /admin-config field-CRUD system
+
+While closing out the visual redesign backlog item, found that
+`field-form.ejs` + `config-dashboard.ejs` + `config-error.ejs`
+(mounted at `/admin-config` and `/api/admin/config` via
+`routes/admin/config.js`) form a second, complete field
+definition CRUD - create/edit/list DPP fields - entirely separate
+from and duplicating the "DPP Fields" tab already built into
+`hub-v2.ejs` (`/api/admin/fields`, `routes/admin/fields.js`). Nothing
+in the hub's nav links to `/admin-config` - it was only reachable by
+typing the URL directly. Confirmed via grep that no other code
+references `routes/admin/config.js`. User decision: delete rather than
+redesign dead code. Removed the 3 views, `routes/admin/config.js`, and
+both `app.use` mounts in `server.js`. Verified the server still starts
+clean and the real Fields tab (`/admin-v2?tab=fields`) is unaffected;
+`/admin-config` now correctly 404s.
+
 ## 2026-09-16 (etapp 10) — Replace native confirm()/alert() with custom modal
 
 User pointed out that Save/Delete/Clear confirmation popups were the

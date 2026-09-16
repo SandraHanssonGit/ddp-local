@@ -28,7 +28,7 @@ Updated priority order for what's left, decided 2026-09-16:
 | # | Item | Why this position |
 |---|---|---|
 | 1 | ~~DPP Fields tab: Levels column + Edit/Delete~~ | ✅ Done (2026-09-16) - see below |
-| 2 | Visual redesign in code — **consumer passport done** (2026-09-16), admin pages not started | Design is approved (see DESIGN_SYSTEM.md) |
+| 2 | Visual redesign in code — **done** (2026-09-16): consumer passport, DPP Hub, all 5 detail pages, login, confirm/alert modal. `import.ejs` still old Tailwind layout (not linked from the hub nav; left as-is). `/admin-config` (field-form/config-dashboard) turned out to be an abandoned parallel field-CRUD system duplicating the Fields tab - deleted rather than redesigned. | Design is approved (see DESIGN_SYSTEM.md) |
 | 3 | Phase 4 — Economic operators | Isolated, low-risk |
 | 4 | Phase 5 — Expanded field definitions | Pure content |
 | 5 | Auth-hardening the v2 admin API | Larger, separate task (see security note below) |

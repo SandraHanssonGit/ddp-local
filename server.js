@@ -78,10 +78,8 @@ if (dbVersion === 'v2') {
   app.use('/api/admin/passports', require('./routes/admin/passports'));
   app.use('/api/admin/overrides', require('./routes/admin/overrides'));
   app.use('/api/admin/lifecycle', require('./routes/admin/lifecycle'));
-  app.use('/api/admin/config', require('./routes/admin/config'));
 
   // V2 Admin UI routes (no auth for development)
-  app.use('/admin-config', require('./routes/admin/config'));
   const hubV2 = require('./routes/admin/hub-v2');
   const lifecycleRouter = require('./routes/admin/lifecycle');
   hubV2.use('/lifecycle', lifecycleRouter);
