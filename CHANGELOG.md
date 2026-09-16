@@ -4,6 +4,24 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 2) — Admin visual redesign: detail pages
+
+- Extended `public/css/admin.css` with detail-page components: 2/3+1/3
+  layout (`.detail-grid`), 3-state DPP field cards (`.field-card` —
+  overridden/inherited/not-set), image upload boxes, locale tabs,
+  supply chain step list, inline progress bars (batch planning),
+  callout boxes.
+- Rewrote all 5 detail pages onto it: `style-detail.ejs`,
+  `variant-detail.ejs`, `batch-detail.ejs`, `gtin-detail.ejs`,
+  `sgtin-detail.ejs`. Same forms, same JS, same routes - visual only.
+  (`gtin-detail.ejs` and `sgtin-detail.ejs` were previously
+  single-line minified HTML; reformatted readably in the process.)
+- Verified all 5 render 200 with real data (style 131274/variant B02
+  and style 113756's supply chain - 19 steps, UTF-8 intact).
+- Etapp 2 closes out the "Admin redesign in progress" item started in
+  etapp 1 for the hub + detail pages; field-form.ejs and import.ejs
+  still use the old styling.
+
 ## 2026-09-16 (etapp 1) — Admin visual redesign: DPP Hub
 
 - New shared `public/css/admin.css` - the Nudie brand tokens/components

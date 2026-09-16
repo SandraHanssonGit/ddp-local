@@ -10,8 +10,9 @@ below (nav, card, table, badge, button, input, level pills, lock
 banner) replaces the Tailwind-CDN utility markup page by page. Light
 mode only, no mobile layout - internal desk tool, per "Responsive"
 below. Done: `views/admin/hub-v2.ejs` (Styles/Variants/GTINs/Batches/
-SGTINs/Fields/Analytics tabs). Not yet done: style-detail, variant-detail,
-batch-detail, gtin-detail, sgtin-detail, field-form, import.
+SGTINs/Fields/Analytics tabs) and all 5 detail pages (style-detail,
+variant-detail, batch-detail, gtin-detail, sgtin-detail). Not yet done:
+field-form, import.
 
 Live mockups: [Nudie DPP Brand Redesign](https://claude.ai/artifact/54jb72xppoKyoV7fQAUNzj)
 — a multi-artboard canvas covering the consumer passport (light + dark

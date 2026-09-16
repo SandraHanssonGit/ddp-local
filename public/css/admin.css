@@ -336,3 +336,161 @@ input:focus, textarea:focus, select:focus {
 .bar-row .bar-track { flex: 1; background: var(--surface-2); border-radius: 4px; height: 20px; overflow: hidden; }
 .bar-row .bar-fill { background: var(--accent); height: 100%; }
 .bar-row .bar-count { width: 36px; text-align: right; font-size: 13px; font-weight: 600; }
+
+/* Detail pages (Style/Variant/Batch/GTIN/SGTIN) */
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 20px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.detail-header h1 { font-size: 26px; margin-bottom: 6px; }
+.detail-header .subtitle { color: var(--muted); font-size: 14px; }
+.detail-header .back-link { font-size: 13px; font-weight: 600; }
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.card-head h2 { font-size: 18px; }
+.card-head h3 { font-size: 16px; }
+
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.info-item .label-sm { display: block; margin-bottom: 4px; }
+.info-item .value { font-size: 16px; }
+.info-item .value .hint { font-size: 12px; color: var(--muted); font-weight: 400; }
+
+.stat-list { display: flex; flex-direction: column; gap: 12px; font-size: 14px; }
+.stat-list .stat-row { display: flex; justify-content: space-between; }
+.stat-list .stat-row .k { color: var(--muted); }
+.stat-list .stat-row .v { font-weight: 600; }
+
+/* 3-state DPP field cards: overridden / inherited / not-set */
+.field-card {
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.field-card .field-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.field-card .field-card-value { color: var(--text); }
+.field-card .field-card-note { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+.field-card.overridden { background: var(--accent-soft); border-color: var(--accent); }
+.field-card.inherited { background: var(--surface-2); }
+.field-card.notset { background: var(--lock-bg); border-color: var(--lock-border); }
+.field-card.notset .field-card-value { color: var(--lock-text); }
+
+.image-box {
+  border: 2px dashed var(--hairline);
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.image-preview {
+  width: 220px;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--hairline);
+}
+
+.locale-tabs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+
+.locale-tabs a {
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.locale-tabs a:hover { text-decoration: none; background: var(--hairline); }
+.locale-tabs a.active { background: var(--text); color: var(--surface); }
+
+/* Supply chain step list (Style detail) */
+.sc-group + .sc-group { margin-top: 20px; }
+
+.sc-step {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.sc-step .sc-label { font-weight: 600; }
+.sc-step .sc-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.sc-step .sc-visited { font-size: 12px; color: var(--success); font-weight: 600; margin-top: 4px; }
+
+/* Nested sub-cards (variant blocks within Style detail) */
+.sub-card {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.link-list a {
+  display: block;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.link-list a:hover { background: var(--hairline); text-decoration: none; }
+
+.callout {
+  background: var(--accent-soft);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.callout .callout-title { font-weight: 600; color: var(--accent); margin-bottom: 8px; }
+
+/* Inline progress bar (batch planning table) */
+.progress-row { display: flex; align-items: center; gap: 8px; }
+.progress-track { flex: 1; background: var(--surface-2); border-radius: 999px; height: 8px; overflow: hidden; }
+.progress-fill { background: var(--accent); height: 100%; }
+.progress-pct { font-size: 12px; font-weight: 600; color: var(--muted); width: 34px; }
+
+tfoot td, tr.totals-row td {
+  font-weight: 700;
+  border-top: 2px solid var(--hairline);
+  background: var(--surface-2);
+}
