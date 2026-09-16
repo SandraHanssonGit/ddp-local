@@ -4,6 +4,16 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 29) — Add search to Batches tab
+
+Follow-up to etapp 28: user clarified the Batches tab should be
+searchable on its own visible data (Batch ID, Production Order), not
+just filterable by Style - it had no free-text search at all before.
+Added a search box (mirrors the GTINs tab pattern) matching
+`b.batch_id LIKE ? OR b.production_order LIKE ?`, combinable with the
+existing Style filter. Verified: searching "PO45001234" finds the
+batch, a nonsense term correctly shows "No batches found".
+
 ## 2026-09-16 (etapp 28) — GTINs tab: search now covers every visible column
 
 User feedback: "why does it only search by style here, shouldn't you

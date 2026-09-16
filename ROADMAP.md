@@ -410,8 +410,10 @@ phase. Each item below is a decision/plan, not yet implemented.
   `search`/`style`/`variant` query params, and a `COUNT(DISTINCT g.id)`
   query reusing the same `WHERE` conditions for the total. Verified by
   temporarily dropping the page size to 5 and confirming page 1/2
-  return disjoint rows. Batches and SGTINs tabs still have **no search
-  or pagination at all** — same gap, not yet fixed there.
+  return disjoint rows. ✅ Batches tab search added (2026-09-16) —
+  matches the batch's own visible data (Batch ID, Production Order),
+  not just the Style filter, per user feedback. SGTINs tab still has
+  **no search or pagination at all** — same gap, not yet fixed there.
 - **Draft → Active status for Style (and Batch/GTIN).** User proposal:
   a new Style/Variant starts as `draft`; only becomes `active` once its
   first production completes, and only from that point does field-level

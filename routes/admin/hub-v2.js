@@ -231,6 +231,7 @@ router.get('/', async (req, res) => {
     // BATCHES TAB
     else if (tab === 'batches') {
       const styleId = req.query.style;
+      const search = req.query.search || '';
       let query = `
         SELECT DISTINCT
           b.id,
@@ -245,10 +246,23 @@ router.get('/', async (req, res) => {
         LEFT JOIN styles s ON s.id = g.style_id
       `;
       const params = [];
+      const conditions = [];
 
       if (styleId) {
-        query += ` WHERE s.id = ?`;
+        conditions.push(`s.id = ?`);
         params.push(styleId);
+      }
+
+      if (search) {
+        // Search the batch's OWN data (what the list actually shows),
+        // not just the Style filter - a batch code or production order
+        // typed in couldn't be found before.
+        conditions.push(`(b.batch_id LIKE ? OR b.production_order LIKE ?)`);
+        params.push(`%${search}%`, `%${search}%`);
+      }
+
+      if (conditions.length > 0) {
+        query += ` WHERE ` + conditions.join(' AND ');
       }
 
       query += ` GROUP BY b.id ORDER BY b.batch_id DESC`;
@@ -256,6 +270,7 @@ router.get('/', async (req, res) => {
       data.batches = await getAll(query, params);
       data.styles = await getAll(`SELECT id, style_number, product_name FROM styles ORDER BY style_number`);
       data.selectedStyleId = styleId;
+      data.search = search;
     }
 
     // SGTINS TAB (Individual garments)

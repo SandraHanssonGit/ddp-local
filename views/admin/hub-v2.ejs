@@ -207,14 +207,17 @@
       <% if (tab === 'batches') { %>
         <div class="section-head">
           <h2>Production Batches</h2>
-          <% if (styles && styles.length > 0) { %>
-            <select id="filterStyle" onchange="window.location = '/admin-v2?tab=batches&style=' + this.value" style="width:auto;">
-              <option value="">All Styles</option>
-              <% styles.forEach(s => { %>
-                <option value="<%= s.id %>" <%= typeof selectedStyleId !== 'undefined' && selectedStyleId == s.id ? 'selected' : '' %>><%= s.style_number %> - <%= s.product_name %></option>
-              <% }); %>
-            </select>
-          <% } %>
+          <div style="display:flex; gap:10px;">
+            <% if (styles && styles.length > 0) { %>
+              <select id="filterStyle" onchange="window.location = '/admin-v2?tab=batches&style=' + this.value" style="width:auto;">
+                <option value="">All Styles</option>
+                <% styles.forEach(s => { %>
+                  <option value="<%= s.id %>" <%= typeof selectedStyleId !== 'undefined' && selectedStyleId == s.id ? 'selected' : '' %>><%= s.style_number %> - <%= s.product_name %></option>
+                <% }); %>
+              </select>
+            <% } %>
+            <input type="text" id="batchSearch" placeholder="Search Batch ID, Production Order..." style="width:260px;" value="<%= search || '' %>">
+          </div>
         </div>
 
         <% if (batches && batches.length > 0) { %>
@@ -876,6 +879,11 @@
   <script>
     document.getElementById('gtinSearch')?.addEventListener('change', function() {
       window.location = '/admin-v2?tab=gtins&search=' + encodeURIComponent(this.value);
+    });
+
+    document.getElementById('batchSearch')?.addEventListener('change', function() {
+      const style = <%- JSON.stringify(typeof selectedStyleId !== 'undefined' ? selectedStyleId : null) %>;
+      window.location = '/admin-v2?tab=batches' + (style ? '&style=' + style : '') + '&search=' + encodeURIComponent(this.value);
     });
   </script>
 </body>
