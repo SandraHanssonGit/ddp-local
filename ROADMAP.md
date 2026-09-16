@@ -316,10 +316,84 @@ starting implementation.
   rendering path.
 - **Role-based / authority access.** Deliberately not a public
   self-service toggle (see COMPLIANCE.md gap 7) — needs its own
-  authenticated path, design not yet started.
-- **Visual redesign.** In progress as a design proposal only — see
-  DESIGN_SYSTEM.md. Not blocking any phase above; can land whenever
-  the team is ready to implement it in code.
+  authenticated path, design not yet started. Confirmed via web search
+  (2026-09-16) that ESPR does define broad role-based access in
+  principle — consumers, economic operators (manufacturers/importers/
+  distributors), repairers, recyclers, customs and market-surveillance
+  authorities, civil society — but the exact per-role data matrix is
+  set by each product category's delegated act, not the base
+  regulation. See "Discovery session" below for the concrete plan.
+- **Visual redesign.** ✅ Done (2026-09-16) — see DESIGN_SYSTEM.md and
+  the CHANGELOG etapp 1-8 entries. Consumer passport, DPP Hub, all 5
+  detail pages, login, and the confirm/alert modal are all in code now.
+
+## Discovery session (2026-09-16) — not built yet, decisions only
+
+A working session going through open questions before the next build
+phase. Each item below is a decision/plan, not yet implemented.
+
+- **Fields need a `section`, separate from `category`.** Today the
+  public passport groups fields into display sections by hardcoded
+  `if/else` on `category` (`eu_required` → one bucket, `nudie` →
+  another) — too blunt. An `eu_required` field like `country_of_origin`
+  might belong under "Production" rather than a generic EU bucket.
+  Plan: add `field_definitions.section` (e.g. `eu_required`,
+  `production`, `nudie`, `transparency`, future categories),
+  independent of `category` (EU/Nudie badge) and `editable_at_*`
+  (which levels can set it). The passport template groups by `section`
+  instead of the current hardcoded branches.
+- **Transparency (formerly "Supply Chain") should be configurable
+  alongside other fields, not invisible to the Fields tab.** Storage
+  stays separate (`supply_chain_steps` — a repeating list can't fit
+  `dpp_values`'s one-scalar-per-field-per-level shape without a much
+  bigger, riskier rebuild of that table). But it should still get a
+  `field_definitions` row (`field_key: 'transparency'`) so it
+  participates in the same `section`/`category`/`sort_order`/
+  `consumer_visible` configuration as every other field. New
+  `data_type` value: `repeating_group` — signals to the admin UI "this
+  field's actual values live elsewhere; Edit here links out to where
+  they're managed" instead of showing an inline text/textarea editor.
+- **Searchability at scale.** GTINs tab already has search; Batches and
+  SGTINs tabs don't. With production expected to add many batches/SKUs
+  per year, both need search + pagination (`LIMIT`/`OFFSET`) before row
+  counts make them unusable — not an immediate problem at current demo
+  data volume, but a known gap to close before real usage.
+- **Draft → Active status for Style (and Batch/GTIN).** User proposal:
+  a new Style/Variant starts as `draft`; only becomes `active` once its
+  first production completes, and only from that point does field-level
+  audit/versioning start counting. Partially already exists for Batch —
+  `batches.produced_at` ("Mark as Produced") is exactly this mechanism,
+  gating `dpp_values.locked_at`/change-log behavior. Style has no
+  equivalent yet. Plan: add `styles.status` (`draft`/`active`), flipped
+  manually (same UX pattern as "Mark as Produced"), with versioning/
+  lock behavior starting only once `active`. Batch/GTIN-level "active
+  once shipped" (mentioned as a related idea) needs its own follow-up
+  design pass — shipping isn't tracked anywhere in the schema yet.
+- **Audit hardcoded columns vs dynamic fields.** Found and fixed one
+  real duplication already (`batches.country_of_production` vs the
+  dynamic `country_of_origin` field). Other hardcoded columns likely
+  have the same problem — `batches.production_order/supplier/factory`,
+  `gtins.size_value_*/color`, etc. Plan: go through each one and decide
+  — genuine structural identifier (stays a column: `style_number`,
+  `gtin`, `serial_number`) vs. actual DPP content that should migrate
+  to a dynamic field with a real EU/Nudie category, so it isn't
+  invisible to the categorization system.
+- **SGTIN serial number generator doesn't exist.** The schema is
+  already correct for GS1 compliance (`UNIQUE(gtin_id, serial_number)`
+  is scoped per GTIN, not per batch, so a serial can never collide
+  across production runs of the same GTIN) — but there is no admin
+  route that actually creates SGTINs at production time at all, only
+  seed scripts (`scripts/seed-*.js`) with manually-typed serials. A
+  real "produce SGTINs for this batch" feature needs to look up the
+  highest existing serial for that GTIN across ALL batches and continue
+  from there, never restart at `0001` per batch.
+- **Database cleanup.** Untracked stale files sitting in the repo
+  (`data/dpp-v2.db.stale-backup`, `data/dpp.db.stale-backup`) should be
+  deleted once confirmed unneeded. Also folds in the hardcoded-columns
+  audit above, plus a pass over `data/dpp-v2.db` itself for leftover
+  test/seed cruft from this session's manual curl testing (e.g. the
+  placeholder economic operator/test rows created while verifying
+  Phase 4) that shouldn't ship as if it were real reference data.
 
 ## DPP Fields tab: Levels column + Edit/Delete ✅ Done (2026-09-16)
 
