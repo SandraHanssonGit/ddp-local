@@ -1,2 +1,63 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title><%= gtin.gtin %> - GTIN</title><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-gray-100"><div class="max-w-7xl mx-auto py-12 px-4"><div class="flex justify-between items-center mb-8"><h1 class="text-4xl font-bold font-mono"><%= gtin.gtin %></h1><a href="/admin-v2?tab=gtins" class="text-blue-600">← Back</a></div><div class="grid grid-cols-2 gap-8 mb-8"><div class="bg-white rounded-lg shadow p-6"><h3 class="font-bold mb-4">GTIN Info</h3><p><strong>Style:</strong> <%= style.style_number %></p><p><strong>Variant:</strong> <%= variant ? variant.variant_name : '—' %></p><p><strong>Item:</strong> <%= gtin.item_number || '—' %></p></div><div class="bg-white rounded-lg shadow p-6"><div class="text-gray-600 text-sm">SGTINs Produced</div><div class="text-3xl font-bold text-green-600"><%= sgtins.length %></div></div></div><div class="bg-white rounded-lg shadow-md p-8"><h2 class="text-2xl font-bold mb-6">Individual Garments</h2><% if (sgtins.length > 0) { %><table class="w-full text-sm"><thead><tr class="bg-gray-100"><th class="px-4 py-3 text-left">Serial</th><th class="px-4 py-3 text-left">Batch</th><th class="px-4 py-3">Action</th></tr></thead><tbody><% sgtins.forEach(sg => { %><tr class="border-b hover:bg-gray-50"><td class="px-4 py-3 font-mono"><%= sg.serial_number %></td><td class="px-4 py-3 font-mono text-xs"><%= sg.batch_id %></td><td class="px-4 py-3"><a href="/admin-v2/sgtin/<%= sg.id %>" class="text-blue-600">→</a></td></tr><% }); %></tbody></table><% } %></div></div></body></html>
+<html><head><meta charset="UTF-8"><title><%= gtin.gtin %> - GTIN</title><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-gray-100"><div class="max-w-7xl mx-auto py-12 px-4"><div class="flex justify-between items-center mb-8"><h1 class="text-4xl font-bold font-mono"><%= gtin.gtin %></h1><a href="/admin-v2?tab=gtins" class="text-blue-600">← Back</a></div><div class="grid grid-cols-2 gap-8 mb-8"><div class="bg-white rounded-lg shadow p-6"><h3 class="font-bold mb-4">GTIN Info</h3><p><strong>Style:</strong> <%= style.style_number %></p><p><strong>Variant:</strong> <%= variant ? variant.variant_name : '—' %></p><p><strong>Item:</strong> <%= gtin.item_number || '—' %></p></div><div class="bg-white rounded-lg shadow p-6"><div class="text-gray-600 text-sm">SGTINs Produced</div><div class="text-3xl font-bold text-green-600"><%= sgtins.length %></div></div></div><div class="bg-white rounded-lg shadow-md p-8"><h2 class="text-2xl font-bold mb-6">Individual Garments</h2><% if (sgtins.length > 0) { %><table class="w-full text-sm"><thead><tr class="bg-gray-100"><th class="px-4 py-3 text-left">Serial</th><th class="px-4 py-3 text-left">Batch</th><th class="px-4 py-3">Action</th></tr></thead><tbody><% sgtins.forEach(sg => { %><tr class="border-b hover:bg-gray-50"><td class="px-4 py-3 font-mono"><%= sg.serial_number %></td><td class="px-4 py-3 font-mono text-xs"><%= sg.batch_id %></td><td class="px-4 py-3"><a href="/admin-v2/sgtin/<%= sg.id %>" class="text-blue-600">→</a></td></tr><% }); %></tbody></table><% } %></div>
+
+<div class="bg-white rounded-lg shadow-md p-8 mt-8">
+  <div class="flex justify-between items-center mb-6">
+    <h2 class="text-2xl font-bold text-gray-900">DPP Field Values</h2>
+    <button onclick="toggleDppEdit()" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800 font-semibold">Edit</button>
+  </div>
+  <% const setGtinDppValues = typeof dppValues !== 'undefined' ? dppValues.filter(v => v.value) : []; %>
+  <div id="dpp-fields-view" class="space-y-4">
+    <% if (setGtinDppValues.length > 0) { %>
+      <% setGtinDppValues.forEach(val => { %>
+        <div class="p-4 rounded" style="background-color: #e8f4f8; border-left: 4px solid #5b9dc3;">
+          <div class="flex justify-between items-start mb-2">
+            <label class="text-sm font-bold text-gray-700"><%= val.label %></label>
+            <span class="text-xs font-semibold px-2 py-1 rounded" style="color: #2c5aa0; background-color: #b3d9e8;">Set at GTIN</span>
+          </div>
+          <p class="text-gray-900 mt-2"><%= val.value %></p>
+        </div>
+      <% }); %>
+    <% } else { %>
+      <p class="text-gray-500 italic">No GTIN-level values set yet. Values are inherited from Style/Batch unless overridden here.</p>
+    <% } %>
+  </div>
+  <div id="dpp-fields-edit" class="hidden space-y-6">
+    <% if (typeof dppValues !== 'undefined' && dppValues.length > 0) { %>
+      <% dppValues.forEach(val => { %>
+        <div class="space-y-2">
+          <label class="block text-sm font-bold text-gray-700"><%= val.label %></label>
+          <textarea id="field-<%= val.field_key %>" class="w-full border border-gray-300 rounded px-4 py-3 focus:outline-none focus:border-gray-900" rows="3"><%= val.value %></textarea>
+        </div>
+      <% }); %>
+    <% } else { %>
+      <p class="text-gray-500 italic">No fields are configured to be editable at the GTIN level.</p>
+    <% } %>
+    <div class="flex gap-3">
+      <button type="button" onclick="saveGtinDppValues()" class="bg-gray-900 text-white px-6 py-3 rounded hover:bg-gray-800 font-semibold">Save Changes</button>
+      <button type="button" onclick="toggleDppEdit()" class="bg-gray-300 text-gray-900 px-6 py-3 rounded hover:bg-gray-400 font-semibold">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleDppEdit() {
+    document.getElementById('dpp-fields-view').classList.toggle('hidden');
+    document.getElementById('dpp-fields-edit').classList.toggle('hidden');
+  }
+  async function saveGtinDppValues() {
+    const values = {};
+    document.querySelectorAll('[id^="field-"]').forEach(el => { values[el.id.substring(6)] = el.value; });
+    try {
+      const res = await fetch('/admin-v2/gtin/<%= gtin.id %>/dpp-values', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values)
+      });
+      if (res.ok) { alert('DPP values saved'); location.reload(); }
+      else { alert('Error saving DPP values'); }
+    } catch (err) { alert('Error: ' + err.message); }
+  }
+</script>
+
+</div></body></html>

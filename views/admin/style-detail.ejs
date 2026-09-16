@@ -93,10 +93,11 @@
             <p class="text-xs text-gray-600 mt-2">Example URLs will appear when you view batches and GTINs</p>
           </div>
 
-          <% if (typeof dppValues !== 'undefined' && dppValues.length > 0) { %>
+          <% const setDppValues = typeof dppValues !== 'undefined' ? dppValues.filter(v => v.value) : []; %>
+          <% if (setDppValues.length > 0) { %>
             <div class="space-y-4">
               <h3 class="font-semibold text-gray-900">DPP Values (EU & Nudie)</h3>
-              <% dppValues.forEach(v => { %>
+              <% setDppValues.forEach(v => { %>
                 <div class="border-l-4 border-blue-500 pl-4 py-2">
                   <p class="text-sm font-bold text-gray-900"><%= v.label %></p>
                   <p class="text-sm text-gray-700"><%= v.value %></p>
@@ -212,8 +213,8 @@
 
           <!-- View Mode -->
           <div id="dpp-fields-view" class="space-y-4">
-            <% if (typeof dppValues !== 'undefined' && dppValues.length > 0) { %>
-              <% dppValues.forEach(val => { %>
+            <% if (setDppValues.length > 0) { %>
+              <% setDppValues.forEach(val => { %>
                 <div class="p-4 rounded" style="background-color: #e8f4f8; border-left: 4px solid #5b9dc3;">
                   <div class="flex justify-between items-start mb-2">
                     <label class="text-sm font-bold text-gray-700"><%= val.label %></label>

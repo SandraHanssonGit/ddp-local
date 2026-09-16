@@ -24,7 +24,15 @@ GTIN-only architecture for reference only.
 
 ---
 
-## Phase 0 — Field administration gap
+## Phase 0 — Field administration gap ✅ Done (2026-09-16)
+
+Built and tested end-to-end: a field set at any of the four levels
+(Style/Batch/GTIN/SGTIN) now correctly appears in the public JSON
+export with the right `source`. Verified with real data — GTIN
+`5711814031273` / batch `PO45001234` / serial `0001`:
+`fiber_composition` from style, `country_of_origin` overridden at
+batch (Tunisia → France, the exact scenario discussed while designing
+this), `care_instructions` from GTIN, `repair_program` from SGTIN.
 
 **Problem found this session:** field values can currently only be
 viewed/edited through the admin UI at the **Style** level. Confirmed
@@ -125,6 +133,18 @@ COMPLIANCE.md open questions):
 - **Visual redesign.** In progress as a design proposal only — see
   DESIGN_SYSTEM.md. Not blocking any phase above; can land whenever
   the team is ready to implement it in code.
+
+## Security note (found while building Phase 0, 2026-09-16)
+
+The entire v2 admin API (`routes/admin/styles.js`, `fields.js`,
+`overrides.js`, `hub-v2.js`, and now the new Phase 0 batch/gtin/sgtin
+dpp-values routes) has **no authentication at all** —
+`routes/admin/hub-v2.js` even has a `// no auth for development`
+comment. Decided explicitly: new Phase 0 routes match this existing
+pattern rather than being selectively hardened, since protecting three
+routes while the rest of the admin API stays open would be a false
+sense of security. **Auth-hardening the whole v2 admin API is its own
+separate task, not yet scheduled.**
 
 ## Known bugs found during this work (fix opportunistically)
 

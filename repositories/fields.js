@@ -133,6 +133,42 @@ class FieldRepository {
     await db.run(sql, [fieldDefinitionId, entityType, entityId]);
   }
 
+  // Fields applicable at a given level, whether or not a value has been
+  // set yet (LEFT JOIN) - used by the admin edit forms so a brand-new
+  // field shows up as an empty, fillable input instead of not at all.
+  async getFieldsForLevel(entityType, entityId) {
+    const editableColumn = {
+      style: 'editable_at_style',
+      batch: 'editable_at_batch',
+      gtin: 'editable_at_gtin',
+      sgtin: 'editable_at_sgtin'
+    }[entityType];
+
+    if (!editableColumn) {
+      throw new Error(`Invalid entity type: ${entityType}`);
+    }
+
+    const sql = `
+      SELECT
+        fd.id AS field_definition_id,
+        fd.field_key,
+        fd.label,
+        fd.category,
+        fd.data_type,
+        fd.consumer_visible,
+        dv.id AS dpp_value_id,
+        dv.value
+      FROM field_definitions fd
+      LEFT JOIN dpp_values dv
+        ON dv.field_definition_id = fd.id
+        AND dv.entity_type = ?
+        AND dv.entity_id = ?
+      WHERE fd.${editableColumn} = 1
+      ORDER BY fd.sort_order ASC, fd.label ASC
+    `;
+    return db.all(sql, [entityType, entityId]);
+  }
+
   async getEntityValuesByCategory(entityType, entityId, category) {
     const sql = `
       SELECT

@@ -11,6 +11,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../db/init-v2').db;
 const batchGtinsRouter = require('./batch-gtins');
+const fieldRepository = require('../../repositories/fields');
+const fieldService = require('../../services/field-service');
 
 const getOne = (sql, params = []) => new Promise((resolve, reject) => {
   db.get(sql, params, (err, row) => {
@@ -342,18 +344,9 @@ router.get('/style/:styleId', async (req, res) => {
     const gtinCount = gtins.length;
     const sgtinCount = gtins.reduce((sum, g) => sum + (g.sgtin_count || 0), 0);
 
-    // Get DPP values for this style
-    const dppValues = await getAll(`
-      SELECT
-        dv.value,
-        fd.field_key,
-        fd.label,
-        fd.category
-      FROM dpp_values dv
-      JOIN field_definitions fd ON dv.field_definition_id = fd.id
-      WHERE dv.entity_type = 'style' AND dv.entity_id = ?
-      ORDER BY fd.category, fd.label
-    `, [style.id]);
+    // Get DPP values for this style - LEFT JOIN so a field with no
+    // value set anywhere yet still shows up as an empty, fillable row
+    const dppValues = await fieldRepository.getFieldsForLevel('style', style.id);
 
     res.render('admin/style-detail', {
       style,
@@ -497,6 +490,10 @@ router.get('/batch/:batchId', async (req, res) => {
     const sgtin_count = sgtins.length;
     const planned_total = batchGtins.reduce((sum, bg) => sum + (bg.planned_quantity || 0), 0);
 
+    // Fields applicable at Batch level - LEFT JOIN so unset fields still
+    // show up as empty, fillable rows (see Phase 0 in ROADMAP.md)
+    const dppValues = await fieldRepository.getFieldsForLevel('batch', batch.id);
+
     res.render('admin/batch-detail', {
       batch,
       batchGtins,
@@ -507,11 +504,31 @@ router.get('/batch/:batchId', async (req, res) => {
       style_count,
       sgtin_count,
       planned_total,
+      dppValues,
       user: { username: 'demo', role: 'admin' }
     });
   } catch (err) {
     console.error('[batch-detail]', err);
     res.status(500).render('admin/error', { error: err.message });
+  }
+});
+
+// Save DPP field values at Batch level
+router.post('/batch/:batchId/dpp-values', async (req, res) => {
+  try {
+    const batch = await getOne('SELECT * FROM batches WHERE id = ?', [req.params.batchId]);
+    if (!batch) return res.status(404).json({ success: false, error: 'Batch not found' });
+
+    for (const [fieldKey, value] of Object.entries(req.body)) {
+      if (value) {
+        await fieldService.setValue('batch', batch.id, fieldKey, value);
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[batch-dpp-values]', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -534,16 +551,38 @@ router.get('/gtin/:gtinId', async (req, res) => {
       ORDER BY b.batch_id DESC, sg.serial_number ASC
     `, [gtin.id]);
 
+    const dppValues = await fieldRepository.getFieldsForLevel('gtin', gtin.id);
+
     res.render('admin/gtin-detail', {
       gtin,
       style,
       variant,
       sgtins,
+      dppValues,
       user: { username: 'demo', role: 'admin' }
     });
   } catch (err) {
     console.error('[gtin-detail]', err);
     res.status(500).render('admin/error', { error: err.message });
+  }
+});
+
+// Save DPP field values at GTIN level
+router.post('/gtin/:gtinId/dpp-values', async (req, res) => {
+  try {
+    const gtin = await getOne('SELECT * FROM gtins WHERE id = ?', [req.params.gtinId]);
+    if (!gtin) return res.status(404).json({ success: false, error: 'GTIN not found' });
+
+    for (const [fieldKey, value] of Object.entries(req.body)) {
+      if (value) {
+        await fieldService.setValue('gtin', gtin.id, fieldKey, value);
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[gtin-dpp-values]', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -560,6 +599,8 @@ router.get('/sgtin/:sgtinId', async (req, res) => {
 
     const events = await getAll('SELECT * FROM lifecycle_events WHERE sgtin_id = ? ORDER BY created_at DESC', [sgtin.id]);
 
+    const dppValues = await fieldRepository.getFieldsForLevel('sgtin', sgtin.id);
+
     res.render('admin/sgtin-detail', {
       sgtin,
       gtin,
@@ -567,11 +608,31 @@ router.get('/sgtin/:sgtinId', async (req, res) => {
       variant,
       batch,
       events,
+      dppValues,
       user: { username: 'demo', role: 'admin' }
     });
   } catch (err) {
     console.error('[sgtin-detail]', err);
     res.status(500).render('admin/error', { error: err.message });
+  }
+});
+
+// Save DPP field values at SGTIN level
+router.post('/sgtin/:sgtinId/dpp-values', async (req, res) => {
+  try {
+    const sgtin = await getOne('SELECT * FROM sgtins WHERE id = ?', [req.params.sgtinId]);
+    if (!sgtin) return res.status(404).json({ success: false, error: 'SGTIN not found' });
+
+    for (const [fieldKey, value] of Object.entries(req.body)) {
+      if (value) {
+        await fieldService.setValue('sgtin', sgtin.id, fieldKey, value);
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[sgtin-dpp-values]', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

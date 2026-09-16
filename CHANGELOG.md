@@ -4,6 +4,41 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (later)
+
+### Added — ROADMAP.md Phase 0, field administration gap
+- `repositories/fields.js`: new `getFieldsForLevel(entityType, entityId)`
+  — `LEFT JOIN` from `field_definitions` to `dpp_values`, filtered by
+  the relevant `editable_at_*` flag, so a field with no value anywhere
+  still renders as an empty, fillable input. Deliberately a new method,
+  not a change to `getEntityValues()` — that one is load-bearing for
+  `passport-resolver.js`'s inheritance logic and changing its shape
+  would have broken it.
+- "+ Add Field" form (`views/admin/hub-v2.ejs`) now has a level
+  selector (Style/Batch/GTIN/SGTIN checkboxes), wired through
+  `routes/admin/fields.js` to the existing (already-present but
+  unused) `editable_at_*` columns.
+- `views/admin/style-detail.ejs`: fixed a duplicate/dead "DPP Values
+  Card" that would have shown blank entries once empty fields started
+  being returned — filtered to only fields with a value, distinct from
+  the real edit-mode list which correctly shows all fields.
+- Added a matching "DPP Field Values" card (view + edit toggle, same
+  visual pattern as the existing Style one) to `batch-detail.ejs`,
+  `gtin-detail.ejs`, and `sgtin-detail.ejs`, plus a
+  `POST /admin-v2/<level>/:id/dpp-values` route for each in
+  `routes/admin/hub-v2.js`. These previously had no field-editing UI
+  at all.
+- **Verified end-to-end**: set `fiber_composition` at Style, overrode
+  `country_of_origin` at Batch (Tunisia → France), set
+  `care_instructions` at GTIN and `repair_program` at SGTIN, then
+  confirmed all four resolve correctly with the right `source` in the
+  public `/dpp/:batch/:gtin/:sgtin/json` output.
+- **Security decision, recorded not silently applied:** the three new
+  save routes intentionally have no authentication, matching the
+  existing (unauthenticated) style route and the rest of v2's admin
+  API — see ROADMAP.md's security note. Not fixed here; flagged as its
+  own separate task.
+
 ## 2026-09-16
 
 ### Fixed

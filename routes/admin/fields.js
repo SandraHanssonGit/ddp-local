@@ -16,7 +16,10 @@ router.get('/', async (req, res) => {
 // Create a new field definition
 router.post('/', async (req, res) => {
   try {
-    const { field_key, label, category, description, data_type, required, consumer_visible, sort_order } = req.body;
+    const {
+      field_key, label, category, description, data_type, required, consumer_visible, sort_order,
+      editable_at_style, editable_at_batch, editable_at_gtin, editable_at_sgtin
+    } = req.body;
 
     if (!field_key || !label || !category) {
       return res.status(400).json({ success: false, error: 'field_key, label, and category are required' });
@@ -27,7 +30,11 @@ router.post('/', async (req, res) => {
       data_type: data_type || 'text',
       required: required || false,
       consumer_visible: consumer_visible !== false,
-      sort_order: sort_order || 0
+      sort_order: sort_order || 0,
+      editable_at_style: editable_at_style !== false,
+      editable_at_batch: editable_at_batch !== false,
+      editable_at_gtin: editable_at_gtin !== false,
+      editable_at_sgtin: editable_at_sgtin !== false
     });
 
     const field = await fieldService.getField(fieldId);

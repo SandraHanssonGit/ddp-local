@@ -338,6 +338,24 @@
                 <input type="checkbox" name="consumer_visible" class="mr-2" checked /> Consumer Visible
               </label>
             </div>
+            <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Which levels can set this field?</label>
+              <div class="flex gap-4">
+                <label class="flex items-center">
+                  <input type="checkbox" name="editable_at_style" class="mr-2" checked /> Style
+                </label>
+                <label class="flex items-center">
+                  <input type="checkbox" name="editable_at_batch" class="mr-2" checked /> Batch
+                </label>
+                <label class="flex items-center">
+                  <input type="checkbox" name="editable_at_gtin" class="mr-2" /> GTIN
+                </label>
+                <label class="flex items-center">
+                  <input type="checkbox" name="editable_at_sgtin" class="mr-2" /> SGTIN
+                </label>
+              </div>
+              <p class="text-xs text-gray-500 mt-2">The field only appears as an editable row on the levels checked here.</p>
+            </div>
             <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">Add Field</button>
           </form>
         </div>
@@ -407,7 +425,11 @@
               data_type: formData.get('data_type'),
               description: formData.get('description'),
               required: formData.has('required'),
-              consumer_visible: formData.has('consumer_visible')
+              consumer_visible: formData.has('consumer_visible'),
+              editable_at_style: formData.has('editable_at_style'),
+              editable_at_batch: formData.has('editable_at_batch'),
+              editable_at_gtin: formData.has('editable_at_gtin'),
+              editable_at_sgtin: formData.has('editable_at_sgtin')
             };
 
             try {
