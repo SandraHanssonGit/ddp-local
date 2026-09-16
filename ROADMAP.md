@@ -388,6 +388,17 @@ phase. Each item below is a decision/plan, not yet implemented.
   preserving existing behavior. Real authenticated, per-role login is
   a separate, later concern (see "Role-based / authority access"
   above) — this is just the visibility-filtering mechanism.
+- **No admin UI to create a new Variant at all.** Same class of gap as
+  the SGTIN generator below - `variants` rows only ever come from seed
+  scripts (`scripts/seed.js`), there's no "+ Add Variant" anywhere in
+  the hub. Found while fixing variant B02's demo data (it had
+  `product_name = NULL`, falling back to the Style's name - not a real
+  scenario, since **every variant will always have its own unique
+  name** per user clarification 2026-09-16). When this form is built,
+  `product_name` must be a **required field**, not optional-with-
+  fallback, even though the database column stays nullable (the
+  COALESCE-to-Style fallback in `passport-resolver.js` etc. is
+  defensive, not something the UI should ever actively rely on).
 - **SGTIN serial number generator doesn't exist.** The schema is
   already correct for GS1 compliance (`UNIQUE(gtin_id, serial_number)`
   is scoped per GTIN, not per batch, so a serial can never collide

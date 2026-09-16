@@ -4,6 +4,23 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 15) — Fix demo data: every variant needs its own name
+
+User clarified the real business rule: every variant will always have
+its own unique product name - a variant silently falling back to the
+Style's name (the "Style default" case the previous fix labels) isn't
+a real scenario, just unrealistic demo data. Variant B02 ("Raw Hem
+T-Shirt", style 131274) had `product_name = NULL`, the only variant in
+the dataset without its own name. Gave it a real name ("Raw Hem
+T-Shirt White", pairing naturally with B01's "...Black") so the demo
+data no longer models a case that shouldn't happen in practice.
+
+Also surfaced a related gap while checking this: there is no admin UI
+to create a new variant at all yet (only seed scripts) - logged to
+ROADMAP.md that when that's built, `product_name` should be a required
+field on the form, not optional-with-fallback, even though the
+database column stays nullable.
+
 ## 2026-09-16 (etapp 14) — Fix confusing variant product-name label
 
 User asked why a variant row showed "Raw Hem T-Shirt Black" with
