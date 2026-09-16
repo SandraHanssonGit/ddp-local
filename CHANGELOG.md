@@ -4,6 +4,18 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 7) — Login page: password field width bug
+
+- Real bug the user spotted: the Password input rendered at browser
+  default width, much narrower than Username. `admin.css`'s shared
+  input styling rule listed `input[type=text/number/date/url]` but
+  never `input[type=password]`, so it fell back to unstyled browser
+  defaults. Added `password`, `email`, and `file` to the same rule -
+  the last one also fixes the (previously unstyled) image upload
+  inputs on the Style/Variant detail pages.
+- Trimmed the footer to "Nudie Jeans" (was "Nudie Jeans · Digital
+  Product Passport" - redundant under a page already titled "DPP Hub").
+
 ## 2026-09-16 (etapp 6) — Login page: label bug + copy fix
 
 - Removed "New Architecture" line from the login card - internal
