@@ -4,6 +4,20 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 9) — Logo: fix tight crop (looked cut off)
+
+User feedback that the logo looked "avklippt" (cut off) on the login
+card. Measured the source PNG's actual mark bounding box in code
+(x:30-569, y:262-336 of the 600x600 source - confirmed exactly matching
+DESIGN_SYSTEM.md's "roughly" estimate) and found the crop math in all
+three places (`admin.css`, `login-v2.ejs`, `dpp-passport.ejs`) fit the
+mark edge-to-edge with zero margin against the container - mathematically
+correct but visually reads as clipped since anti-aliased stroke edges
+touch the frame. Recalculated all three crops with ~10% breathing room
+on every side (container size unchanged, image scaled down slightly and
+re-centered) - login-v2.ejs, admin.css, and dpp-passport.ejs all updated
+consistently since they share the same root cause.
+
 ## 2026-09-16 (etapp 8) — Logo: remove visible white background box
 
 User spotted the hand-drawn "Nudie Jeans co" logo showing its white

@@ -67,7 +67,7 @@ a:hover { text-decoration: underline; }
 }
 
 .logo-crop { height: 20px; width: 146px; overflow: hidden; position: relative; }
-.logo-crop img { position: absolute; top: -70px; left: -8px; width: 163px; height: 163px; mix-blend-mode: multiply; }
+.logo-crop img { position: absolute; top: -63px; left: 0; width: 146px; height: 146px; mix-blend-mode: multiply; }
 
 .admin-header h1 {
   font-size: 15px;
@@ -500,4 +500,42 @@ tfoot td, tr.totals-row td {
   font-weight: 700;
   border-top: 2px solid var(--hairline);
   background: var(--surface-2);
+}
+
+/* Custom alert/confirm modal (public/js/admin-modal.js) — replaces
+   native browser confirm()/alert(), which can't be styled and show
+   up as an OS dialog that clashes with the rest of the design. */
+.dpp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(23, 22, 19, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.dpp-modal {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+  max-width: 420px;
+  width: 100%;
+  padding: 24px;
+}
+
+.dpp-modal-message {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  margin: 0 0 20px;
+  white-space: pre-line;
+}
+
+.dpp-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
