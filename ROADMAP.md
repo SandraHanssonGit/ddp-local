@@ -375,6 +375,25 @@ rendering of non-ASCII supplier/city names (Söke, Türkiye, Berning
 not modeled - only one placeholder GTIN (W32/L32) was created to have
 an SGTIN to test the passport with.
 
+**Machine-readable (JSON) follow-up**: the `/json` export
+(`renderPassportJson` in `services/passport-page-service.js`) is the
+ESPR-required machine-readable form of the passport - a registry/API
+pull, not a consumer scan, so it logs no scan event. It was missing
+`lastUpdated`/version info and the full Supply Chain data. Added:
+- `passportVersion` / `lastUpdated`, read from `passport_versions`
+  (already tracked, just not exposed) - not a separate change-log
+  export. Full field-level audit history stays internal/admin-only
+  (`field_change_log`); the consumer/API-facing passport only needs
+  "what does it say now" and "as of when", not every historical edit.
+- `supplyChain`, same grouped-by-category shape as the HTML passport
+  (`supplyChainRepository.getGroupedForEntity`), so the JSON and HTML
+  views can never drift apart.
+- `product.imageUrl`, filling out the product block (effective
+  variant image falling back to Style, same COALESCE pattern used
+  elsewhere).
+Verified against style `113756`: 19 steps across 7 categories, UTF-8
+intact, `passportVersion: 1`.
+
 ## Consumer passport content fixes ✅ Done (2026-09-16)
 
 Per direct feedback while reviewing the redesigned consumer passport:

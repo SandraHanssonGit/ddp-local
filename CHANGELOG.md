@@ -4,6 +4,24 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (no really, final) — JSON export: version + full supply chain
+
+- The public `/json` passport export was missing the "as of when" info
+  needed for a machine consumer (registry/API pull) to know how fresh
+  the data is, and didn't include the new Supply Chain section at all.
+- Added `passportVersion` + `lastUpdated`, sourced from the existing
+  `passport_versions` table (already tracked per SGTIN write, just not
+  exposed anywhere) rather than building a new change-log export -
+  full audit history (`field_change_log`) stays admin-only, per the
+  earlier decision that a consumer/API-facing passport shows current
+  state + freshness, not a change log.
+- Added `supplyChain`, using the exact same
+  `supplyChainRepository.getGroupedForEntity()` grouping as the HTML
+  passport, so JSON and HTML can't drift apart.
+- Added `product.imageUrl` (variant image falling back to Style).
+- Verified against style 113756: `passportVersion: 1`, 19 supply chain
+  steps across 7 categories, UTF-8 intact (Söke).
+
 ## 2026-09-16 (absolutely final) — Supply Chain data structure
 
 - New `supply_chain_steps` table - a repeating list of named process

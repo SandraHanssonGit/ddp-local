@@ -8,6 +8,7 @@ const passportResolver = require('./passport-resolver');
 const scanService = require('./scan-service');
 const fieldRepository = require('../repositories/fields');
 const supplyChainRepository = require('../repositories/supply-chain');
+const passportVersionRepository = require('../repositories/passport-versions');
 const { db } = require('../db/init-v2');
 
 // sgtins has UNIQUE(gtin_id, serial_number) - a serial is unique per
@@ -122,10 +123,33 @@ async function renderPassportJson(req, res, sgtinRecord) {
       locale: f.locale
     }));
 
+  // Supply chain is keyed at Style level for now (ROADMAP.md), same
+  // grouping used by the HTML passport - kept identical so the JSON
+  // export never drifts from what the consumer page shows.
+  const supplyChainGroups = await supplyChainRepository.getGroupedForEntity('style', passport.style.id);
+  const supplyChain = supplyChainGroups.map(group => ({
+    category: group.category,
+    steps: group.steps.map(step => ({
+      label: step.step_label,
+      supplier: step.supplier_name,
+      city: step.city,
+      country: step.country,
+      employeeRange: step.employee_range,
+      visitedByBrand: !!step.visited_by_brand
+    }))
+  }));
+
+  // "Last updated" / version come from passport_versions, which is
+  // only bumped on direct SGTIN writes (ROADMAP.md) - the same scope
+  // that already drives the Version History panel in admin.
+  const currentVersion = await passportVersionRepository.getCurrentVersion('sgtin', sgtinRecord.id);
+
   res.json({
     format: 'ESPR 2024/1781 Digital Product Passport',
     generatedAt: new Date().toISOString(),
     requestedLocale: locale,
+    passportVersion: currentVersion ? currentVersion.version_number : 1,
+    lastUpdated: currentVersion ? currentVersion.issued_at : passport.sgtin.created_at,
     identifiers: {
       gtin: passport.gtin.gtin,
       serialNumber: passport.sgtin.serial_number,
@@ -134,10 +158,11 @@ async function renderPassportJson(req, res, sgtinRecord) {
       batchId: passport.batch.batch_id
     },
     product: {
-      name: passport.style.product_name,
+      name: passport.variant?.product_name || passport.style.product_name,
       type: passport.style.product_type,
       size: passport.gtin.size_value_1,
-      color: passport.gtin.color
+      color: passport.gtin.color,
+      imageUrl: passport.variant?.image_url || passport.style.image_url
     },
     // country of origin is deliberately NOT read from
     // batch.country_of_production here - that hardcoded column has no
@@ -149,7 +174,8 @@ async function renderPassportJson(req, res, sgtinRecord) {
       factory: passport.batch.factory,
       productionDate: passport.batch.production_date
     },
-    fields
+    fields,
+    supplyChain
   });
 }
 
