@@ -5,6 +5,7 @@ const gtinRepository = require('../repositories/gtins');
 const sgtinRepository = require('../repositories/sgtins');
 const fieldRepository = require('../repositories/fields');
 const economicOperatorRepository = require('../repositories/economic-operators');
+const batchStyleScopeRepository = require('../repositories/batch-style-scopes');
 
 class PassportResolver {
   /**
@@ -48,20 +49,33 @@ class PassportResolver {
     // Load Variant, if this GTIN has one (not all product types do)
     const variant = gtin.variant_id ? await variantRepository.getById(gtin.variant_id) : null;
 
+    // ROADMAP.md: a Batch can span multiple Styles/Variants, so a plain
+    // Batch-level override applies to the whole batch. These two scopes
+    // let an override be narrowed to just this GTIN's Style within the
+    // batch, or even just its Variant within the batch - both read-only
+    // lookups (`find`, not `getOrCreate`), since merely resolving a
+    // passport must never create a scope row.
+    const batchVariantScope = variant ? await batchStyleScopeRepository.find(batch.id, style.id, variant.id) : null;
+    const batchStyleScope = await batchStyleScopeRepository.find(batch.id, style.id, null);
+
     // Get all field definitions
     const fieldDefinitions = await fieldRepository.listFieldDefinitions();
 
     const levels = [
       await this._loadLevelValues('sgtin', sgtin.id, locale),
       await this._loadLevelValues('gtin', gtin.id, locale),
+      batchVariantScope ? await this._loadLevelValues('batch_style', batchVariantScope.id, locale) : { localized: {}, default: {} },
+      batchStyleScope ? await this._loadLevelValues('batch_style', batchStyleScope.id, locale) : { localized: {}, default: {} },
       await this._loadLevelValues('batch', batch.id, locale),
       variant ? await this._loadLevelValues('variant', variant.id, locale) : { localized: {}, default: {} },
       await this._loadLevelValues('style', style.id, locale)
     ];
 
-    // Resolve all fields using inheritance precedence: SGTIN > GTIN > Batch > Variant > Style
+    // Resolve all fields using inheritance precedence:
+    // SGTIN > GTIN > Batch×Variant > Batch×Style > Batch > Variant > Style
+    const sourceNames = ['sgtin', 'gtin', 'batch_variant', 'batch_style', 'batch', 'variant', 'style'];
     const resolvedFields = fieldDefinitions.map(fieldDef =>
-      this._resolveFieldValueLocaleAware(fieldDef, levels, ['sgtin', 'gtin', 'batch', 'variant', 'style'], locale)
+      this._resolveFieldValueLocaleAware(fieldDef, levels, sourceNames, locale)
     );
 
     // ROADMAP.md Phase 4: economic operator (manufacturer/importer/

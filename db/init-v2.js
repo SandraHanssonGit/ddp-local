@@ -399,6 +399,38 @@ const init = () => {
     db.run(`ALTER TABLE styles ADD COLUMN operator_id INTEGER REFERENCES economic_operators(id)`, () => {});
     db.run(`ALTER TABLE batches ADD COLUMN operator_id INTEGER REFERENCES economic_operators(id)`, () => {});
 
+    // A Batch can span multiple Styles (and Style Variants) - see
+    // CLAUDE.md's PO45001234 example. A plain Batch-level dpp_values
+    // override applies to the WHOLE batch regardless of which Style a
+    // GTIN belongs to, which doesn't work when different Styles in the
+    // same batch need different values (e.g. two Styles produced in one
+    // run needing different country_of_origin overrides). This table
+    // gives dpp_values a narrower "entity" to point at: a specific
+    // (batch, style) or (batch, style, variant) combination, via
+    // entity_type='batch_style'. NULL variant_id = applies to the whole
+    // Style within this batch, regardless of variant. SQLite treats
+    // NULLs as distinct in UNIQUE indexes, so the UNIQUE constraint
+    // below does NOT prevent duplicate (batch_id, style_id, NULL) rows -
+    // repositories/batch-style-scopes.js's getOrCreate() enforces that
+    // with an explicit SELECT-before-INSERT instead.
+    db.run(`
+      CREATE TABLE IF NOT EXISTS batch_style_scopes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        batch_id INTEGER NOT NULL REFERENCES batches(id),
+        style_id INTEGER NOT NULL REFERENCES styles(id),
+        variant_id INTEGER REFERENCES variants(id),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(batch_id, style_id, variant_id)
+      )
+    `, (err) => {
+      if (err) console.error('[batch_style_scopes]', err);
+      else console.log('✓ batch_style_scopes table');
+    });
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_batch_style_scopes_batch ON batch_style_scopes(batch_id)`, (err) => {
+      if (err) console.error('[index batch_style_scopes_batch]', err);
+    });
+
     db.run(`CREATE INDEX IF NOT EXISTS idx_passport_versions_entity ON passport_versions(entity_type, entity_id)`, (err) => {
       if (err) console.error('[index passport_versions_entity]', err);
     });

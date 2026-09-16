@@ -94,7 +94,7 @@
     <%
       const euValues = passport.resolvedFields.filter(f => f.category === 'eu_required' && f.value);
       const nudieValues = passport.resolvedFields.filter(f => f.category === 'nudie' && f.value);
-      const sourceLabel = (s) => s === 'batch' ? 'Batch' : s === 'gtin' ? 'GTIN' : s === 'variant' ? 'Variant' : s === 'style' ? 'Style' : s;
+      const sourceLabel = (s) => s === 'batch' ? 'Batch' : s === 'batch_style' ? 'Batch (this Style)' : s === 'batch_variant' ? 'Batch (this Variant)' : s === 'gtin' ? 'GTIN' : s === 'variant' ? 'Variant' : s === 'style' ? 'Style' : s;
     %>
 
     <!-- EU Required -->

@@ -176,6 +176,10 @@ class FieldRepository {
       style: 'editable_at_style',
       variant: 'editable_at_variant',
       batch: 'editable_at_batch',
+      // batch_style scopes a Batch-level override to one Style/Variant
+      // within that batch - same "can this field be set at Batch?"
+      // permission, just narrower scope. Not a separate checkbox.
+      batch_style: 'editable_at_batch',
       gtin: 'editable_at_gtin',
       sgtin: 'editable_at_sgtin'
     }[entityType];

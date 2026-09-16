@@ -4,6 +4,35 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 25) — Batch × Style/Variant scoped field overrides
+
+User: DPP Field Values didn't work right at Batch level - a batch can
+span multiple Styles (or Style Variants), and needed a way to override
+values per Style/Variant *within* a batch, not just for the whole
+batch. Confirmed for real using batch 1 (spans 4 different styles).
+
+Built a new `batch_style_scopes` table + `entity_type='batch_style'` in
+`dpp_values`, following the same generic pattern every other level
+already uses - no special-casing needed in `fieldRepository`,
+`fieldService`, or `overrideService` beyond adding the new type to
+their validation lists and one editable-column mapping. Resolution
+precedence: `SGTIN > GTIN > Batch×Variant > Batch×Style > Batch >
+Variant > Style` - more specific always wins.
+
+Admin UI: a "Scope" tab row on the Batch detail page (same pattern as
+the language tabs) listing every Style/Variant combo actually present
+in that batch, derived from `batch_gtins`. GTIN/SGTIN detail pages'
+inherited-value chains extended to match, so they never show the wrong
+"inherited from Batch" value when a scoped override is actually what's
+in effect.
+
+Verified end-to-end on real batch 1 data: a scoped override for one
+Style resolved only on that Style's SGTIN; a separate whole-batch value
+correctly applied to a different Style in the same batch while the
+scoped Style kept its more specific override; clearing the scoped
+override correctly fell back to the whole-batch value. Full regression
+sweep (8 admin tabs, all detail page types, public passport) all 200.
+
 ## 2026-09-16 (etapp 24) — EAN vs GTIN-14, SKU column, GS1 link padding
 
 User spotted a real GS1 detail: `gtins.gtin` stores a 13-digit

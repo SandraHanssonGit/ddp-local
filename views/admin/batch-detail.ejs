@@ -229,22 +229,50 @@
         <button onclick="toggleDppEdit()" class="btn btn-primary">Edit</button>
       </div>
 
+      <%
+        const scopeQuery = (styleId, variantId) => {
+          const params = [];
+          if (styleId) params.push('scopeStyle=' + styleId);
+          if (variantId) params.push('scopeVariant=' + variantId);
+          if (locale) params.push('lang=' + encodeURIComponent(locale));
+          return '?' + params.join('&');
+        };
+        const isActiveScope = (styleId, variantId) =>
+          (typeof scopeStyleId !== 'undefined' ? scopeStyleId : null) == (styleId || null) &&
+          (typeof scopeVariantId !== 'undefined' ? scopeVariantId : null) == (variantId || null);
+      %>
+      <% if (typeof scopeCombos !== 'undefined' && scopeCombos.length > 0) { %>
+        <div class="locale-tabs">
+          <span class="label-sm" style="margin-right:4px;">Scope:</span>
+          <a href="<%= scopeQuery(null, null) %>" class="<%= isActiveScope(null, null) ? 'active' : '' %>">Whole batch</a>
+          <% scopeCombos.forEach(c => { %>
+            <a href="<%= scopeQuery(c.style_id, c.variant_id) %>" class="<%= isActiveScope(c.style_id, c.variant_id) ? 'active' : '' %>">
+              <%= c.style_number %><% if (c.variant_name) { %> – <%= c.variant_name %><% } %>
+            </a>
+          <% }); %>
+        </div>
+      <% } %>
+
       <div class="locale-tabs">
         <span class="label-sm" style="margin-right:4px;">Language:</span>
-        <a href="?" class="<%= !locale ? 'active' : '' %>">Default</a>
+        <a href="<%= scopeQuery(scopeStyleId, scopeVariantId).replace(/&?lang=[^&]*/, '') || '?' %>" class="<%= !locale ? 'active' : '' %>">Default</a>
         <% (typeof availableLocales !== 'undefined' ? availableLocales : []).forEach(loc => { %>
-          <a href="?lang=<%= encodeURIComponent(loc) %>" class="<%= locale === loc ? 'active' : '' %>"><%= loc %></a>
+          <a href="<%= scopeQuery(scopeStyleId, scopeVariantId) %>&lang=<%= encodeURIComponent(loc) %>" class="<%= locale === loc ? 'active' : '' %>"><%= loc %></a>
         <% }); %>
-        <form method="GET" style="display:inline-flex;align-items:center;gap:6px;margin-left:8px;" onsubmit="event.preventDefault(); const v=this.newlang.value.trim(); if(v) window.location.href='?lang='+encodeURIComponent(v);">
+        <form method="GET" style="display:inline-flex;align-items:center;gap:6px;margin-left:8px;" onsubmit="event.preventDefault(); const v=this.newlang.value.trim(); if(v) window.location.href='<%- scopeQuery(scopeStyleId, scopeVariantId).replace(/&?lang=[^&]*/, '') %>&lang='+encodeURIComponent(v);">
           <input type="text" name="newlang" placeholder="+ add locale e.g. fr-FR" class="small" style="width:160px;">
           <button type="submit" class="btn small">Go</button>
         </form>
       </div>
 
       <p class="small muted" style="margin-bottom:16px;">
-        A batch can include GTINs from several different styles, so there's no
-        single "inherited" value to compare against here — a field is either
-        set for this batch, or not set at all.
+        <% if (typeof scopeStyleId !== 'undefined' && scopeStyleId) { %>
+          Showing values scoped to this Style<% if (scopeVariantId) { %> and Variant<% } %> within this batch only - other Styles in this batch are unaffected.
+        <% } else { %>
+          A batch can include GTINs from several different styles - showing
+          whole-batch values here. Use the Scope tabs above to set a value for
+          just one Style (or Style + Variant) within this batch instead.
+        <% } %>
       </p>
 
       <!-- View Mode -->
@@ -254,7 +282,7 @@
             <div class="field-card overridden">
               <div class="field-card-head">
                 <label class="label-sm"><%= val.label %></label>
-                <span class="badge badge-accent">Set at Batch</span>
+                <span class="badge badge-accent"><%= (typeof scopeStyleId !== 'undefined' && scopeStyleId) ? 'Set for this scope' : 'Set at Batch' %></span>
               </div>
               <p class="field-card-value"><%= val.value %></p>
               <p style="margin-top:8px;"><a href="#" onclick="clearOverride('<%= val.field_key %>'); return false;" class="link-action danger">Clear</a></p>
@@ -300,7 +328,16 @@
     }
 
     const currentLocale = <%- JSON.stringify(locale || null) %>;
-    const localeQuery = currentLocale ? '?lang=' + encodeURIComponent(currentLocale) : '';
+    const currentScopeStyleId = <%- JSON.stringify(typeof scopeStyleId !== 'undefined' ? scopeStyleId : null) %>;
+    const currentScopeVariantId = <%- JSON.stringify(typeof scopeVariantId !== 'undefined' ? scopeVariantId : null) %>;
+
+    function scopeAndLocaleQuery() {
+      const params = [];
+      if (currentScopeStyleId) params.push('scopeStyle=' + currentScopeStyleId);
+      if (currentScopeVariantId) params.push('scopeVariant=' + currentScopeVariantId);
+      if (currentLocale) params.push('lang=' + encodeURIComponent(currentLocale));
+      return params.length ? '?' + params.join('&') : '';
+    }
 
     async function saveBatchDppValues() {
       const values = {};
@@ -310,7 +347,7 @@
       });
 
       try {
-        const res = await fetch('/admin-v2/batch/<%= batch.id %>/dpp-values' + localeQuery, {
+        const res = await fetch('/admin-v2/batch/<%= batch.id %>/dpp-values' + scopeAndLocaleQuery(), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(values)
@@ -356,10 +393,15 @@
       } catch (err) { await dppAlert('Error: ' + err.message); }
     }
 
+    const clearOverrideEntity = currentScopeStyleId
+      ? { type: 'batch_style', id: <%- JSON.stringify(typeof scope !== 'undefined' && scope ? scope.id : null) %> }
+      : { type: 'batch', id: <%= batch.id %> };
+
     async function clearOverride(fieldKey) {
-      if (!(await dppConfirm('Clear this value for the batch?'))) return;
+      if (!(await dppConfirm('Clear this value' + (currentScopeStyleId ? ' for this scope?' : ' for the batch?')))) return;
       try {
-        const res = await fetch('/api/admin/overrides/batch/<%= batch.id %>/field/' + encodeURIComponent(fieldKey) + localeQuery, {
+        const localeQuery = currentLocale ? '?lang=' + encodeURIComponent(currentLocale) : '';
+        const res = await fetch('/api/admin/overrides/' + clearOverrideEntity.type + '/' + clearOverrideEntity.id + '/field/' + encodeURIComponent(fieldKey) + localeQuery, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({})

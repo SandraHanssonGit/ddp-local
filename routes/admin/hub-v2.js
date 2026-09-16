@@ -18,6 +18,7 @@ const fieldRepository = require('../../repositories/fields');
 const variantRepository = require('../../repositories/variants');
 const supplyChainRepository = require('../../repositories/supply-chain');
 const economicOperatorRepository = require('../../repositories/economic-operators');
+const batchStyleScopeRepository = require('../../repositories/batch-style-scopes');
 
 // Image upload config for variants - mirrors routes/admin/styles.js's
 // style image upload (found missing entirely for variants alongside
@@ -783,8 +784,28 @@ router.get('/batch/:batchId', async (req, res) => {
     // default (no ?lang=) is the base value used when no translation
     // exists. availableLocales drives the language tab bar.
     const locale = req.query.lang || null;
-    const dppValues = await fieldRepository.getFieldsForLevel('batch', batch.id, locale);
-    const availableLocales = await fieldRepository.getAvailableLocales('batch', batch.id);
+
+    // A Batch can span multiple Styles/Variants (CLAUDE.md's
+    // PO45001234 example), so ?scopeStyle=/&scopeVariant= narrow the
+    // DPP Field Values card to just one Style (or Style+Variant)
+    // within this batch, mirroring the language-tab pattern. No
+    // scope query param = the original whole-batch behavior.
+    const scopeStyleId = req.query.scopeStyle ? parseInt(req.query.scopeStyle) : null;
+    const scopeVariantId = req.query.scopeVariant ? parseInt(req.query.scopeVariant) : null;
+    const scope = scopeStyleId ? await batchStyleScopeRepository.find(batch.id, scopeStyleId, scopeVariantId) : null;
+    // -1 is a sentinel entity_id that can never match a real
+    // dpp_values row - lets getFieldsForLevel return every
+    // batch-editable field as "not set" before any scope row exists
+    // yet, without creating one just to view the page.
+    const scopeEntityId = scope ? scope.id : -1;
+
+    const dppValues = scopeStyleId
+      ? await fieldRepository.getFieldsForLevel('batch_style', scopeEntityId, locale)
+      : await fieldRepository.getFieldsForLevel('batch', batch.id, locale);
+    const availableLocales = scopeStyleId
+      ? (scope ? await fieldRepository.getAvailableLocales('batch_style', scope.id) : [])
+      : await fieldRepository.getAvailableLocales('batch', batch.id);
+    const scopeCombos = await batchStyleScopeRepository.listCombosForBatch(batch.id);
     const operators = await economicOperatorRepository.list();
 
     res.render('admin/batch-detail', {
@@ -801,6 +822,10 @@ router.get('/batch/:batchId', async (req, res) => {
       planned_total,
       dppValues,
       operators,
+      scopeCombos,
+      scopeStyleId,
+      scopeVariantId,
+      scope,
       user: { username: 'demo', role: 'admin' }
     });
   } catch (err) {
@@ -826,16 +851,30 @@ router.post('/batch/:batchId/mark-produced', async (req, res) => {
   }
 });
 
-// Save DPP field values at Batch level
+// Save DPP field values at Batch level, or scoped to one Style/Variant
+// within the batch via ?scopeStyle=/&scopeVariant= (see the GET route
+// above). Unlike viewing, saving DOES create the batch_style_scopes
+// row on demand (getOrCreate) - there's an actual value to attach it to.
 router.post('/batch/:batchId/dpp-values', async (req, res) => {
   try {
     const batch = await getOne('SELECT * FROM batches WHERE id = ?', [req.params.batchId]);
     if (!batch) return res.status(404).json({ success: false, error: 'Batch not found' });
 
     const locale = req.query.lang || null;
+    const scopeStyleId = req.query.scopeStyle ? parseInt(req.query.scopeStyle) : null;
+    const scopeVariantId = req.query.scopeVariant ? parseInt(req.query.scopeVariant) : null;
+
+    let entityType = 'batch';
+    let entityId = batch.id;
+    if (scopeStyleId) {
+      const scope = await batchStyleScopeRepository.getOrCreate(batch.id, scopeStyleId, scopeVariantId);
+      entityType = 'batch_style';
+      entityId = scope.id;
+    }
+
     for (const [fieldKey, value] of Object.entries(req.body)) {
       if (value) {
-        await fieldService.setValue('batch', batch.id, fieldKey, value, { locale });
+        await fieldService.setValue(entityType, entityId, fieldKey, value, { locale });
       }
     }
 
@@ -929,17 +968,27 @@ router.get('/sgtin/:sgtinId', async (req, res) => {
     const events = await getAll('SELECT * FROM lifecycle_events WHERE sgtin_id = ? ORDER BY created_at DESC', [sgtin.id]);
 
     // An SGTIN has a fixed GTIN and Batch, so the full inheritance
-    // chain (GTIN > Batch > Variant > Style) is well-defined here - same
-    // precedence passport-resolver.js uses for the public passport
+    // chain (GTIN > Batch×Variant > Batch×Style > Batch > Variant >
+    // Style) is well-defined here - same precedence passport-resolver.js
+    // uses for the public passport
     const locale = req.query.lang || null;
     const sgtinFields = await fieldRepository.getFieldsForLevel('sgtin', sgtin.id, locale);
     const gtinValueMap = await buildLocaleAwareValueMap('gtin', gtin.id, locale);
+    const batchVariantScope = variant ? await batchStyleScopeRepository.find(batch.id, style.id, variant.id) : null;
+    const batchStyleScope = await batchStyleScopeRepository.find(batch.id, style.id, null);
+    const batchVariantValueMap = batchVariantScope ? await buildLocaleAwareValueMap('batch_style', batchVariantScope.id, locale) : {};
+    const batchStyleValueMap = batchStyleScope ? await buildLocaleAwareValueMap('batch_style', batchStyleScope.id, locale) : {};
     const batchValueMap = await buildLocaleAwareValueMap('batch', batch.id, locale);
     const variantValueMap = variant ? await buildLocaleAwareValueMap('variant', variant.id, locale) : {};
     const styleValueMap = await buildLocaleAwareValueMap('style', style.id, locale);
     const dppValues = sgtinFields.map(f => {
-      const inheritedValue = gtinValueMap[f.field_key] || batchValueMap[f.field_key] || variantValueMap[f.field_key] || styleValueMap[f.field_key] || null;
-      const inheritedFrom = gtinValueMap[f.field_key] ? 'GTIN' : batchValueMap[f.field_key] ? 'Batch' : variantValueMap[f.field_key] ? 'Variant' : styleValueMap[f.field_key] ? 'Style' : null;
+      const inheritedValue = gtinValueMap[f.field_key] || batchVariantValueMap[f.field_key] || batchStyleValueMap[f.field_key] || batchValueMap[f.field_key] || variantValueMap[f.field_key] || styleValueMap[f.field_key] || null;
+      const inheritedFrom = gtinValueMap[f.field_key] ? 'GTIN'
+        : batchVariantValueMap[f.field_key] ? 'Batch (this Variant)'
+        : batchStyleValueMap[f.field_key] ? 'Batch (this Style)'
+        : batchValueMap[f.field_key] ? 'Batch'
+        : variantValueMap[f.field_key] ? 'Variant'
+        : styleValueMap[f.field_key] ? 'Style' : null;
       return { ...f, inheritedValue, inheritedFrom };
     });
     const availableLocales = await fieldRepository.getAvailableLocales('sgtin', sgtin.id);

@@ -91,6 +91,56 @@ Values"):**
    free — the new Save routes don't log audit entries, only overrides
    does).
 
+## Batch × Style/Variant scoped overrides ✅ Done (2026-09-16)
+
+**Problem**: a Batch can span multiple Styles (CLAUDE.md's PO45001234
+example - confirmed for real with batch 1, which spans 4 different
+styles). A plain Batch-level `dpp_values` override applied to the
+*whole* batch regardless of which Style a GTIN belonged to - no way to
+set a different `country_of_origin` for two Styles produced in the
+same run. User: "Man måste kunna skriva över Fälten per STYLE eller
+Style Variant på i rn Batch."
+
+**Built**: new `batch_style_scopes` table (`batch_id`, `style_id`,
+nullable `variant_id`) - `dpp_values` points at a row here via
+`entity_type='batch_style'`, same pattern as every other level. SQLite
+doesn't enforce uniqueness across NULL `variant_id` rows, so
+`repositories/batch-style-scopes.js`'s `getOrCreate()` does an explicit
+SELECT-before-INSERT rather than relying on the table's UNIQUE
+constraint.
+
+**Resolution precedence extended**: `SGTIN > GTIN > Batch×Variant >
+Batch×Style > Batch > Variant > Style` (`passport-resolver.js`) - a
+more specific scope always wins. `services/field-service.js`,
+`services/override-service.js`, and `repositories/fields.js`
+(`getFieldsForLevel`'s editable-column map) all treat `batch_style` as
+a first-class entity type, reusing the existing `editable_at_batch`
+permission flag rather than adding a new one - it's the same
+conceptual level, just narrower scope.
+
+**Admin UI** (`batch-detail.ejs`): a "Scope" tab row above DPP Field
+Values, same visual pattern as the language tabs - "Whole batch" plus
+one tab per Style/Variant combination actually present in that batch
+(derived from `batch_gtins`, via `listCombosForBatch()`). Switching
+scope reloads the field cards/edit form against that scope; saving a
+value for a scope not yet used creates its `batch_style_scopes` row on
+demand (viewing never does - a GET request must never write to the
+database). GTIN/SGTIN detail pages' "inherited from" chains extended
+to check both scope levels too, so the admin UI never claims a value
+is "inherited from Batch" when a more specific scope override is
+actually what's being shown.
+
+**Verified end-to-end** on real batch 1 (spans styles 112327, 131274,
+910006, 500001): set `country_of_origin` = "Italy" scoped to style
+131274 only - confirmed style 131274's SGTIN resolved it
+(`source: "batch_style"`) while style 112327's SGTIN was unaffected;
+then set a whole-batch value and confirmed style 131274 kept its more
+specific override while style 112327 picked up the whole-batch value
+(precedence order confirmed correct); cleared the scoped override and
+confirmed it fell back to the whole-batch value; full regression sweep
+of all 8 admin tabs + 6 detail page types + the public passport all
+still 200.
+
 ## Phase 1 — Passport versioning + production lock ✅ Done (2026-09-16)
 
 **Plan corrected during implementation**: the original idea of a
