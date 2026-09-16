@@ -378,6 +378,16 @@ phase. Each item below is a decision/plan, not yet implemented.
   `gtin`, `serial_number`) vs. actual DPP content that should migrate
   to a dynamic field with a real EU/Nudie category, so it isn't
   invisible to the categorization system.
+- **Role-based field visibility (concrete plan).** A simple role
+  selector (dropdown on the passport — Customer / Customs / NJ / etc,
+  no login required for the POC) that filters which fields render,
+  built on the same pattern as the existing `consumer_visible`
+  boolean but generalized to a **list of roles per field** instead of
+  a single true/false. A field with no roles set is treated as
+  visible to everyone (today's `consumer_visible = true` behavior),
+  preserving existing behavior. Real authenticated, per-role login is
+  a separate, later concern (see "Role-based / authority access"
+  above) — this is just the visibility-filtering mechanism.
 - **SGTIN serial number generator doesn't exist.** The schema is
   already correct for GS1 compliance (`UNIQUE(gtin_id, serial_number)`
   is scoped per GTIN, not per batch, so a serial can never collide
