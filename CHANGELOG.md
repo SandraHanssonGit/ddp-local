@@ -4,6 +4,35 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (even later) — richer field-inheritance UI
+
+Upgraded the Phase 0 view from a flat "Set at X" badge to the full
+three-state design from the canvas mockup (Overridden here / Inherited
+/ Not set yet), with the inherited value shown for comparison and a
+working "Clear override" action.
+
+- `routes/admin/hub-v2.js`: GTIN and SGTIN routes now compute a real
+  `inheritedValue`/`inheritedFrom` per field — GTIN from its Style
+  (well-defined, one `style_id`), SGTIN from the full GTIN > Batch >
+  Style chain (well-defined, an SGTIN pins both). Reused
+  `fieldRepository.getEntityValues()` for this, not a new query.
+- **Batch intentionally kept to two states**, not three. Checked
+  concretely: batch `PO45001234` contains GTINs from 4 different
+  styles (112327, 131274, 910006, 500001), so "inherited from Style"
+  has no single correct value to show for a batch-level field. Showing
+  one anyway would have been misleading. Documented in-page.
+- "Clear override" wired to the existing
+  `DELETE /api/admin/overrides/:entityType/:entityId/field/:fieldKey`
+  route (`routes/admin/overrides.js` / `services/override-service.js`)
+  rather than writing a new endpoint — this one already existed,
+  already validates entity type, and already writes an audit log entry
+  via `audit-service.js`.
+- Verified end-to-end again after the change: cleared and re-set
+  overrides at GTIN and Batch level via the API, confirmed the view
+  correctly flips between the three (or two) states, and confirmed the
+  public `/dpp/.../json` export still resolves the same values with
+  the same `source` as before.
+
 ## 2026-09-16 (later)
 
 ### Added — ROADMAP.md Phase 0, field administration gap

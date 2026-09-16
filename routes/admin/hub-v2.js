@@ -14,6 +14,9 @@ const batchGtinsRouter = require('./batch-gtins');
 const fieldRepository = require('../../repositories/fields');
 const fieldService = require('../../services/field-service');
 
+// Turn getEntityValues() rows into a { field_key: value } lookup map
+const buildValueMap = (rows) => Object.fromEntries(rows.map(r => [r.field_key, r.value]));
+
 const getOne = (sql, params = []) => new Promise((resolve, reject) => {
   db.get(sql, params, (err, row) => {
     if (err) reject(err);
@@ -551,7 +554,15 @@ router.get('/gtin/:gtinId', async (req, res) => {
       ORDER BY b.batch_id DESC, sg.serial_number ASC
     `, [gtin.id]);
 
-    const dppValues = await fieldRepository.getFieldsForLevel('gtin', gtin.id);
+    // GTIN has exactly one style_id, so "inherited from Style" is
+    // well-defined here (unlike Batch, which can span several styles)
+    const gtinFields = await fieldRepository.getFieldsForLevel('gtin', gtin.id);
+    const styleValueMap = buildValueMap(await fieldRepository.getEntityValues('style', style.id));
+    const dppValues = gtinFields.map(f => ({
+      ...f,
+      inheritedValue: styleValueMap[f.field_key] || null,
+      inheritedFrom: styleValueMap[f.field_key] ? 'Style' : null
+    }));
 
     res.render('admin/gtin-detail', {
       gtin,
@@ -599,7 +610,18 @@ router.get('/sgtin/:sgtinId', async (req, res) => {
 
     const events = await getAll('SELECT * FROM lifecycle_events WHERE sgtin_id = ? ORDER BY created_at DESC', [sgtin.id]);
 
-    const dppValues = await fieldRepository.getFieldsForLevel('sgtin', sgtin.id);
+    // An SGTIN has a fixed GTIN and Batch, so the full inheritance
+    // chain (GTIN > Batch > Style) is well-defined here - same
+    // precedence passport-resolver.js uses for the public passport
+    const sgtinFields = await fieldRepository.getFieldsForLevel('sgtin', sgtin.id);
+    const gtinValueMap = buildValueMap(await fieldRepository.getEntityValues('gtin', gtin.id));
+    const batchValueMap = buildValueMap(await fieldRepository.getEntityValues('batch', batch.id));
+    const styleValueMap = buildValueMap(await fieldRepository.getEntityValues('style', style.id));
+    const dppValues = sgtinFields.map(f => {
+      const inheritedValue = gtinValueMap[f.field_key] || batchValueMap[f.field_key] || styleValueMap[f.field_key] || null;
+      const inheritedFrom = gtinValueMap[f.field_key] ? 'GTIN' : batchValueMap[f.field_key] ? 'Batch' : styleValueMap[f.field_key] ? 'Style' : null;
+      return { ...f, inheritedValue, inheritedFrom };
+    });
 
     res.render('admin/sgtin-detail', {
       sgtin,

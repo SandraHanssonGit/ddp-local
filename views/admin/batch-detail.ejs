@@ -196,24 +196,35 @@
           </button>
         </div>
 
-        <% const setBatchDppValues = typeof dppValues !== 'undefined' ? dppValues.filter(v => v.value) : []; %>
+        <p class="text-xs text-gray-500 mb-4">
+          A batch can include GTINs from several different styles, so there's no
+          single "inherited" value to compare against here — a field is either
+          set for this batch, or not set at all.
+        </p>
 
         <!-- View Mode -->
         <div id="dpp-fields-view" class="space-y-4">
-          <% if (setBatchDppValues.length > 0) { %>
-            <% setBatchDppValues.forEach(val => { %>
-              <div class="p-4 rounded" style="background-color: #e8f4f8; border-left: 4px solid #5b9dc3;">
+          <% (typeof dppValues !== 'undefined' ? dppValues : []).forEach(val => { %>
+            <% if (val.value) { %>
+              <div class="p-4 rounded border" style="background-color: #eaf1f8; border-color: #b9cfe6;">
                 <div class="flex justify-between items-start mb-2">
                   <label class="text-sm font-bold text-gray-700"><%= val.label %></label>
-                  <span class="text-xs font-semibold px-2 py-1 rounded" style="color: #2c5aa0; background-color: #b3d9e8;">
-                    Set at Batch
-                  </span>
+                  <span class="text-xs font-semibold px-2 py-1 rounded" style="color: #2c5aa0; background-color: #b3d9e8;">Set at Batch</span>
                 </div>
-                <p class="text-gray-900 mt-2"><%= val.value %></p>
+                <p class="text-gray-900 mt-1"><%= val.value %></p>
+                <a href="#" onclick="clearOverride('<%= val.field_key %>'); return false;" class="text-xs font-semibold text-red-600 hover:underline mt-2 inline-block">Clear</a>
               </div>
-            <% }); %>
-          <% } else { %>
-            <p class="text-gray-500 italic">No Batch-level values set yet. Values are inherited from Style unless overridden here.</p>
+            <% } else { %>
+              <div class="p-4 rounded border border-amber-200 bg-amber-50">
+                <div class="flex justify-between items-start mb-2">
+                  <label class="text-sm font-bold text-gray-700"><%= val.label %></label>
+                  <span class="text-xs font-semibold px-2 py-1 rounded bg-amber-100 text-amber-800">Not set yet</span>
+                </div>
+              </div>
+            <% } %>
+          <% }); %>
+          <% if (typeof dppValues === 'undefined' || dppValues.length === 0) { %>
+            <p class="text-gray-500 italic">No fields are configured to be editable at the Batch level.</p>
           <% } %>
         </div>
 
@@ -273,6 +284,20 @@
         alert('Error: ' + err.message);
       }
     }
+
+    async function clearOverride(fieldKey) {
+      if (!confirm('Clear this value for the batch?')) return;
+      try {
+        const res = await fetch('/api/admin/overrides/batch/<%= batch.id %>/field/' + encodeURIComponent(fieldKey), {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+        if (res.ok) { location.reload(); }
+        else { alert('Error clearing value'); }
+      } catch (err) { alert('Error: ' + err.message); }
+    }
+
     // Inject data from server
     const allStyles = <%- JSON.stringify(styles || []) %>;
     const allGtinsData = <%- JSON.stringify(gtins || []) %>;

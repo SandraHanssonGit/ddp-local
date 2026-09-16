@@ -62,6 +62,22 @@ Values"):**
 3. Add the missing `dpp_values` section + save handler to
    `batch-detail.ejs`, `gtin-detail.ejs`, `sgtin-detail.ejs`, mirroring
    the pattern already in `style-detail.ejs`.
+4. **Full inherited-value display** (upgraded 2026-09-16 to match the
+   canvas mockup): GTIN and SGTIN show three states per field —
+   "Overridden here" (with the inherited value shown for comparison,
+   and a Clear-override action), "Inherited" (grey, read-only), and
+   "Not set yet" (amber). **Batch deliberately only gets two states**
+   (Set / Not set, no inherited comparison) — a batch can span several
+   styles (verified concretely: batch `PO45001234` in this dataset
+   contains GTINs from 4 different styles), so there is no single
+   valid "inherited from Style" value to show. This is a considered
+   deviation from the canvas mockup, not an oversight — see
+   `views/admin/batch-detail.ejs`'s in-page note explaining why.
+   "Clear override" reuses the existing generic
+   `DELETE /api/admin/overrides/:entityType/:entityId/field/:fieldKey`
+   endpoint (which also gets audit logging via `audit-service.js` for
+   free — the new Save routes don't log audit entries, only overrides
+   does).
 
 ## Phase 1 — Passport versioning + supersede lock
 

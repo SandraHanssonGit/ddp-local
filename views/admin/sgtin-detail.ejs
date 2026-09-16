@@ -191,23 +191,40 @@
             </button>
           </div>
 
-          <% const setSgtinDppValues = typeof dppValues !== 'undefined' ? dppValues.filter(v => v.value) : []; %>
-
           <div id="dpp-fields-view" class="space-y-4">
-            <% if (setSgtinDppValues.length > 0) { %>
-              <% setSgtinDppValues.forEach(val => { %>
-                <div class="p-4 rounded" style="background-color: #e8f4f8; border-left: 4px solid #5b9dc3;">
+            <% (typeof dppValues !== 'undefined' ? dppValues : []).forEach(val => { %>
+              <% if (val.value) { %>
+                <div class="p-4 rounded border" style="background-color: #eaf1f8; border-color: #b9cfe6;">
                   <div class="flex justify-between items-start mb-2">
                     <label class="text-sm font-bold text-gray-700"><%= val.label %></label>
-                    <span class="text-xs font-semibold px-2 py-1 rounded" style="color: #2c5aa0; background-color: #b3d9e8;">
-                      Set at SGTIN
-                    </span>
+                    <span class="text-xs font-semibold px-2 py-1 rounded" style="color: #2c5aa0; background-color: #b3d9e8;">Overridden here</span>
                   </div>
-                  <p class="text-gray-900 mt-2"><%= val.value %></p>
+                  <p class="text-gray-900 mt-1"><%= val.value %></p>
+                  <% if (val.inheritedValue) { %>
+                    <p class="text-xs text-gray-500 mt-2">Inherited from <%= val.inheritedFrom %>: <span class="font-mono"><%= val.inheritedValue %></span></p>
+                  <% } %>
+                  <a href="#" onclick="clearOverride('<%= val.field_key %>'); return false;" class="text-xs font-semibold text-red-600 hover:underline mt-2 inline-block">Clear override → inherit</a>
                 </div>
-              <% }); %>
-            <% } else { %>
-              <p class="text-gray-500 italic">No SGTIN-level values set yet. Values are inherited from Style/Batch/GTIN unless overridden here.</p>
+              <% } else if (val.inheritedValue) { %>
+                <div class="p-4 rounded border border-gray-200 bg-gray-50">
+                  <div class="flex justify-between items-start mb-2">
+                    <label class="text-sm font-bold text-gray-700"><%= val.label %></label>
+                    <span class="text-xs font-semibold px-2 py-1 rounded bg-gray-200 text-gray-600">Inherited from <%= val.inheritedFrom %></span>
+                  </div>
+                  <p class="text-gray-600 mt-1"><%= val.inheritedValue %></p>
+                </div>
+              <% } else { %>
+                <div class="p-4 rounded border border-amber-200 bg-amber-50">
+                  <div class="flex justify-between items-start mb-2">
+                    <label class="text-sm font-bold text-gray-700"><%= val.label %></label>
+                    <span class="text-xs font-semibold px-2 py-1 rounded bg-amber-100 text-amber-800">Not set yet</span>
+                  </div>
+                  <p class="text-sm text-amber-800 mt-1">No value at GTIN, Batch, or Style level either — this can be filled in here.</p>
+                </div>
+              <% } %>
+            <% }); %>
+            <% if (typeof dppValues === 'undefined' || dppValues.length === 0) { %>
+              <p class="text-gray-500 italic">No fields are configured to be editable at the SGTIN level.</p>
             <% } %>
           </div>
 
@@ -216,6 +233,9 @@
               <% dppValues.forEach(val => { %>
                 <div class="space-y-2">
                   <label class="block text-sm font-bold text-gray-700"><%= val.label %></label>
+                  <% if (val.inheritedValue) { %>
+                    <p class="text-xs text-gray-500">Inherited from <%= val.inheritedFrom %>: <span class="font-mono"><%= val.inheritedValue %></span> — leave blank to keep inheriting</p>
+                  <% } %>
                   <textarea id="field-<%= val.field_key %>" class="w-full border border-gray-300 rounded px-4 py-3 focus:outline-none focus:border-gray-900" rows="3"><%= val.value %></textarea>
                 </div>
               <% }); %>
@@ -249,6 +269,18 @@
               });
               if (res.ok) { alert('DPP values saved'); location.reload(); }
               else { alert('Error saving DPP values'); }
+            } catch (err) { alert('Error: ' + err.message); }
+          }
+          async function clearOverride(fieldKey) {
+            if (!confirm('Clear this override? The field will go back to its inherited value.')) return;
+            try {
+              const res = await fetch('/api/admin/overrides/sgtin/<%= sgtin.id %>/field/' + encodeURIComponent(fieldKey), {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+              });
+              if (res.ok) { location.reload(); }
+              else { alert('Error clearing override'); }
             } catch (err) { alert('Error: ' + err.message); }
           }
         </script>
