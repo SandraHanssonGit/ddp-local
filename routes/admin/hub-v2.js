@@ -189,16 +189,29 @@ router.get('/', async (req, res) => {
         params.push(variantId);
       }
 
-      if (conditions.length > 0) {
-        query += ` WHERE ` + conditions.join(' AND ');
-      }
+      const whereClause = conditions.length > 0 ? ` WHERE ` + conditions.join(' AND ') : '';
 
+      // Pagination - a single jeans style's full waist x length matrix
+      // can already be dozens of GTINs; this list only grows as more
+      // styles are added, so it needs a hard page size from the start
+      // rather than rendering every matching row.
+      const perPage = 50;
+      const page = Math.max(1, parseInt(req.query.page) || 1);
+      const totalRow = await getOne(`SELECT COUNT(DISTINCT g.id) as total FROM gtins g JOIN styles s ON g.style_id = s.id LEFT JOIN variants v ON g.variant_id = v.id${whereClause}`, params);
+      const totalCount = totalRow.total;
+      const totalPages = Math.max(1, Math.ceil(totalCount / perPage));
+
+      query += whereClause;
       query += ` GROUP BY g.id ORDER BY s.style_number, COALESCE(v.variant_name, ''), g.item_number`;
+      query += ` LIMIT ? OFFSET ?`;
 
-      data.gtins = await getAll(query, params);
+      data.gtins = await getAll(query, [...params, perPage, (page - 1) * perPage]);
       data.search = search;
       data.selectedStyleId = styleId;
       data.selectedVariantId = variantId;
+      data.page = page;
+      data.totalPages = totalPages;
+      data.totalCount = totalCount;
       data.styles = await getAll(`SELECT id, style_number, product_name FROM styles ORDER BY style_number`);
 
       // Get variants for selected style

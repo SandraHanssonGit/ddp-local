@@ -353,11 +353,15 @@ phase. Each item below is a decision/plan, not yet implemented.
   `data_type` value: `repeating_group` — signals to the admin UI "this
   field's actual values live elsewhere; Edit here links out to where
   they're managed" instead of showing an inline text/textarea editor.
-- **Searchability at scale.** GTINs tab already has search; Batches and
-  SGTINs tabs don't. With production expected to add many batches/SKUs
-  per year, both need search + pagination (`LIMIT`/`OFFSET`) before row
-  counts make them unusable — not an immediate problem at current demo
-  data volume, but a known gap to close before real usage.
+- **Searchability at scale.** ✅ GTINs tab pagination done (2026-09-16)
+  — user pointed at a real jeans size matrix (waist × length, dozens of
+  combinations) as concrete proof this wasn't hypothetical. Added
+  `LIMIT`/`OFFSET` (50/page) + a Prev/Next control that preserves
+  `search`/`style`/`variant` query params, and a `COUNT(DISTINCT g.id)`
+  query reusing the same `WHERE` conditions for the total. Verified by
+  temporarily dropping the page size to 5 and confirming page 1/2
+  return disjoint rows. Batches and SGTINs tabs still have **no search
+  or pagination at all** — same gap, not yet fixed there.
 - **Draft → Active status for Style (and Batch/GTIN).** User proposal:
   a new Style/Variant starts as `draft`; only becomes `active` once its
   first production completes, and only from that point does field-level

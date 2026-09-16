@@ -343,6 +343,31 @@ input:focus, textarea:focus, select:focus {
 .bar-row .bar-fill { background: var(--accent); height: 100%; }
 .bar-row .bar-count { width: 36px; text-align: right; font-size: 13px; font-weight: 600; }
 
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.pagination .page-links { display: flex; gap: 8px; align-items: center; }
+
+.pagination a {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--hairline);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.pagination a:hover { background: var(--surface-2); text-decoration: none; }
+.pagination a.disabled { pointer-events: none; opacity: 0.4; }
+
 /* Detail pages (Style/Variant/Batch/GTIN/SGTIN) */
 .detail-header {
   display: flex;

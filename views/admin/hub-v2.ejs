@@ -185,6 +185,17 @@
               </tbody>
             </table>
           </div>
+          <% if (typeof totalPages !== 'undefined' && totalPages > 1) {
+            const pageQuery = (p) => `?tab=gtins&page=${p}` + (search ? `&search=${encodeURIComponent(search)}` : '') + (selectedStyleId ? `&style=${selectedStyleId}` : '') + (selectedVariantId ? `&variant=${selectedVariantId}` : '');
+          %>
+            <div class="pagination">
+              <span><%= totalCount %> GTINs &middot; page <%= page %> of <%= totalPages %></span>
+              <div class="page-links">
+                <a href="<%= pageQuery(page - 1) %>" class="<%= page <= 1 ? 'disabled' : '' %>">← Prev</a>
+                <a href="<%= pageQuery(page + 1) %>" class="<%= page >= totalPages ? 'disabled' : '' %>">Next →</a>
+              </div>
+            </div>
+          <% } %>
         <% } else { %>
           <div class="empty-state">No GTINs found</div>
         <% } %>

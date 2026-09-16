@@ -4,6 +4,21 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 23) — GTINs tab: pagination
+
+User pointed at a real jeans size matrix (waist 24-38 × length 28-36)
+as concrete evidence for the "searchability at scale" roadmap item -
+one style alone can produce dozens of GTINs, and the list only grows.
+
+Added `LIMIT`/`OFFSET` pagination (50 per page) to the GTINs tab query,
+a `COUNT(DISTINCT g.id)` query reusing the same `WHERE` conditions for
+the total, and a Prev/Next control (`public/css/admin.css`'s new
+`.pagination` styles) that preserves the current `search`/`style`/
+`variant` filters across pages. Verified by temporarily dropping the
+page size to 5 and confirming page 1 and page 2 return disjoint GTINs.
+Batches and SGTINs tabs still have no search or pagination - same gap,
+tracked separately in ROADMAP.md, not fixed in this pass.
+
 ## 2026-09-16 (etapp 22) — GTINs tab: show the variant's own name, not the style's
 
 User feedback: the GTINs tab's "Product" column always showed the
