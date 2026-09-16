@@ -9,11 +9,18 @@ const scanService = require('./scan-service');
 const fieldRepository = require('../repositories/fields');
 const supplyChainRepository = require('../repositories/supply-chain');
 const passportVersionRepository = require('../repositories/passport-versions');
+const { normalizeToStored, toGtin14 } = require('../utils/gtin');
 const { db } = require('../db/init-v2');
 
 // sgtins has UNIQUE(gtin_id, serial_number) - a serial is unique per
 // GTIN regardless of batch, so GS1's /01/{gtin}/21/{serial} can find
 // the SGTIN without a batch in the URL at all.
+//
+// gtins.gtin stores the 13-digit EAN as printed on the barcode; a
+// real GS1 Digital Link uses the formal 14-digit GTIN (EAN zero-padded
+// - see utils/gtin.js). Normalizing here means both /01/0571.../21/1
+// (14-digit, GS1-correct) and /01/571.../21/1 (13-digit, matching the
+// stored value) resolve the same SGTIN.
 function findSgtinByGtinSerial(gtin, serial) {
   return new Promise((resolve, reject) => {
     db.get(
@@ -21,7 +28,7 @@ function findSgtinByGtinSerial(gtin, serial) {
        JOIN gtins g ON g.id = sg.gtin_id
        WHERE g.gtin = ? AND sg.serial_number = ?
        LIMIT 1`,
-      [gtin, serial],
+      [normalizeToStored(gtin), serial],
       (err, row) => (err ? reject(err) : resolve(row))
     );
   });
@@ -151,7 +158,8 @@ async function renderPassportJson(req, res, sgtinRecord) {
     passportVersion: currentVersion ? currentVersion.version_number : 1,
     lastUpdated: currentVersion ? currentVersion.issued_at : passport.sgtin.created_at,
     identifiers: {
-      gtin: passport.gtin.gtin,
+      ean: passport.gtin.gtin,
+      gtin: toGtin14(passport.gtin.gtin),
       serialNumber: passport.sgtin.serial_number,
       sgtin: passport.sgtin.sgtin,
       styleNumber: passport.style.style_number,

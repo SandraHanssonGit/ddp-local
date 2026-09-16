@@ -40,6 +40,9 @@ app.use(helmet.contentSecurityPolicy({
 // Middleware
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+// GTIN-13 (EAN) -> GTIN-14 padding, available in every EJS template
+// without each view needing its own require() - see utils/gtin.js
+app.locals.toGtin14 = require('./utils/gtin').toGtin14;
 app.use(cookieParser());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));

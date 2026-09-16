@@ -153,6 +153,7 @@
               <thead>
                 <tr>
                   <th>GTIN</th>
+                  <th>SKU</th>
                   <th>Style</th>
                   <th>Name</th>
                   <th>Variant</th>
@@ -174,6 +175,7 @@
                 %>
                   <tr>
                     <td class="mono"><strong><%= g.gtin %></strong></td>
+                    <td class="mono small"><%= g.item_number || '—' %></td>
                     <td class="mono small"><%= g.style_number %></td>
                     <td class="small"><strong><%= g.product_name || '—' %></strong></td>
                     <td class="small"><%= g.variant_name || '—' %></td>
@@ -269,7 +271,7 @@
               </thead>
               <tbody>
                 <% sgtins.forEach(sg => {
-                  const dppUrl = `/01/${sg.gtin}/21/${sg.serial_number}`;
+                  const dppUrl = `/01/${toGtin14(sg.gtin)}/21/${sg.serial_number}`;
                 %>
                   <tr>
                     <td class="mono"><strong><%= sg.serial_number %></strong></td>

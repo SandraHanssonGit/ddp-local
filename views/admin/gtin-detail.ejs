@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= gtin.gtin %> - GTIN</title>
+  <title><%= toGtin14(gtin.gtin) %> - GTIN</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/admin.css">
@@ -13,7 +13,8 @@
   <div class="wrap">
     <div class="detail-header">
       <div>
-        <h1 class="mono"><%= gtin.gtin %></h1>
+        <h1 class="mono"><%= toGtin14(gtin.gtin) %></h1>
+        <p class="subtitle">SKU <strong><%= gtin.item_number || '—' %></strong></p>
       </div>
       <a href="/admin-v2?tab=gtins" class="back-link">← Back</a>
     </div>
@@ -21,9 +22,11 @@
     <div class="info-grid" style="margin-bottom:20px;">
       <div class="card">
         <h3 style="margin-bottom:14px;">GTIN Info</h3>
+        <p style="margin-bottom:6px;"><span class="label-sm">EAN (as printed on barcode):</span> <span class="mono"><%= gtin.gtin %></span></p>
+        <p style="margin-bottom:6px;"><span class="label-sm">GTIN (GS1, 14-digit):</span> <span class="mono"><%= toGtin14(gtin.gtin) %></span></p>
+        <p style="margin-bottom:6px;"><span class="label-sm">SKU / Item #:</span> <%= gtin.item_number || '—' %></p>
         <p style="margin-bottom:6px;"><span class="label-sm">Style:</span> <%= style.style_number %></p>
-        <p style="margin-bottom:6px;"><span class="label-sm">Variant:</span> <%= variant ? variant.variant_name : '—' %></p>
-        <p><span class="label-sm">Item:</span> <%= gtin.item_number || '—' %></p>
+        <p><span class="label-sm">Variant:</span> <%= variant ? variant.variant_name : '—' %></p>
       </div>
       <div class="card">
         <div class="stat-label">SGTINs Produced</div>

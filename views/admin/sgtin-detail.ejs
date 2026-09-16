@@ -18,7 +18,7 @@
       </div>
       <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
         <a href="/admin-v2?tab=sgtins" class="btn">← Back to SGTINs</a>
-        <a href="/01/<%= gtin.gtin %>/21/<%= sgtin.serial_number %>" target="_blank" class="btn btn-primary">→ Produktpass</a>
+        <a href="/01/<%= toGtin14(gtin.gtin) %>/21/<%= sgtin.serial_number %>" target="_blank" class="btn btn-primary">→ Produktpass</a>
       </div>
     </div>
 
@@ -47,8 +47,12 @@
               <p class="value mono"><%= sgtin.sgtin || sgtin.id %></p>
             </div>
             <div class="info-item">
-              <label class="label-sm">GTIN</label>
-              <p class="value mono" style="font-weight:700;"><%= gtin.gtin %></p>
+              <label class="label-sm">EAN</label>
+              <p class="value mono"><%= gtin.gtin %></p>
+            </div>
+            <div class="info-item">
+              <label class="label-sm">GTIN (GS1, 14-digit)</label>
+              <p class="value mono" style="font-weight:700;"><%= toGtin14(gtin.gtin) %></p>
             </div>
             <div class="info-item">
               <label class="label-sm">Item Number</label>
@@ -324,8 +328,8 @@
         <!-- DPP URL -->
         <div class="callout">
           <p class="callout-title">Produktpass URL (GS1 Digital Link)</p>
-          <p class="mono small" style="word-break:break-all;">/01/<%= gtin.gtin %>/21/<%= sgtin.serial_number %></p>
-          <p style="margin-top:10px;"><a href="/01/<%= gtin.gtin %>/21/<%= sgtin.serial_number %>" target="_blank" class="link-action">Öppna produktpass →</a></p>
+          <p class="mono small" style="word-break:break-all;">/01/<%= toGtin14(gtin.gtin) %>/21/<%= sgtin.serial_number %></p>
+          <p style="margin-top:10px;"><a href="/01/<%= toGtin14(gtin.gtin) %>/21/<%= sgtin.serial_number %>" target="_blank" class="link-action">Öppna produktpass →</a></p>
           <p class="small muted" style="margin-top:14px; padding-top:12px; border-top:1px solid var(--hairline);">
             Legacy-länk (fungerar fortfarande internt):<br>
             <a href="/dpp/<%= batch.batch_id %>/<%= gtin.gtin %>/<%= sgtin.serial_number %>" target="_blank" class="mono" style="word-break:break-all;">

@@ -4,6 +4,34 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 24) — EAN vs GTIN-14, SKU column, GS1 link padding
+
+User spotted a real GS1 detail: `gtins.gtin` stores a 13-digit
+EAN/UCC-13 (what's actually printed on the barcode), but a formal GTIN
+per GS1's own spec is always 14 digits - a GTIN-13 is converted to
+GTIN-14 by left-padding with a single "0". Our GS1 Digital Link URLs
+(`/01/{gtin}/21/{serial}`) were built with the raw 13-digit value,
+technically non-compliant with the AI(01) format a real GS1 resolver
+expects.
+
+- New `utils/gtin.js`: `toGtin14()` (pad to 14 digits) and
+  `normalizeToStored()` (strip a leading zero from a 14-digit input so
+  it matches the 13-digit stored value). Exposed `toGtin14` to every
+  EJS template via `app.locals` in `server.js` - no per-view require.
+- `gtin-detail.ejs` and `sgtin-detail.ejs` now show **both** "EAN (as
+  printed on barcode)" and "GTIN (GS1, 14-digit)" as separate labeled
+  fields, per user request - not just one ambiguous number.
+- All generated GS1 Digital Link URLs (SGTINs tab, SGTIN detail page)
+  now use the padded 14-digit form.
+- `passport-page-service.js`'s `findSgtinByGtinSerial` normalizes the
+  incoming `:gtin` URL param, so both the correct 14-digit and the
+  legacy 13-digit path segment resolve the same SGTIN - verified both
+  return 200 for the same product.
+- JSON export gained a separate `ean` field alongside `gtin` (now
+  padded) in `identifiers`.
+- GTIN Masterdata tab: added a **SKU** column (`item_number`) - it was
+  already fetched in the query but never rendered.
+
 ## 2026-09-16 (etapp 23) — GTINs tab: pagination
 
 User pointed at a real jeans size matrix (waist 24-38 × length 28-36)
