@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/admin.css">
+  <script src="/js/admin-modal.js"></script>
 </head>
 <body>
   <div class="wrap">
@@ -152,12 +153,12 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(values)
         });
-        if (res.ok) { alert('DPP values saved'); location.reload(); }
-        else { alert('Error saving DPP values'); }
-      } catch (err) { alert('Error: ' + err.message); }
+        if (res.ok) { await dppAlert('DPP values saved'); location.reload(); }
+        else { await dppAlert('Error saving DPP values'); }
+      } catch (err) { await dppAlert('Error: ' + err.message); }
     }
     async function clearOverride(fieldKey) {
-      if (!confirm('Clear this override? The field will go back to its inherited value.')) return;
+      if (!(await dppConfirm('Clear this override? The field will go back to its inherited value.'))) return;
       try {
         const res = await fetch('/api/admin/overrides/gtin/<%= gtin.id %>/field/' + encodeURIComponent(fieldKey) + localeQuery, {
           method: 'DELETE',
@@ -165,8 +166,8 @@
           body: JSON.stringify({})
         });
         if (res.ok) { location.reload(); }
-        else { alert('Error clearing override'); }
-      } catch (err) { alert('Error: ' + err.message); }
+        else { await dppAlert('Error clearing override'); }
+      } catch (err) { await dppAlert('Error: ' + err.message); }
     }
   </script>
 </body>

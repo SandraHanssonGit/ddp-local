@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/admin.css">
+  <script src="/js/admin-modal.js"></script>
 </head>
 <body>
   <div class="wrap">
@@ -504,15 +505,15 @@
               if (result.success) {
                 location.reload();
               } else {
-                alert('Error: ' + (result.error || 'Unknown error'));
+                await dppAlert('Error: ' + (result.error || 'Unknown error'));
               }
             } catch (err) {
-              alert('Error: ' + err.message);
+              await dppAlert('Error: ' + err.message);
             }
           }
 
           async function deleteField(fieldId, fieldKey) {
-            if (!confirm('Delete field "' + fieldKey + '"? This only works if no values have been set for it anywhere.')) return;
+            if (!(await dppConfirm('Delete field "' + fieldKey + '"? This only works if no values have been set for it anywhere.'))) return;
 
             try {
               const response = await fetch('/api/admin/fields/' + fieldId, { method: 'DELETE' });
@@ -520,10 +521,10 @@
               if (result.success) {
                 location.reload();
               } else {
-                alert('Error: ' + (result.error || 'Unknown error'));
+                await dppAlert('Error: ' + (result.error || 'Unknown error'));
               }
             } catch (err) {
-              alert('Error: ' + err.message);
+              await dppAlert('Error: ' + err.message);
             }
           }
 
@@ -554,13 +555,13 @@
 
               const result = await response.json();
               if (result.success) {
-                alert('Field created successfully');
+                await dppAlert('Field created successfully');
                 location.reload();
               } else {
-                alert('Error: ' + (result.error || 'Unknown error'));
+                await dppAlert('Error: ' + (result.error || 'Unknown error'));
               }
             } catch (err) {
-              alert('Error: ' + err.message);
+              await dppAlert('Error: ' + err.message);
             }
           });
         </script>

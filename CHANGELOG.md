@@ -4,6 +4,30 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 10) — Replace native confirm()/alert() with custom modal
+
+User pointed out that Save/Delete/Clear confirmation popups were the
+browser's native OS-styled `confirm()`/`alert()` dialogs, unstyleable
+and clashing with the rest of the design. Built a real replacement
+rather than leaving it:
+- New `public/js/admin-modal.js`: `window.dppAlert(message)` and
+  `window.dppConfirm(message)`, both returning Promises, lazily
+  creating one shared modal element matching `admin.css` (`.dpp-modal`,
+  `.dpp-modal-overlay` etc - reuses the existing `.btn`/`.btn-primary`
+  button styles).
+- Mechanically replaced all 85 `confirm(...)`/`alert(...)` call sites
+  across all 8 admin views (`hub-v2`, `style-detail`, `variant-detail`,
+  `batch-detail`, `gtin-detail`, `sgtin-detail`, `field-form`,
+  `import`) with `await dppConfirm(...)`/`await dppAlert(...)` -
+  verified every containing function was already `async` first, so no
+  call site needed restructuring beyond the direct swap.
+- `field-form.ejs` and `import.ejs` didn't load `admin.css` at all yet
+  (still pre-redesign Tailwind pages) - added the stylesheet + font
+  links to both so the new modal isn't unstyled there, without doing
+  a full redesign of those two pages.
+- Verified all 8 pages still render 200 after the change, and that no
+  bare `confirm(`/`alert(` call sites remain.
+
 ## 2026-09-16 (etapp 9) — Logo: fix tight crop (looked cut off)
 
 User feedback that the logo looked "avklippt" (cut off) on the login

@@ -10,9 +10,18 @@ below (nav, card, table, badge, button, input, level pills, lock
 banner) replaces the Tailwind-CDN utility markup page by page. Light
 mode only, no mobile layout - internal desk tool, per "Responsive"
 below. Done: `views/admin/hub-v2.ejs` (Styles/Variants/GTINs/Batches/
-SGTINs/Fields/Analytics tabs) and all 5 detail pages (style-detail,
-variant-detail, batch-detail, gtin-detail, sgtin-detail). Not yet done:
-field-form, import.
+SGTINs/Fields/Analytics tabs), all 5 detail pages (style-detail,
+variant-detail, batch-detail, gtin-detail, sgtin-detail), and
+`login-v2.ejs`. `field-form.ejs` and `import.ejs` still use the old
+Tailwind layout, though both now load `admin.css` too (needed for the
+modal component below to render styled).
+
+**Custom modal** (`public/js/admin-modal.js`, 2026-09-16): replaces
+native `confirm()`/`alert()` everywhere in admin - those are OS
+dialogs and can't be restyled. `window.dppAlert(msg)` /
+`window.dppConfirm(msg)` return Promises and render `.dpp-modal-overlay`
+/ `.dpp-modal` (admin.css), reusing the existing `.btn`/`.btn-primary`
+button styles.
 
 Live mockups: [Nudie DPP Brand Redesign](https://claude.ai/artifact/54jb72xppoKyoV7fQAUNzj)
 — a multi-artboard canvas covering the consumer passport (light + dark

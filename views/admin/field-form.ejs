@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= mode === 'create' ? 'Create Field' : 'Edit Field' %></title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/admin.css">
+  <script src="/js/admin-modal.js"></script>
 </head>
 <body class="bg-gray-50">
     <div class="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
@@ -209,13 +213,13 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    alert(result.message || 'Field saved successfully!');
+                    await dppAlert(result.message || 'Field saved successfully!');
                     window.location.href = '/admin-config';
                 } else {
-                    alert('Error: ' + result.error);
+                    await dppAlert('Error: ' + result.error);
                 }
             } catch (err) {
-                alert('Error: ' + err.message);
+                await dppAlert('Error: ' + err.message);
             }
         });
     </script>

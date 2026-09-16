@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/admin.css">
+  <script src="/js/admin-modal.js"></script>
 </head>
 <body>
   <div class="wrap">
@@ -264,19 +265,19 @@
         });
 
         if (res.ok) {
-          alert('Variant updated successfully');
+          await dppAlert('Variant updated successfully');
           location.reload();
         } else {
-          alert('Error updating variant');
+          await dppAlert('Error updating variant');
         }
       } catch (err) {
-        alert('Error: ' + err.message);
+        await dppAlert('Error: ' + err.message);
       }
     }
 
     async function uploadVariantImage() {
       const fileInput = document.getElementById('variant-image-upload');
-      if (!fileInput.files[0]) { alert('Please select an image'); return; }
+      if (!fileInput.files[0]) { await dppAlert('Please select an image'); return; }
 
       const formData = new FormData();
       formData.append('image', fileInput.files[0]);
@@ -286,22 +287,22 @@
           method: 'POST',
           body: formData
         });
-        if (res.ok) { alert('Image uploaded successfully'); location.reload(); }
-        else { alert('Error uploading image'); }
+        if (res.ok) { await dppAlert('Image uploaded successfully'); location.reload(); }
+        else { await dppAlert('Error uploading image'); }
       } catch (err) {
-        alert('Error: ' + err.message);
+        await dppAlert('Error: ' + err.message);
       }
     }
 
     async function deleteVariantImage() {
-      if (!confirm('Delete this image? The variant will revert to using the Style\'s image.')) return;
+      if (!(await dppConfirm('Delete this image? The variant will revert to using the Style\'s image.'))) return;
 
       try {
         const res = await fetch('/admin-v2/variant/<%= variant.id %>/image', { method: 'DELETE' });
-        if (res.ok) { alert('Image deleted'); location.reload(); }
-        else { alert('Error deleting image'); }
+        if (res.ok) { await dppAlert('Image deleted'); location.reload(); }
+        else { await dppAlert('Error deleting image'); }
       } catch (err) {
-        alert('Error: ' + err.message);
+        await dppAlert('Error: ' + err.message);
       }
     }
 
@@ -322,13 +323,13 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(values)
         });
-        if (res.ok) { alert('DPP values saved'); location.reload(); }
-        else { alert('Error saving DPP values'); }
-      } catch (err) { alert('Error: ' + err.message); }
+        if (res.ok) { await dppAlert('DPP values saved'); location.reload(); }
+        else { await dppAlert('Error saving DPP values'); }
+      } catch (err) { await dppAlert('Error: ' + err.message); }
     }
 
     async function clearOverride(fieldKey) {
-      if (!confirm('Clear this override? The field will go back to its inherited value.')) return;
+      if (!(await dppConfirm('Clear this override? The field will go back to its inherited value.'))) return;
       try {
         const res = await fetch('/api/admin/overrides/variant/<%= variant.id %>/field/' + encodeURIComponent(fieldKey) + localeQuery, {
           method: 'DELETE',
@@ -336,8 +337,8 @@
           body: JSON.stringify({})
         });
         if (res.ok) { location.reload(); }
-        else { alert('Error clearing override'); }
-      } catch (err) { alert('Error: ' + err.message); }
+        else { await dppAlert('Error clearing override'); }
+      } catch (err) { await dppAlert('Error: ' + err.message); }
     }
   </script>
 </body>

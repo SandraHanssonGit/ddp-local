@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/admin.css">
+  <script src="/js/admin-modal.js"></script>
 </head>
 <body>
   <div class="wrap">
@@ -291,27 +292,27 @@
         });
 
         if (res.ok) {
-          alert('DPP values saved');
+          await dppAlert('DPP values saved');
           location.reload();
         } else {
-          alert('Error saving DPP values');
+          await dppAlert('Error saving DPP values');
         }
       } catch (err) {
-        alert('Error: ' + err.message);
+        await dppAlert('Error: ' + err.message);
       }
     }
 
     async function markProduced() {
-      if (!confirm('Mark this batch as produced? Field edits after this point will be kept in the change log instead of overwritten.')) return;
+      if (!(await dppConfirm('Mark this batch as produced? Field edits after this point will be kept in the change log instead of overwritten.'))) return;
       try {
         const res = await fetch('/admin-v2/batch/<%= batch.id %>/mark-produced', { method: 'POST' });
         if (res.ok) { location.reload(); }
-        else { const data = await res.json(); alert('Error: ' + (data.error || 'could not mark as produced')); }
-      } catch (err) { alert('Error: ' + err.message); }
+        else { const data = await res.json(); await dppAlert('Error: ' + (data.error || 'could not mark as produced')); }
+      } catch (err) { await dppAlert('Error: ' + err.message); }
     }
 
     async function clearOverride(fieldKey) {
-      if (!confirm('Clear this value for the batch?')) return;
+      if (!(await dppConfirm('Clear this value for the batch?'))) return;
       try {
         const res = await fetch('/api/admin/overrides/batch/<%= batch.id %>/field/' + encodeURIComponent(fieldKey) + localeQuery, {
           method: 'DELETE',
@@ -319,8 +320,8 @@
           body: JSON.stringify({})
         });
         if (res.ok) { location.reload(); }
-        else { alert('Error clearing value'); }
-      } catch (err) { alert('Error: ' + err.message); }
+        else { await dppAlert('Error clearing value'); }
+      } catch (err) { await dppAlert('Error: ' + err.message); }
     }
 
     // Inject data from server
@@ -415,18 +416,18 @@
         const data = await res.json();
 
         if (res.ok) {
-          alert('GTIN added successfully');
+          await dppAlert('GTIN added successfully');
           location.reload();
         } else {
-          alert('Error: ' + (data.error || 'Failed to add GTIN'));
+          await dppAlert('Error: ' + (data.error || 'Failed to add GTIN'));
         }
       } catch (err) {
-        alert('Error: ' + err.message);
+        await dppAlert('Error: ' + err.message);
       }
     });
 
     async function removeBatchGtin(batchGtinId) {
-      if (!confirm('Remove this GTIN from batch?')) return;
+      if (!(await dppConfirm('Remove this GTIN from batch?'))) return;
 
       try {
         const res = await fetch(`/admin-v2/batch-gtins/${batchGtinId}`, {
@@ -434,14 +435,14 @@
         });
 
         if (res.ok) {
-          alert('GTIN removed');
+          await dppAlert('GTIN removed');
           location.reload();
         } else {
           const data = await res.json();
-          alert('Error: ' + (data.error || 'Failed to remove GTIN'));
+          await dppAlert('Error: ' + (data.error || 'Failed to remove GTIN'));
         }
       } catch (err) {
-        alert('Error: ' + err.message);
+        await dppAlert('Error: ' + err.message);
       }
     }
   </script>

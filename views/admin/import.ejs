@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Import GTINs</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+  <script src="/js/admin-modal.js"></script>
 </head>
 <body class="bg-gray-100">
   <div class="max-w-4xl mx-auto py-12 px-4">
@@ -190,7 +194,7 @@
       const csvContent = document.getElementById('csv-content').value;
 
       if (!csvContent.trim()) {
-        alert('Please paste CSV content');
+        await dppAlert('Please paste CSV content');
         return;
       }
 
@@ -203,7 +207,7 @@
 
         if (!response.ok) {
           const err = await response.json();
-          alert('Error: ' + (err.error || 'Unknown error'));
+          await dppAlert('Error: ' + (err.error || 'Unknown error'));
           return;
         }
 
@@ -214,7 +218,7 @@
         document.getElementById('preview-section').classList.remove('hidden');
         document.getElementById('import-btn').disabled = false;
       } catch (err) {
-        alert('Error: ' + err.message);
+        await dppAlert('Error: ' + err.message);
       }
     }
 
@@ -276,13 +280,13 @@
 
     async function executeImport() {
       if (!lastPreviewResult) {
-        alert('Please run preview first');
+        await dppAlert('Please run preview first');
         return;
       }
 
       const csvContent = document.getElementById('csv-content').value;
 
-      if (!confirm(`Import ${lastPreviewResult.stats.created} GTINs?`)) {
+      if (!(await dppConfirm(`Import ${lastPreviewResult.stats.created} GTINs?`))) {
         return;
       }
 
@@ -295,7 +299,7 @@
 
         if (!response.ok) {
           const err = await response.json();
-          alert('Error: ' + (err.error || 'Unknown error'));
+          await dppAlert('Error: ' + (err.error || 'Unknown error'));
           return;
         }
 
@@ -305,7 +309,7 @@
         document.getElementById('results-section').classList.remove('hidden');
         document.getElementById('preview-section').classList.add('hidden');
       } catch (err) {
-        alert('Error: ' + err.message);
+        await dppAlert('Error: ' + err.message);
       }
     }
 

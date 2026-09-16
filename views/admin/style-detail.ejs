@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/admin.css">
+  <script src="/js/admin-modal.js"></script>
 </head>
 <body>
   <div class="wrap">
@@ -354,20 +355,20 @@
         });
 
         if (res.ok) {
-          alert('Style updated successfully');
+          await dppAlert('Style updated successfully');
           location.reload();
         } else {
-          alert('Error updating style');
+          await dppAlert('Error updating style');
         }
       } catch (err) {
-        alert('Error: ' + err.message);
+        await dppAlert('Error: ' + err.message);
       }
     }
 
     async function uploadImage() {
       const fileInput = document.getElementById('image-upload');
       if (!fileInput.files[0]) {
-        alert('Please select an image');
+        await dppAlert('Please select an image');
         return;
       }
 
@@ -381,18 +382,18 @@
         });
 
         if (res.ok) {
-          alert('Image uploaded successfully');
+          await dppAlert('Image uploaded successfully');
           location.reload();
         } else {
-          alert('Error uploading image');
+          await dppAlert('Error uploading image');
         }
       } catch (err) {
-        alert('Error: ' + err.message);
+        await dppAlert('Error: ' + err.message);
       }
     }
 
     async function deleteStyleImage() {
-      if (!confirm('Delete this image?')) return;
+      if (!(await dppConfirm('Delete this image?'))) return;
 
       try {
         const res = await fetch('/api/admin/styles/<%= style.id %>/image', {
@@ -400,13 +401,13 @@
         });
 
         if (res.ok) {
-          alert('Image deleted');
+          await dppAlert('Image deleted');
           location.reload();
         } else {
-          alert('Error deleting image');
+          await dppAlert('Error deleting image');
         }
       } catch (err) {
-        alert('Error: ' + err.message);
+        await dppAlert('Error: ' + err.message);
       }
     }
 
@@ -428,13 +429,13 @@
         });
 
         if (res.ok) {
-          alert('DPP values saved');
+          await dppAlert('DPP values saved');
           location.reload();
         } else {
-          alert('Error saving DPP values');
+          await dppAlert('Error saving DPP values');
         }
       } catch (err) {
-        alert('Error: ' + err.message);
+        await dppAlert('Error: ' + err.message);
       }
     }
 
@@ -461,25 +462,25 @@
         if (result.success) {
           location.reload();
         } else {
-          alert('Error: ' + (result.error || 'Unknown error'));
+          await dppAlert('Error: ' + (result.error || 'Unknown error'));
         }
       } catch (err) {
-        alert('Error: ' + err.message);
+        await dppAlert('Error: ' + err.message);
       }
     });
 
     async function deleteSupplyChainStep(stepId) {
-      if (!confirm('Delete this supply chain step?')) return;
+      if (!(await dppConfirm('Delete this supply chain step?'))) return;
       try {
         const response = await fetch('/admin-v2/supply-chain/' + stepId, { method: 'DELETE' });
         const result = await response.json();
         if (result.success) {
           location.reload();
         } else {
-          alert('Error: ' + (result.error || 'Unknown error'));
+          await dppAlert('Error: ' + (result.error || 'Unknown error'));
         }
       } catch (err) {
-        alert('Error: ' + err.message);
+        await dppAlert('Error: ' + err.message);
       }
     }
   </script>
