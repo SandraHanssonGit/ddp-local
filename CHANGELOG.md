@@ -4,6 +4,37 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (final) — Phase 3: GS1 Digital Link
+
+- Planned before coding, per explicit ask: mapped all four UI
+  touchpoints that build a passport URL first, to avoid the pattern of
+  finding gaps mid-build - `hub-v2.ejs`, `sgtin-detail.ejs` (two
+  places), `style-detail.ejs`.
+- New `services/passport-page-service.js`: scan logging + resolve +
+  render, in one place, called by both `routes/dpp.js` (legacy,
+  `/dpp/:batch/:gtin/:sgtin`) and the new `routes/gs1.js`
+  (`/01/:gtin/21/:serial`, mounted at root). Deliberately shared, not
+  duplicated - the two URLs can't drift on scan tracking, `?lang=`, or
+  the JSON export.
+- Simpler than the original plan assumed: `sgtins` already has
+  `UNIQUE(gtin_id, serial_number)`, so GTIN + serial alone uniquely
+  identify an SGTIN - no batch needed in the GS1 URL, no port from the
+  archived branch needed either.
+- All four admin UI touchpoints updated to show `/01/{gtin}/21/{serial}`
+  as the primary link; `sgtin-detail.ejs` keeps the legacy URL visible
+  as a secondary, still-working internal link.
+- Verified end-to-end: GS1 HTML page and JSON export both work; French
+  locale resolves identically on the GS1 URL as it did on the legacy
+  one (proves the shared code path); a real before/after scan_events
+  count (25→26) confirms scan logging fires on the new route, not just
+  a 200 status code; legacy route still works unchanged; every
+  previous phase (lock, versioning, locale, variant) still passes.
+- Found, not fixed (pre-existing, unrelated): `/dpp/:batch/:gtin/scan`
+  is unreachable because Express matches the earlier-registered
+  `/:batch/:gtin/:sgtin` route first, treating "scan" as a literal
+  serial number. Same route order existed before this session touched
+  the file; logged in ROADMAP.md.
+
 ## 2026-09-16 (very newest) — Variant architecture fix
 
 - Confirmed against real product requirements: for tops, the product

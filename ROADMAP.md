@@ -167,13 +167,43 @@ the default/NULL row today) is the fallback everywhere.
     so a locale-tagged Style value is edited via the normal save form,
     not cleared via the override endpoint.
 
-## Phase 3 — GS1 Digital Link routing
+## Phase 3 — GS1 Digital Link routing ✅ Done (2026-09-16)
 
-Port `/01/:gtin_14/21/:serial` from the archived
-`archive-gtin-aug2026` branch, rewritten against the v2 schema
-(`sgtins` / `gtins`, not v1's `serials` table). Make this the canonical
-public URL (what QR codes point to); keep `/dpp/:batch/:gtin/:sgtin` as
-an internal/admin convenience link.
+Not ported from the archived branch as originally planned - written
+fresh against the v2 schema, which turned out simpler than expected:
+`sgtins` already has `UNIQUE(gtin_id, serial_number)`, so a GTIN +
+serial number alone uniquely identify an SGTIN with no batch needed in
+the URL at all.
+
+**Before writing any route code**, mapped every place in the admin UI
+that builds a passport URL (per explicit ask, to avoid discovering UI
+gaps mid-build again): `hub-v2.ejs`'s SGTINs tab, `sgtin-detail.ejs`'s
+quick-link button and sidebar URL card, `style-detail.ejs`'s example
+text. All four updated to show `/01/{gtin}/21/{serial}` as primary;
+`sgtin-detail.ejs` also keeps the legacy URL visible as a secondary
+"still works internally" link.
+
+**Shared rendering, not duplicated**: new `services/passport-page-service.js`
+holds the scan-logging + resolve + render logic once;
+`routes/dpp.js` (legacy) and the new `routes/gs1.js` both call it. This
+was the specific risk flagged before starting - scan tracking, `?lang=`,
+and the JSON export could easily have been wired into one route and
+forgotten on the other. Verified they didn't drift: locale-aware JSON
+resolves identically on both URLs, and a scan on the GS1 URL increments
+the same `scan_events` count as the legacy one (checked with a real
+before/after count, not just "it returns 200").
+
+`routes/gs1.js` mounted at root (`/01/:gtin/21/:serial[/json]`), not
+under `/dpp`, since GS1 Digital Link URIs aren't prefixed.
+
+**Known pre-existing issue, not touched**: `/dpp/:batch/:gtin/scan`
+(the lazy-SGTIN-creation scan form) is unreachable - Express matches
+`/:batch/:gtin/:sgtin` first (registered earlier in the same file), so
+a request to `.../scan` matches that route with `sgtin="scan"` instead
+of ever reaching the scan-form route. This existed before Phase 3 (same
+registration order preserved) and is separate from this SGTIN feature
+being incomplete anyway (missing `dpp-scan-form.ejs`, found earlier
+this session).
 
 ## Phase 4 — Economic operators
 

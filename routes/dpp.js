@@ -1,90 +1,28 @@
 const express = require('express');
 const router = express.Router();
 const passportResolver = require('../services/passport-resolver');
-const scanService = require('../services/scan-service');
-const fieldRepository = require('../repositories/fields');
+const passportPage = require('../services/passport-page-service');
 
 /**
- * Public Digital Product Passport
+ * Legacy Digital Product Passport URL
  * URL: /dpp/:batch/:gtin/:sgtin
- * Shows resolved DPP data for individual garment (SGTIN)
+ * Kept as an internal/admin convenience link (ROADMAP.md Phase 3) -
+ * the canonical public URL is now GS1 Digital Link (routes/gs1.js).
+ * Shares its rendering logic with that route via passport-page-service
+ * so scan logging, ?lang=, and the JSON export can't drift apart
+ * between the two URLs.
  */
 router.get('/:batch/:gtin/:sgtin', async (req, res) => {
   try {
     const { batch, gtin, sgtin } = req.params;
-    console.log(`[DPP] Searching: batch=${batch}, gtin=${gtin}, sgtin=${sgtin}`);
-    const db = require('../db/init-v2').db;
-
-    // Find SGTIN by batch_id, gtin, and serial_number
-    const sgtinRecord = await new Promise((resolve, reject) => {
-      db.get(
-        `SELECT sg.* FROM sgtins sg
-         JOIN gtins g ON g.id = sg.gtin_id
-         JOIN batches b ON b.id = sg.batch_id
-         WHERE b.batch_id = ? AND g.gtin = ? AND sg.serial_number = ?
-         LIMIT 1`,
-        [batch, gtin, sgtin],
-        (err, row) => {
-          console.log(`[DPP] Query result:`, err ? err.message : (row ? 'FOUND' : 'NOT_FOUND'));
-          if (err) reject(err);
-          else resolve(row);
-        }
-      );
-    });
+    const sgtinRecord = await passportPage.findSgtinByBatchGtinSerial(batch, gtin, sgtin);
 
     if (!sgtinRecord) {
-      return res.status(404).json({ error: 'SGTIN not found', params: { batch, gtin, sgtin } });
+      return res.status(404).render('passport-not-found', { serial_number: `${batch}/${gtin}/${sgtin}` });
     }
 
-    // Log scan event
-    await scanService.logScan(sgtinRecord.id, {
-      ip_address: req.ip,
-      user_agent: req.get('user-agent'),
-      method: req.query.method || 'qr'
-    });
-
-    try {
-      // ROADMAP.md Phase 2: ?lang= picks the language, falling back to
-      // the field's default value when no translation exists at any
-      // level (see passport-resolver.js's language-first resolution)
-      const locale = req.query.lang || null;
-
-      // Resolve full passport with inheritance
-      const passport = await passportResolver.resolveSgtinPassport(sgtinRecord.id, locale);
-
-      // Get scan stats
-      const scanStats = await scanService.getScanStats(sgtinRecord.id);
-
-      // Get lifecycle events
-      const events = await new Promise((resolve, reject) => {
-        db.all(
-          'SELECT * FROM lifecycle_events WHERE sgtin_id = ? ORDER BY created_at DESC',
-          [sgtinRecord.id],
-          (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows || []);
-          }
-        );
-      });
-
-      // Base path without query string, so the JSON link below can
-      // append /json cleanly instead of breaking on a ?lang= query
-      const basePath = `${req.baseUrl}${req.path}`;
-
-      res.render('dpp-passport', {
-        passport,
-        scanStats,
-        events,
-        url: basePath,
-        locale
-      });
-    } catch (resolverErr) {
-      console.error('[PassportResolver Error]', resolverErr);
-      return res.status(500).json({
-        error: 'Passport resolver error: ' + resolverErr.message,
-        sgtin: sgtinRecord
-      });
-    }
+    const basePath = `${req.baseUrl}${req.path}`;
+    await passportPage.renderPassportPage(req, res, sgtinRecord, basePath);
   } catch (err) {
     console.error('[dpp-passport]', err);
     res.status(500).json({ error: err.message });
@@ -94,72 +32,17 @@ router.get('/:batch/:gtin/:sgtin', async (req, res) => {
 /**
  * Machine-readable JSON export (for the EU DPP registry / interoperability)
  * URL: /dpp/:batch/:gtin/:sgtin/json
- * Only includes consumer_visible fields - does not log a scan event.
  */
 router.get('/:batch/:gtin/:sgtin/json', async (req, res) => {
   try {
     const { batch, gtin, sgtin } = req.params;
-    const db = require('../db/init-v2').db;
-
-    const sgtinRecord = await new Promise((resolve, reject) => {
-      db.get(
-        `SELECT sg.* FROM sgtins sg
-         JOIN gtins g ON g.id = sg.gtin_id
-         JOIN batches b ON b.id = sg.batch_id
-         WHERE b.batch_id = ? AND g.gtin = ? AND sg.serial_number = ?
-         LIMIT 1`,
-        [batch, gtin, sgtin],
-        (err, row) => (err ? reject(err) : resolve(row))
-      );
-    });
+    const sgtinRecord = await passportPage.findSgtinByBatchGtinSerial(batch, gtin, sgtin);
 
     if (!sgtinRecord) {
       return res.status(404).json({ error: 'SGTIN not found', params: { batch, gtin, sgtin } });
     }
 
-    const locale = req.query.lang || null;
-    const passport = await passportResolver.resolveSgtinPassport(sgtinRecord.id, locale);
-
-    const fieldDefs = await fieldRepository.listFieldDefinitions();
-    const consumerVisibleByKey = Object.fromEntries(
-      fieldDefs.map(f => [f.field_key, !!f.consumer_visible])
-    );
-
-    const fields = passport.resolvedFields
-      .filter(f => f.value && consumerVisibleByKey[f.fieldKey])
-      .map(f => ({
-        key: f.fieldKey,
-        label: f.label,
-        category: f.category,
-        value: f.value,
-        source: f.source,
-        locale: f.locale
-      }));
-
-    res.json({
-      format: 'ESPR 2024/1781 Digital Product Passport',
-      generatedAt: new Date().toISOString(),
-      requestedLocale: locale,
-      identifiers: {
-        gtin: passport.gtin.gtin,
-        serialNumber: passport.sgtin.serial_number,
-        sgtin: passport.sgtin.sgtin,
-        styleNumber: passport.style.style_number,
-        batchId: passport.batch.batch_id
-      },
-      product: {
-        name: passport.style.product_name,
-        type: passport.style.product_type,
-        size: passport.gtin.size_value_1,
-        color: passport.gtin.color
-      },
-      manufacturing: {
-        factory: passport.batch.factory,
-        countryOfProduction: passport.batch.country_of_production,
-        productionDate: passport.batch.production_date
-      },
-      fields
-    });
+    await passportPage.renderPassportJson(req, res, sgtinRecord);
   } catch (err) {
     console.error('[dpp-json]', err);
     res.status(500).json({ error: err.message });

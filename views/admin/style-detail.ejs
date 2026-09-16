@@ -86,11 +86,11 @@
           <h2 class="text-2xl font-bold text-gray-900 mb-6">Digital Product Passport (DPP)</h2>
 
           <div class="bg-blue-50 border border-blue-200 rounded p-4 mb-6">
-            <p class="text-sm text-blue-900"><strong>Public Passport URL:</strong></p>
+            <p class="text-sm text-blue-900"><strong>Public Passport URL (GS1 Digital Link):</strong></p>
             <p class="font-mono text-xs bg-white p-2 rounded border mt-2 break-all">
-              http://localhost:3000/dpp/{batch}/{gtin}/{serial}
+              http://localhost:3000/01/{gtin}/21/{serial}
             </p>
-            <p class="text-xs text-gray-600 mt-2">Example URLs will appear when you view batches and GTINs</p>
+            <p class="text-xs text-gray-600 mt-2">Example URLs will appear when you view GTINs and SGTINs</p>
           </div>
 
           <% const setDppValues = typeof dppValues !== 'undefined' ? dppValues.filter(v => v.value) : []; %>

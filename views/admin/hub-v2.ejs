@@ -258,7 +258,9 @@
               </thead>
               <tbody>
                 <% sgtins.forEach(sg => {
-                  const dppUrl = `/dpp/${sg.batch_id}/${sg.gtin}/${sg.serial_number}`;
+                  // ROADMAP.md Phase 3: GS1 Digital Link is now the canonical
+                  // public URL; /dpp/:batch/:gtin/:sgtin still works internally
+                  const dppUrl = `/01/${sg.gtin}/21/${sg.serial_number}`;
                 %>
                   <tr class="border-b border-gray-200 hover:bg-gray-50">
                     <td class="px-4 py-3 font-mono"><strong><%= sg.serial_number %></strong></td>

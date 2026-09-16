@@ -62,6 +62,9 @@ app.use('/p', require('./routes/public'));
 // Public DPP routes
 if (dbVersion === 'v2') {
   app.use('/dpp', require('./routes/dpp'));
+  // GS1 Digital Link (ROADMAP.md Phase 3) - canonical public passport
+  // URL, mounted at root since /01/.../21/... is not under /dpp
+  app.use('/', require('./routes/gs1'));
 }
 
 // V2 Admin API routes (if running v2)
