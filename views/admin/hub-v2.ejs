@@ -106,13 +106,7 @@
               <tbody>
                 <% variants.forEach(v => { %>
                   <tr>
-                    <td>
-                      <%= v.effective_product_name %>
-                      <% if (v.effective_product_name !== v.product_name) { %>
-                        <span class="badge badge-accent small" style="margin-left:6px;">Variant override</span>
-                        <span class="small muted" style="display:block; margin-top:2px;">Style default: <%= v.product_name %></span>
-                      <% } %>
-                    </td>
+                    <td><%= v.effective_product_name %></td>
                     <td class="mono"><strong><%= v.style_number %></strong></td>
                     <td class="mono"><strong><%= v.variant_name %></strong></td>
                     <td class="center"><span class="badge badge-accent"><%= v.gtin_count || 0 %></span></td>

@@ -4,6 +4,20 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 16) — Variants tab: drop the override badge, filter style dropdown
+
+Two follow-ups from the previous fix, per user feedback:
+- Since every variant will always have its own name (the rule
+  confirmed in etapp 15), the "Variant override" badge and "Style
+  default: X" caption added in etapp 14 no longer make sense - that's
+  now the standard case, not a notable exception. Removed both; the
+  cell just shows the variant's own product name.
+- The Variants tab's style filter dropdown listed every style,
+  including jeans styles that have zero variants (filtering by one
+  would always show an empty table). Changed the query to `JOIN
+  variants` so only styles that actually have at least one variant
+  appear (131274, 500001, 910006 in the current dataset).
+
 ## 2026-09-16 (etapp 15) — Fix demo data: every variant needs its own name
 
 User clarified the real business rule: every variant will always have

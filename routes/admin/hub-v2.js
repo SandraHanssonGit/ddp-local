@@ -134,7 +134,14 @@ router.get('/', async (req, res) => {
       query += ` GROUP BY v.id ORDER BY s.style_number, v.variant_name`;
 
       data.variants = await getAll(query, params);
-      data.styles = await getAll(`SELECT id, style_number, product_name FROM styles ORDER BY style_number`);
+      // Only styles that actually have variants - filtering by a
+      // variant-less style (e.g. jeans) would always show zero rows
+      data.styles = await getAll(`
+        SELECT DISTINCT s.id, s.style_number, s.product_name
+        FROM styles s
+        JOIN variants v ON v.style_id = s.id
+        ORDER BY s.style_number
+      `);
       data.selectedStyleId = styleId;
     }
 
