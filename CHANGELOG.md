@@ -11,10 +11,14 @@ User feedback on the consumer passport's Supply Chain section (style
 expanded, every category (Raw Material, Yarn Process, Trims, ...) was
 always fully shown with no way to collapse individual ones - long list
 to scroll through. Each category is now its own nested accordion
-(`.sub-accordion-header` + `.accordion-content.sub`), open by default
-so nothing changes until the visitor clicks. Also extended the rounded
-hover-highlight from etapp 4 to both the outer section headers and the
-new per-category headers, for the same "kritiker.se" hover feel.
+(`.sub-accordion-header` + `.accordion-content.sub`). Also extended the
+rounded hover-highlight from etapp 4 to both the outer section headers
+and the new per-category headers, for the same "kritiker.se" hover
+feel.
+
+Follow-up per user feedback: default state flipped to collapsed (first
+shipped open) - with 7 categories the fully-open list was exactly the
+long scroll this feature was meant to fix.
 
 ## 2026-09-16 (etapp 4) — Nav hover: rounded highlight (kritiker.se)
 
