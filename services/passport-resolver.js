@@ -1,4 +1,5 @@
 const styleRepository = require('../repositories/styles');
+const variantRepository = require('../repositories/variants');
 const batchRepository = require('../repositories/batches');
 const gtinRepository = require('../repositories/gtins');
 const sgtinRepository = require('../repositories/sgtins');
@@ -7,7 +8,9 @@ const fieldRepository = require('../repositories/fields');
 class PassportResolver {
   /**
    * Resolve a complete passport for an SGTIN
-   * Inheritance: SGTIN > GTIN > Batch > Style (via GTIN.style_id)
+   * Inheritance: SGTIN > GTIN > Batch > Variant > Style (via
+   * GTIN.style_id / GTIN.variant_id - Variant is optional, e.g. jeans
+   * GTINs have no variant_id, so that level is simply empty for them)
    *
    * ROADMAP.md Phase 2: locale is resolved language-first, then level -
    * if a translation exists ANYWHERE in the chain, it wins over a
@@ -41,6 +44,9 @@ class PassportResolver {
       throw new Error(`Style for GTIN not found`);
     }
 
+    // Load Variant, if this GTIN has one (not all product types do)
+    const variant = gtin.variant_id ? await variantRepository.getById(gtin.variant_id) : null;
+
     // Get all field definitions
     const fieldDefinitions = await fieldRepository.listFieldDefinitions();
 
@@ -48,22 +54,25 @@ class PassportResolver {
       await this._loadLevelValues('sgtin', sgtin.id, locale),
       await this._loadLevelValues('gtin', gtin.id, locale),
       await this._loadLevelValues('batch', batch.id, locale),
+      variant ? await this._loadLevelValues('variant', variant.id, locale) : { localized: {}, default: {} },
       await this._loadLevelValues('style', style.id, locale)
     ];
 
-    // Resolve all fields using inheritance precedence: SGTIN > GTIN > Batch > Style
+    // Resolve all fields using inheritance precedence: SGTIN > GTIN > Batch > Variant > Style
     const resolvedFields = fieldDefinitions.map(fieldDef =>
-      this._resolveFieldValueLocaleAware(fieldDef, levels, ['sgtin', 'gtin', 'batch', 'style'], locale)
+      this._resolveFieldValueLocaleAware(fieldDef, levels, ['sgtin', 'gtin', 'batch', 'variant', 'style'], locale)
     );
 
     return {
       sgtin,
       gtin,
       batch,
+      variant,
       style,
       resolvedFields,
       hierarchy: {
         styleId: style.id,
+        variantId: variant ? variant.id : null,
         batchId: batch.id,
         gtinId: gtin.id,
         sgtinId: sgtin.id
@@ -72,8 +81,8 @@ class PassportResolver {
   }
 
   /**
-   * Resolve passport for a GTIN (inherits from Batch and Style)
-   * Inheritance: GTIN > Batch > Style (via GTIN.style_id)
+   * Resolve passport for a GTIN (inherits from Batch, Variant, and Style)
+   * Inheritance: GTIN > Batch > Variant > Style
    */
   async resolveGtinPassport(gtinId, locale = null) {
     // Load GTIN
@@ -82,41 +91,43 @@ class PassportResolver {
       throw new Error(`GTIN ${gtinId} not found`);
     }
 
-    // Load Batch
-    const batch = await batchRepository.getById(gtin.batch_id);
-    if (!batch) {
-      throw new Error(`Batch for GTIN not found`);
-    }
-
     // Load Style (from GTIN.style_id)
     const style = await styleRepository.getById(gtin.style_id);
     if (!style) {
       throw new Error(`Style for GTIN not found`);
     }
 
+    // Load Variant, if this GTIN has one
+    const variant = gtin.variant_id ? await variantRepository.getById(gtin.variant_id) : null;
+
     // Get all field definitions
     const fieldDefinitions = await fieldRepository.listFieldDefinitions();
 
+    // NOTE: no Batch level here - GTINs are masterdata with no batch_id
+    // (a GTIN can appear in several batches via batch_gtins), so there's
+    // no single "the batch" to resolve against without an SGTIN pinning
+    // one down. Was previously reading a gtin.batch_id that doesn't
+    // exist in the schema, which meant this method always threw -
+    // fixed while adding Variant support.
     const levels = [
       await this._loadLevelValues('gtin', gtin.id, locale),
-      await this._loadLevelValues('batch', batch.id, locale),
-      await this._loadLevelValues('style', style.id, locale),
-      { localized: {}, default: {} }
+      variant ? await this._loadLevelValues('variant', variant.id, locale) : { localized: {}, default: {} },
+      await this._loadLevelValues('style', style.id, locale)
     ];
 
-    // Resolve all fields: GTIN > Batch > Style
+    // Resolve all fields: GTIN > Variant > Style
     const resolvedFields = fieldDefinitions.map(fieldDef =>
-      this._resolveFieldValueLocaleAware(fieldDef, levels, ['gtin', 'batch', 'style', null], locale)
+      this._resolveFieldValueLocaleAware(fieldDef, levels, ['gtin', 'variant', 'style'], locale)
     );
 
     return {
       gtin,
-      batch,
+      variant,
       style,
       resolvedFields,
       hierarchy: {
         styleId: style.id,
-        batchId: batch.id,
+        variantId: variant ? variant.id : null,
         gtinId: gtin.id
       }
     };

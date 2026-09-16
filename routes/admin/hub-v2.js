@@ -12,6 +12,7 @@ const router = express.Router();
 const db = require('../../db/init-v2').db;
 const batchGtinsRouter = require('./batch-gtins');
 const fieldRepository = require('../../repositories/fields');
+const variantRepository = require('../../repositories/variants');
 const fieldService = require('../../services/field-service');
 const passportVersionRepository = require('../../repositories/passport-versions');
 
@@ -405,17 +406,75 @@ router.get('/variant/:variantId', async (req, res) => {
     const gtinCount = gtins.length;
     const sgtinCount = gtins.reduce((sum, g) => sum + (g.sgtin_count || 0), 0);
 
+    // Variant has exactly one style_id, so "inherited from Style" is
+    // well-defined here - same pattern as GTIN's own inheritance
+    const locale = req.query.lang || null;
+    const variantFields = await fieldRepository.getFieldsForLevel('variant', variant.id, locale);
+    const styleValueMap = await buildLocaleAwareValueMap('style', style.id, locale);
+    const dppValues = variantFields.map(f => ({
+      ...f,
+      inheritedValue: styleValueMap[f.field_key] || null,
+      inheritedFrom: styleValueMap[f.field_key] ? 'Style' : null
+    }));
+    const availableLocales = await fieldRepository.getAvailableLocales('variant', variant.id);
+
     res.render('admin/variant-detail', {
       variant,
       style,
       gtins,
       gtinCount,
       sgtinCount,
+      dppValues,
+      locale,
+      availableLocales,
       user: { username: 'demo', role: 'admin' }
     });
   } catch (err) {
     console.error('[variant-detail]', err);
     res.status(500).render('admin/error', { error: err.message });
+  }
+});
+
+// Update variant info (name, and - per ROADMAP.md's variant
+// architecture fix - its own product_name/image_url, since some
+// product types like tops need these to differ per variant, not just
+// per style)
+router.patch('/variant/:variantId', async (req, res) => {
+  try {
+    const variant = await getOne('SELECT * FROM variants WHERE id = ?', [req.params.variantId]);
+    if (!variant) return res.status(404).json({ success: false, error: 'Variant not found' });
+
+    const { variant_name, product_name, image_url } = req.body;
+    const updates = {};
+    if (variant_name !== undefined) updates.variant_name = variant_name;
+    if (product_name !== undefined) updates.product_name = product_name || null;
+    if (image_url !== undefined) updates.image_url = image_url || null;
+
+    await variantRepository.update(variant.id, updates);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[variant-update]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Save DPP field values at Variant level
+router.post('/variant/:variantId/dpp-values', async (req, res) => {
+  try {
+    const variant = await getOne('SELECT * FROM variants WHERE id = ?', [req.params.variantId]);
+    if (!variant) return res.status(404).json({ success: false, error: 'Variant not found' });
+
+    const locale = req.query.lang || null;
+    for (const [fieldKey, value] of Object.entries(req.body)) {
+      if (value) {
+        await fieldService.setValue('variant', variant.id, fieldKey, value, { locale });
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[variant-dpp-values]', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -593,16 +652,18 @@ router.get('/gtin/:gtinId', async (req, res) => {
       ORDER BY b.batch_id DESC, sg.serial_number ASC
     `, [gtin.id]);
 
-    // GTIN has exactly one style_id, so "inherited from Style" is
-    // well-defined here (unlike Batch, which can span several styles)
+    // GTIN has exactly one style_id (and optionally one variant_id), so
+    // "inherited from Variant/Style" is well-defined here (unlike Batch,
+    // which can span several styles)
     const locale = req.query.lang || null;
     const gtinFields = await fieldRepository.getFieldsForLevel('gtin', gtin.id, locale);
+    const variantValueMap = variant ? await buildLocaleAwareValueMap('variant', variant.id, locale) : {};
     const styleValueMap = await buildLocaleAwareValueMap('style', style.id, locale);
-    const dppValues = gtinFields.map(f => ({
-      ...f,
-      inheritedValue: styleValueMap[f.field_key] || null,
-      inheritedFrom: styleValueMap[f.field_key] ? 'Style' : null
-    }));
+    const dppValues = gtinFields.map(f => {
+      const inheritedValue = variantValueMap[f.field_key] || styleValueMap[f.field_key] || null;
+      const inheritedFrom = variantValueMap[f.field_key] ? 'Variant' : styleValueMap[f.field_key] ? 'Style' : null;
+      return { ...f, inheritedValue, inheritedFrom };
+    });
     const availableLocales = await fieldRepository.getAvailableLocales('gtin', gtin.id);
 
     res.render('admin/gtin-detail', {
@@ -655,16 +716,17 @@ router.get('/sgtin/:sgtinId', async (req, res) => {
     const events = await getAll('SELECT * FROM lifecycle_events WHERE sgtin_id = ? ORDER BY created_at DESC', [sgtin.id]);
 
     // An SGTIN has a fixed GTIN and Batch, so the full inheritance
-    // chain (GTIN > Batch > Style) is well-defined here - same
+    // chain (GTIN > Batch > Variant > Style) is well-defined here - same
     // precedence passport-resolver.js uses for the public passport
     const locale = req.query.lang || null;
     const sgtinFields = await fieldRepository.getFieldsForLevel('sgtin', sgtin.id, locale);
     const gtinValueMap = await buildLocaleAwareValueMap('gtin', gtin.id, locale);
     const batchValueMap = await buildLocaleAwareValueMap('batch', batch.id, locale);
+    const variantValueMap = variant ? await buildLocaleAwareValueMap('variant', variant.id, locale) : {};
     const styleValueMap = await buildLocaleAwareValueMap('style', style.id, locale);
     const dppValues = sgtinFields.map(f => {
-      const inheritedValue = gtinValueMap[f.field_key] || batchValueMap[f.field_key] || styleValueMap[f.field_key] || null;
-      const inheritedFrom = gtinValueMap[f.field_key] ? 'GTIN' : batchValueMap[f.field_key] ? 'Batch' : styleValueMap[f.field_key] ? 'Style' : null;
+      const inheritedValue = gtinValueMap[f.field_key] || batchValueMap[f.field_key] || variantValueMap[f.field_key] || styleValueMap[f.field_key] || null;
+      const inheritedFrom = gtinValueMap[f.field_key] ? 'GTIN' : batchValueMap[f.field_key] ? 'Batch' : variantValueMap[f.field_key] ? 'Variant' : styleValueMap[f.field_key] ? 'Style' : null;
       return { ...f, inheritedValue, inheritedFrom };
     });
     const availableLocales = await fieldRepository.getAvailableLocales('sgtin', sgtin.id);

@@ -345,6 +345,9 @@
                   <input type="checkbox" name="editable_at_style" class="mr-2" checked /> Style
                 </label>
                 <label class="flex items-center">
+                  <input type="checkbox" name="editable_at_variant" class="mr-2" checked /> Variant
+                </label>
+                <label class="flex items-center">
                   <input type="checkbox" name="editable_at_batch" class="mr-2" checked /> Batch
                 </label>
                 <label class="flex items-center">
@@ -427,6 +430,7 @@
               required: formData.has('required'),
               consumer_visible: formData.has('consumer_visible'),
               editable_at_style: formData.has('editable_at_style'),
+              editable_at_variant: formData.has('editable_at_variant'),
               editable_at_batch: formData.has('editable_at_batch'),
               editable_at_gtin: formData.has('editable_at_gtin'),
               editable_at_sgtin: formData.has('editable_at_sgtin')

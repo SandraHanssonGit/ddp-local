@@ -327,6 +327,19 @@ const init = () => {
     db.run(`ALTER TABLE batches ADD COLUMN produced_at DATETIME`, () => {});
     db.run(`ALTER TABLE dpp_values ADD COLUMN locked_at DATETIME`, () => {});
 
+    // Variant-level architecture fix (ROADMAP.md): variants previously
+    // carried only a code/label (variant_name) - for product types like
+    // tops, the product name (and image) genuinely differs per variant,
+    // not just per style, so variants need their own content fields.
+    // NULL falls back to the style's product_name/image_url.
+    db.run(`ALTER TABLE variants ADD COLUMN product_name TEXT`, () => {});
+    db.run(`ALTER TABLE variants ADD COLUMN image_url TEXT`, () => {});
+
+    // Variant joins Style/Batch/GTIN/SGTIN as a DPP value level, between
+    // Batch and Style in resolution precedence (SGTIN > GTIN > Batch >
+    // Variant > Style) - see passport-resolver.js.
+    db.run(`ALTER TABLE field_definitions ADD COLUMN editable_at_variant BOOLEAN DEFAULT 1`, () => {});
+
     db.run(`CREATE INDEX IF NOT EXISTS idx_passport_versions_entity ON passport_versions(entity_type, entity_id)`, (err) => {
       if (err) console.error('[index passport_versions_entity]', err);
     });

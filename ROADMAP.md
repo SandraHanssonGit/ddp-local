@@ -204,23 +204,8 @@ COMPLIANCE.md open questions):
   levels (`editable_at_style`/`_batch`/`_gtin`/`_sgtin`) a field
   actually applies to (that's only visible in the create form, not
   afterward).
-- **Variant is missing as a DPP value level entirely.** The product
-  hierarchy is Style → Variant → GTIN, but `field-service.js`'s valid
-  entity types are only `style`, `batch`, `gtin`, `sgtin` — `variant`
-  isn't one of them. Per feedback: most fields (care instructions,
-  sustainability info, etc.) shouldn't need to be set per individual
-  GTIN (which is size-level granularity) - they should be settable
-  once at Style level, or once per Variant when a style has variants
-  (color/fit-level), not repeated across every size's GTIN. Fixing
-  this means: adding `variant` to the valid entity types across
-  `field-service.js`/`fieldRepository`/`override-service.js`, adding
-  it to the resolution precedence in `passport-resolver.js` (likely
-  SGTIN > GTIN > Variant > Batch > Style, batch's position relative to
-  variant still needs deciding), a `getFieldsForLevel`-style admin UI
-  for it, and an `editable_at_variant` column on `field_definitions`.
-  This is a real hierarchy change, not just a UI fix - worth scoping
-  as its own small phase rather than folding into the Fields-tab fix
-  above.
+- ~~**Variant is missing as a DPP value level entirely.**~~ ✅ Done -
+  see "Variant architecture fix" section above.
 
 - **Enforce `consumer_visible` on the live public passport page.**
   `routes/dpp.js` currently ignores it; the new JSON export endpoint
@@ -233,6 +218,51 @@ COMPLIANCE.md open questions):
 - **Visual redesign.** In progress as a design proposal only — see
   DESIGN_SYSTEM.md. Not blocking any phase above; can land whenever
   the team is ready to implement it in code.
+
+## Variant architecture fix ✅ Done (2026-09-16)
+
+**Finding, confirmed against real product data**: for product types
+like tops, the *product name itself* differs per variant (e.g. "Raw
+Hem T-Shirt Black" vs "Raw Hem T-Shirt Navy"), not just the size run.
+The schema didn't support this - `variants` only carried a code/label
+(`variant_name`); `product_name` and `image_url` lived solely on
+`styles`, shared identically across every variant. Confirmed in the
+schema: `styles.style_number` is `UNIQUE` on its own (not composite
+with variant), and `variants` had no content columns at all.
+
+**Fix:**
+- `variants.product_name` / `variants.image_url` added (both `NULL` =
+  falls back to the parent style's - most products, like jeans without
+  real variants, need no change).
+- `variant` added as a full DPP value level, joining
+  style/batch/gtin/sgtin - new `editable_at_variant` column on
+  `field_definitions`, `variant` added to the valid entity types in
+  `field-service.js` and `override-service.js`.
+- Resolution precedence, per explicit decision: **SGTIN > GTIN > Batch
+  > Variant > Style**. Verified with real overrides: a GTIN-level value
+  beat a Variant-level one, and the existing Batch-level
+  `country_of_origin` override still beat Variant, exactly as decided.
+- New `repositories/variants.js`; `variant-detail.ejs` gained a working
+  edit form (the old one called a `PATCH /api/admin/variants/:id`
+  endpoint that never existed - fixed to hit the real route) plus a DPP
+  Fields card and language tabs, matching the other three levels.
+- GTIN and SGTIN detail pages' "inherited from" logic now checks
+  Variant between Batch and Style/GTIN respectively.
+
+**Bug fixed in passing**: `resolveGtinPassport()` read a
+`gtin.batch_id` that doesn't exist in the schema (a GTIN can appear in
+several batches via `batch_gtins`, so there's no single "the batch" for
+a GTIN alone) - this method always threw before being called. Fixed by
+dropping Batch from the GTIN-only resolution chain (now GTIN > Variant
+> Style) while adding Variant support in the same edit.
+
+**Known bug found, not fixed (unrelated, pre-existing)**:
+`routes/admin/passports.js`'s `GET /gtin/:gtinId` route calls
+`passportResolver.getResolvedValuesByCategory()`, which has never
+existed on `PassportResolver`. Confirmed via testing - the route now
+gets past the batch_id bug above and fails on this next, separate one.
+Out of scope for the variant fix; flagged here for whoever picks up
+`routes/admin/passports.js`.
 
 ## Security note (found while building Phase 0, 2026-09-16)
 

@@ -4,6 +4,46 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (very newest) — Variant architecture fix
+
+- Confirmed against real product requirements: for tops, the product
+  *name* differs per variant (e.g. "Raw Hem T-Shirt Black" vs
+  "...Navy"), not just the size run - `variants` previously had no
+  content fields at all (`styles.style_number` is `UNIQUE` on its own,
+  and `variants` only carried `variant_name`, a label).
+- Added `variants.product_name` / `variants.image_url` (`NULL` = falls
+  back to the style's), and `variant` as a full DPP value level
+  (`editable_at_variant` on `field_definitions`, added to
+  `field-service.js`/`override-service.js`'s valid entity types).
+- Resolution precedence, per explicit decision: SGTIN > GTIN > Batch >
+  Variant > Style. Verified with real overrides that GTIN and the
+  existing Batch-level `country_of_origin` override both still beat a
+  Variant-level value, exactly as decided.
+- New `repositories/variants.js`. `variant-detail.ejs`'s edit form
+  previously called `PATCH /api/admin/variants/:id`, which never
+  existed anywhere in the codebase (a second broken save button found
+  this session) - fixed to call the real route
+  (`/admin-v2/variant/:id`) and now also saves `product_name`/
+  `image_url`. Added a DPP Fields card + language tabs matching the
+  other three levels.
+- **Bug fixed in passing**: `resolveGtinPassport()` read
+  `gtin.batch_id`, a column that doesn't exist (a GTIN can belong to
+  several batches via `batch_gtins`) - this method always threw before
+  it could ever be reached. Fixed by dropping Batch from the GTIN-only
+  chain (now GTIN > Variant > Style) since editing it for Variant
+  support anyway.
+- **Found, not fixed (separate, pre-existing bug)**:
+  `routes/admin/passports.js`'s GTIN route also calls a
+  `passportResolver.getResolvedValuesByCategory()` that has never
+  existed - confirmed by testing that the route now fails on this next
+  bug instead of the batch_id one. Logged in ROADMAP.md, out of scope
+  here.
+- Verified end-to-end: variant-level override → correct in the public
+  JSON export with `source: "variant"`; GTIN-level and existing
+  Batch-level overrides both still correctly outrank a Variant value;
+  jeans (no variant) SGTINs unaffected; Phase 0/1/2 features (locking,
+  versioning, locale) all still working after the change.
+
 ## 2026-09-16 (newest) — Phase 2: multi-language infrastructure
 
 - **Schema rebuild, done carefully**: `dpp_values` had

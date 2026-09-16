@@ -61,7 +61,7 @@ class FieldService {
   // tied to a specific production run.
   async setValue(entityType, entityId, fieldKey, value, options = {}) {
     // Validate entity type
-    const validTypes = ['style', 'batch', 'gtin', 'sgtin'];
+    const validTypes = ['style', 'variant', 'batch', 'gtin', 'sgtin'];
     if (!validTypes.includes(entityType)) {
       throw new Error(`Invalid entity type. Must be one of: ${validTypes.join(', ')}`);
     }

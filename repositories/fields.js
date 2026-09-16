@@ -6,8 +6,8 @@ class FieldRepository {
     const sql = `
       INSERT INTO field_definitions
       (field_key, label, description, data_type, category, required, consumer_visible,
-       editable_at_style, editable_at_batch, editable_at_gtin, editable_at_sgtin, sort_order)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_sgtin, sort_order)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const result = await db.run(sql, [
       fieldKey,
@@ -18,6 +18,7 @@ class FieldRepository {
       options.required ? 1 : 0,
       options.consumer_visible !== false ? 1 : 0,
       options.editable_at_style !== false ? 1 : 0,
+      options.editable_at_variant !== false ? 1 : 0,
       options.editable_at_batch !== false ? 1 : 0,
       options.editable_at_gtin !== false ? 1 : 0,
       options.editable_at_sgtin !== false ? 1 : 0,
@@ -51,7 +52,7 @@ class FieldRepository {
 
   async updateFieldDefinition(fieldId, updates) {
     const allowedFields = ['label', 'description', 'required', 'consumer_visible', 'sort_order', 'category',
-                          'editable_at_style', 'editable_at_batch', 'editable_at_gtin', 'editable_at_sgtin'];
+                          'editable_at_style', 'editable_at_variant', 'editable_at_batch', 'editable_at_gtin', 'editable_at_sgtin'];
     const setClauses = [];
     const values = [];
 
@@ -173,6 +174,7 @@ class FieldRepository {
   async getFieldsForLevel(entityType, entityId, locale = null) {
     const editableColumn = {
       style: 'editable_at_style',
+      variant: 'editable_at_variant',
       batch: 'editable_at_batch',
       gtin: 'editable_at_gtin',
       sgtin: 'editable_at_sgtin'

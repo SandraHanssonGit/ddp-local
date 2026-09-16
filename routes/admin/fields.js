@@ -18,7 +18,7 @@ router.post('/', async (req, res) => {
   try {
     const {
       field_key, label, category, description, data_type, required, consumer_visible, sort_order,
-      editable_at_style, editable_at_batch, editable_at_gtin, editable_at_sgtin
+      editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_sgtin
     } = req.body;
 
     if (!field_key || !label || !category) {
@@ -32,6 +32,7 @@ router.post('/', async (req, res) => {
       consumer_visible: consumer_visible !== false,
       sort_order: sort_order || 0,
       editable_at_style: editable_at_style !== false,
+      editable_at_variant: editable_at_variant !== false,
       editable_at_batch: editable_at_batch !== false,
       editable_at_gtin: editable_at_gtin !== false,
       editable_at_sgtin: editable_at_sgtin !== false
