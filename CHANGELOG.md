@@ -4,6 +4,14 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 18) — Rename "Product Variants" heading to "Style Variants"
+
+User feedback: "Product Variants" was the only place using "Product"
+as the top-level entity name - everywhere else in the app (Styles tab,
+Style detail, "Style #" column) it's "Style". Renamed the heading for
+consistency rather than renaming "Style" to "Product" everywhere else,
+since "Style" is the term used throughout the domain model.
+
 ## 2026-09-16 (etapp 17) — Fix remaining demo data: name every variant
 
 User spotted the same gap on the Belt style: "Leather Belt Classic"
