@@ -95,7 +95,7 @@
             <table>
               <thead>
                 <tr>
-                  <th>Style</th>
+                  <th>Product Name</th>
                   <th>Style #</th>
                   <th>Variant</th>
                   <th class="center">GTINs</th>
@@ -109,7 +109,8 @@
                     <td>
                       <%= v.effective_product_name %>
                       <% if (v.effective_product_name !== v.product_name) { %>
-                        <span class="small muted" style="display:block;"><%= v.product_name %> (style default)</span>
+                        <span class="badge badge-accent small" style="margin-left:6px;">Variant override</span>
+                        <span class="small muted" style="display:block; margin-top:2px;">Style default: <%= v.product_name %></span>
                       <% } %>
                     </td>
                     <td class="mono"><strong><%= v.style_number %></strong></td>

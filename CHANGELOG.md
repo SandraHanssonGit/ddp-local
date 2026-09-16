@@ -4,6 +4,23 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 14) — Fix confusing variant product-name label
+
+User asked why a variant row showed "Raw Hem T-Shirt Black" with
+"Raw Hem T-Shirt (style default)" underneath - looked like a bug or
+duplicated data. It wasn't a bug: variant B01 genuinely has its own
+`product_name` override ("Raw Hem T-Shirt Black"), and the caption was
+showing the Style's own name for reference - but "(style default)"
+tacked onto the end read ambiguously, not clearly saying "this is an
+override."
+
+Reworded: added an explicit "Variant override" badge next to the
+effective name, and changed the caption to "Style default: X" (was
+"X (style default)"). Also renamed the Variants tab's first column
+header from "Style" to "Product Name" - it was showing a product name
+value, not the style itself (the actual style number already has its
+own "Style #" column).
+
 ## 2026-09-16 (etapp 13) — Rename "Supply Chain" to "Transparency" (display only)
 
 User feedback: "Supply Chain" felt like the wrong word - it reads as a
