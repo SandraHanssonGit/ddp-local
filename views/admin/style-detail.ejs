@@ -257,16 +257,16 @@
           </div>
         </div>
 
-        <!-- Supply Chain Card -->
+        <!-- Transparency Card (internal code/table names stay "supply chain") -->
         <div class="card">
           <div class="card-head">
-            <h2>Supply Chain</h2>
+            <h2>Transparency</h2>
             <button onclick="document.getElementById('addSupplyChainForm').classList.toggle('hidden')" class="btn btn-primary">+ Add Step</button>
           </div>
 
           <!-- Add step form -->
           <div id="addSupplyChainForm" class="form-panel hidden">
-            <h3 style="margin-bottom:16px; font-size:16px;">Add Supply Chain Step</h3>
+            <h3 style="margin-bottom:16px; font-size:16px;">Add Transparency Step</h3>
             <form id="supplyChainForm">
               <div class="field-grid">
                 <div>
@@ -322,7 +322,7 @@
               </div>
             <% }); %>
           <% } else { %>
-            <p class="muted" style="font-style:italic;">No supply chain steps added yet.</p>
+            <p class="muted" style="font-style:italic;">No transparency steps added yet.</p>
           <% } %>
         </div>
 
@@ -517,7 +517,7 @@
     });
 
     async function deleteSupplyChainStep(stepId) {
-      if (!(await dppConfirm('Delete this supply chain step?'))) return;
+      if (!(await dppConfirm('Delete this transparency step?'))) return;
       try {
         const response = await fetch('/admin-v2/supply-chain/' + stepId, { method: 'DELETE' });
         const result = await response.json();

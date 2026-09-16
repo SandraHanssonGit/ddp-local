@@ -4,6 +4,22 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 13) — Rename "Supply Chain" to "Transparency" (display only)
+
+User feedback: "Supply Chain" felt like the wrong word - it reads as a
+logistics/ops term, whereas nudiejeans.com's real feature (and the old
+v1 schema's `transparency_data` table) calls this "Transparency",
+which better captures the consumer-facing intent (showing customers
+where/how the product was made, not internal logistics).
+
+Renamed only the user-visible labels - the admin card heading, its
+"Add ... Step" form heading, its empty-state text, the delete
+confirmation copy, and the public passport's section heading. Left
+every internal identifier unchanged (the `supply_chain_steps` table,
+`repositories/supply-chain.js`, the `/style/:id/supply-chain` routes)
+per explicit decision - renaming those would need a DB migration and
+touches already-tested code for zero user-facing benefit.
+
 ## 2026-09-16 (etapp 12) — Phase 4: Economic operators
 
 Built the ESPR-required "who is legally responsible" identity
