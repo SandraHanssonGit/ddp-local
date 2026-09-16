@@ -8,8 +8,15 @@ class PassportResolver {
   /**
    * Resolve a complete passport for an SGTIN
    * Inheritance: SGTIN > GTIN > Batch > Style (via GTIN.style_id)
+   *
+   * ROADMAP.md Phase 2: locale is resolved language-first, then level -
+   * if a translation exists ANYWHERE in the chain, it wins over a
+   * default-language value at a higher-precedence level. Only once no
+   * level has a translation does resolution fall back to the default
+   * (locale = null) chain. Pass locale = null (default) for the
+   * original, language-free behavior.
    */
-  async resolveSgtinPassport(sgtinId) {
+  async resolveSgtinPassport(sgtinId, locale = null) {
     // Load SGTIN
     const sgtin = await sgtinRepository.getById(sgtinId);
     if (!sgtin) {
@@ -37,31 +44,17 @@ class PassportResolver {
     // Get all field definitions
     const fieldDefinitions = await fieldRepository.listFieldDefinitions();
 
-    // Load DPP values for all levels
-    const styleValues = await fieldRepository.getEntityValues('style', style.id);
-    const batchValues = await fieldRepository.getEntityValues('batch', batch.id);
-    const gtinValues = await fieldRepository.getEntityValues('gtin', gtin.id);
-    const sgtinValues = await fieldRepository.getEntityValues('sgtin', sgtin.id);
-
-    // Build value maps for quick lookup
-    const styleValueMap = this._buildValueMap(styleValues);
-    const batchValueMap = this._buildValueMap(batchValues);
-    const gtinValueMap = this._buildValueMap(gtinValues);
-    const sgtinValueMap = this._buildValueMap(sgtinValues);
+    const levels = [
+      await this._loadLevelValues('sgtin', sgtin.id, locale),
+      await this._loadLevelValues('gtin', gtin.id, locale),
+      await this._loadLevelValues('batch', batch.id, locale),
+      await this._loadLevelValues('style', style.id, locale)
+    ];
 
     // Resolve all fields using inheritance precedence: SGTIN > GTIN > Batch > Style
-    const resolvedFields = [];
-
-    for (const fieldDef of fieldDefinitions) {
-      const resolved = this._resolveFieldValue(
-        fieldDef,
-        sgtinValueMap,
-        gtinValueMap,
-        batchValueMap,
-        styleValueMap
-      );
-      resolvedFields.push(resolved);
-    }
+    const resolvedFields = fieldDefinitions.map(fieldDef =>
+      this._resolveFieldValueLocaleAware(fieldDef, levels, ['sgtin', 'gtin', 'batch', 'style'], locale)
+    );
 
     return {
       sgtin,
@@ -82,7 +75,7 @@ class PassportResolver {
    * Resolve passport for a GTIN (inherits from Batch and Style)
    * Inheritance: GTIN > Batch > Style (via GTIN.style_id)
    */
-  async resolveGtinPassport(gtinId) {
+  async resolveGtinPassport(gtinId, locale = null) {
     // Load GTIN
     const gtin = await gtinRepository.getById(gtinId);
     if (!gtin) {
@@ -104,30 +97,17 @@ class PassportResolver {
     // Get all field definitions
     const fieldDefinitions = await fieldRepository.listFieldDefinitions();
 
-    // Load DPP values
-    const styleValues = await fieldRepository.getEntityValues('style', style.id);
-    const batchValues = await fieldRepository.getEntityValues('batch', batch.id);
-    const gtinValues = await fieldRepository.getEntityValues('gtin', gtin.id);
-
-    // Build value maps
-    const styleValueMap = this._buildValueMap(styleValues);
-    const batchValueMap = this._buildValueMap(batchValues);
-    const gtinValueMap = this._buildValueMap(gtinValues);
-    const emptyMap = {};
+    const levels = [
+      await this._loadLevelValues('gtin', gtin.id, locale),
+      await this._loadLevelValues('batch', batch.id, locale),
+      await this._loadLevelValues('style', style.id, locale),
+      { localized: {}, default: {} }
+    ];
 
     // Resolve all fields: GTIN > Batch > Style
-    const resolvedFields = [];
-
-    for (const fieldDef of fieldDefinitions) {
-      const resolved = this._resolveFieldValue(
-        fieldDef,
-        gtinValueMap,
-        batchValueMap,
-        styleValueMap,
-        emptyMap
-      );
-      resolvedFields.push(resolved);
-    }
+    const resolvedFields = fieldDefinitions.map(fieldDef =>
+      this._resolveFieldValueLocaleAware(fieldDef, levels, ['gtin', 'batch', 'style', null], locale)
+    );
 
     return {
       gtin,
@@ -146,7 +126,7 @@ class PassportResolver {
    * Resolve passport for a Batch
    * Shows all unique GTINs in batch grouped by style
    */
-  async resolveBatchPassport(batchId) {
+  async resolveBatchPassport(batchId, locale = null) {
     // Load Batch
     const batch = await batchRepository.getById(batchId);
     if (!batch) {
@@ -178,28 +158,18 @@ class PassportResolver {
     const fieldDefinitions = await fieldRepository.listFieldDefinitions();
 
     // Load batch-level values
-    const batchValues = await fieldRepository.getEntityValues('batch', batch.id);
-    const batchValueMap = this._buildValueMap(batchValues);
+    const batchLevel = await this._loadLevelValues('batch', batch.id, locale);
 
     // For each style, resolve passport
     const passportsByStyle = {};
     for (const [styleId, gtinList] of Object.entries(gtinsByStyle)) {
       const style = styles[styleId];
-      const styleValues = await fieldRepository.getEntityValues('style', style.id);
-      const styleValueMap = this._buildValueMap(styleValues);
+      const styleLevel = await this._loadLevelValues('style', style.id, locale);
 
-      const resolvedFields = [];
-      for (const fieldDef of fieldDefinitions) {
-        // Batch > Style (no GTIN/SGTIN)
-        const resolved = this._resolveFieldValue(
-          fieldDef,
-          {},
-          batchValueMap,
-          styleValueMap,
-          {}
-        );
-        resolvedFields.push(resolved);
-      }
+      const levels = [{ localized: {}, default: {} }, batchLevel, styleLevel, { localized: {}, default: {} }];
+      const resolvedFields = fieldDefinitions.map(fieldDef =>
+        this._resolveFieldValueLocaleAware(fieldDef, levels, [null, 'batch', 'style', null], locale)
+      );
 
       passportsByStyle[styleId] = {
         style,
@@ -222,7 +192,7 @@ class PassportResolver {
   /**
    * Resolve passport for a Style
    */
-  async resolveStylePassport(styleId) {
+  async resolveStylePassport(styleId, locale = null) {
     // Load Style
     const style = await styleRepository.getById(styleId);
     if (!style) {
@@ -233,22 +203,13 @@ class PassportResolver {
     const fieldDefinitions = await fieldRepository.listFieldDefinitions();
 
     // Load style-level values
-    const styleValues = await fieldRepository.getEntityValues('style', styleId);
-    const styleValueMap = this._buildValueMap(styleValues);
+    const styleLevel = await this._loadLevelValues('style', styleId, locale);
+    const levels = [{ localized: {}, default: {} }, { localized: {}, default: {} }, styleLevel, { localized: {}, default: {} }];
 
     // Resolve all fields (style only)
-    const resolvedFields = [];
-    for (const fieldDef of fieldDefinitions) {
-      const resolved = {
-        fieldId: fieldDef.id,
-        fieldKey: fieldDef.field_key,
-        label: fieldDef.label,
-        value: styleValueMap[fieldDef.field_key] || null,
-        source: styleValueMap[fieldDef.field_key] ? 'style' : null,
-        category: fieldDef.category
-      };
-      resolvedFields.push(resolved);
-    }
+    const resolvedFields = fieldDefinitions.map(fieldDef =>
+      this._resolveFieldValueLocaleAware(fieldDef, levels, [null, null, 'style', null], locale)
+    );
 
     return {
       style,
@@ -273,9 +234,85 @@ class PassportResolver {
   }
 
   /**
+   * ROADMAP.md Phase 2 helper: load both the default (locale=null) and
+   * requested-locale value maps for one entity. If no locale is
+   * requested, the localized map is left empty - no extra query, and
+   * resolution below falls straight to the default map, unchanged from
+   * pre-Phase-2 behavior.
+   */
+  async _loadLevelValues(entityType, entityId, locale) {
+    const defaultValues = await fieldRepository.getEntityValues(entityType, entityId, null);
+    const defaultMap = this._buildValueMap(defaultValues);
+
+    if (!locale) {
+      return { localized: {}, default: defaultMap };
+    }
+
+    const localizedValues = await fieldRepository.getEntityValues(entityType, entityId, locale);
+    const localizedMap = this._buildValueMap(localizedValues);
+    return { localized: localizedMap, default: defaultMap };
+  }
+
+  /**
+   * ROADMAP.md Phase 2: language-first, then level. If a translation
+   * exists at ANY level for the requested locale, it wins over a
+   * default-language value at a higher-precedence level. Only when no
+   * level has a translation does resolution fall back to the default
+   * (locale = null) chain, in the same level precedence.
+   */
+  _resolveFieldValueLocaleAware(fieldDef, levels, sourceNames, requestedLocale) {
+    if (requestedLocale) {
+      for (let i = 0; i < levels.length; i++) {
+        const v = levels[i].localized[fieldDef.field_key];
+        if (v) {
+          return {
+            fieldId: fieldDef.id,
+            fieldKey: fieldDef.field_key,
+            label: fieldDef.label,
+            value: v,
+            source: sourceNames[i],
+            category: fieldDef.category,
+            dataType: fieldDef.data_type,
+            locale: requestedLocale
+          };
+        }
+      }
+    }
+
+    for (let i = 0; i < levels.length; i++) {
+      const v = levels[i].default[fieldDef.field_key];
+      if (v) {
+        return {
+          fieldId: fieldDef.id,
+          fieldKey: fieldDef.field_key,
+          label: fieldDef.label,
+          value: v,
+          source: sourceNames[i],
+          category: fieldDef.category,
+          dataType: fieldDef.data_type,
+          locale: null
+        };
+      }
+    }
+
+    return {
+      fieldId: fieldDef.id,
+      fieldKey: fieldDef.field_key,
+      label: fieldDef.label,
+      value: undefined,
+      source: null,
+      category: fieldDef.category,
+      dataType: fieldDef.data_type,
+      locale: null
+    };
+  }
+
+  /**
    * Helper: Resolve a single field value through inheritance levels
    * Returns { fieldId, fieldKey, label, value, source, category }
    * source can be: sgtin, gtin, batch, style (or null if undefined)
+   * @deprecated kept for reference; all resolve*Passport methods now
+   * use _resolveFieldValueLocaleAware for Phase 2 language support
    */
   _resolveFieldValue(fieldDef, level1Map, level2Map, level3Map, level4Map, sourceNames = ['sgtin', 'gtin', 'batch', 'style']) {
     // Try each level in precedence order

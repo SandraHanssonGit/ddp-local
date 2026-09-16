@@ -66,13 +66,16 @@ class FieldService {
       throw new Error(`Invalid entity type. Must be one of: ${validTypes.join(', ')}`);
     }
 
+    // ROADMAP.md Phase 2: locale = null is the default/fallback value
+    const locale = options.locale || null;
+
     // Get field definition
     const fieldDef = await fieldRepository.getFieldDefinitionByKey(fieldKey);
     if (!fieldDef) {
       throw new Error(`Field '${fieldKey}' not found`);
     }
 
-    const currentDppValue = await fieldRepository.getDppValue(fieldDef.id, entityType, entityId);
+    const currentDppValue = await fieldRepository.getDppValue(fieldDef.id, entityType, entityId, locale);
     const oldValue = currentDppValue ? currentDppValue.value : null;
 
     const valueChanged = oldValue !== value;
@@ -109,11 +112,12 @@ class FieldService {
       entityId,
       value,
       sourceSystem,
-      userId
+      userId,
+      locale
     );
 
     if (await this.isEntityLocked(entityType, entityId)) {
-      await fieldRepository.markValueLocked(fieldDef.id, entityType, entityId);
+      await fieldRepository.markValueLocked(fieldDef.id, entityType, entityId, locale);
     }
 
     return result;

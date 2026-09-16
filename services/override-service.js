@@ -20,8 +20,11 @@ class OverrideService {
       throw new Error(`Field '${fieldKey}' not found`);
     }
 
+    // ROADMAP.md Phase 2: locale = null is the default/fallback value
+    const locale = options.locale || null;
+
     // Get current value (might be null if no override exists)
-    const currentDppValue = await fieldRepository.getDppValue(fieldDef.id, entityType, entityId);
+    const currentDppValue = await fieldRepository.getDppValue(fieldDef.id, entityType, entityId, locale);
     const oldValue = currentDppValue ? currentDppValue.value : null;
 
     // Determine action
@@ -48,7 +51,8 @@ class OverrideService {
       entityId,
       newValue,
       sourceSystem,
-      userId
+      userId,
+      locale
     );
 
     return {
@@ -78,8 +82,11 @@ class OverrideService {
       throw new Error(`Field '${fieldKey}' not found`);
     }
 
+    // ROADMAP.md Phase 2: locale = null is the default/fallback value
+    const locale = options.locale || null;
+
     // Get current override value
-    const currentDppValue = await fieldRepository.getDppValue(fieldDef.id, entityType, entityId);
+    const currentDppValue = await fieldRepository.getDppValue(fieldDef.id, entityType, entityId, locale);
     if (!currentDppValue) {
       throw new Error(`No override found for ${fieldKey} at ${entityType} ${entityId}`);
     }
@@ -98,7 +105,7 @@ class OverrideService {
     );
 
     // Remove the value
-    await fieldRepository.removeDppValue(fieldDef.id, entityType, entityId);
+    await fieldRepository.removeDppValue(fieldDef.id, entityType, entityId, locale);
 
     return {
       changeId,

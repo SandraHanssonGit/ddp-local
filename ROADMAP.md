@@ -127,15 +127,45 @@ stamped; edited a GTIN-level field on the same chain and confirmed the
 SGTIN's passport version did **not** bump (scope working as decided);
 confirmed the public `/dpp/.../json` export is unaffected.
 
-## Phase 2 — Locale
+## Phase 2 — Locale ✅ Done (2026-09-16)
 
-**New column:** `dpp_values.locale TEXT NULL` (`NULL` = default /
-language-independent, e.g. numeric values).
+**Schema:** `dpp_values` rebuilt (SQLite can't `ALTER` a `UNIQUE`
+constraint) with `locale TEXT NULL` added to
+`UNIQUE(field_definition_id, entity_type, entity_id, locale)`.
+`locale = NULL` = the default/fallback value - all pre-Phase-2 data
+became "default" automatically, no content migration needed. Rebuild
+is guarded (checks for the column first) and was verified to preserve
+every row, including `locked_at` timestamps, before being run for
+real.
 
-**Resolver behavior:** `passport-resolver.js` takes a `locale`
-parameter; falls back to English when a translation for the requested
-locale is missing (agreed: English fallback, not a hard block on
-publishing until every language is translated).
+**Resolution: language-first, then level** (per explicit decision).
+`passport-resolver.js` searches every level (SGTIN > GTIN > Batch >
+Style) for a value in the requested locale first; only if **no** level
+has one does it fall back to the same level order in the default
+locale. Verified with a real conflict: a French translation set at
+**Style** (lowest precedence) correctly won over an English override
+set directly on the **SGTIN** (highest precedence) when a French
+passport was requested - and the English SGTIN value still won when no
+language was requested, confirming no regression to the pre-Phase-2
+behavior.
+
+**Scope, per explicit decision:** infrastructure only - no actual
+translations were entered as real content. English (i.e. whatever's in
+the default/NULL row today) is the fallback everywhere.
+
+**Where it's wired in:**
+- `?lang=` query param on the public passport HTML page and the JSON
+  export (`/dpp/:batch/:gtin/:sgtin[/json]?lang=fr-FR`)
+- A language tab bar (Default + every locale with content + a free-text
+  "add a locale" box) on all four admin detail pages (Style, Batch,
+  GTIN, SGTIN) - reads via `?lang=` on the page itself, writes via the
+  same query param on the save/clear-override calls
+- `services/override-service.js`'s `setOverride`/`removeOverride` also
+  became locale-aware (they write through the same `dpp_values` table)
+  - a Style-level field, however, has no "override" concept at all
+    (existing, unrelated rule - only batch/gtin/sgtin allow overrides),
+    so a locale-tagged Style value is edited via the normal save form,
+    not cleared via the override endpoint.
 
 ## Phase 3 — GS1 Digital Link routing
 

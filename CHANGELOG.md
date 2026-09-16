@@ -4,6 +4,50 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (newest) — Phase 2: multi-language infrastructure
+
+- **Schema rebuild, done carefully**: `dpp_values` had
+  `UNIQUE(field_definition_id, entity_type, entity_id)` - adding a
+  language dimension meant `locale` had to join that constraint, which
+  SQLite can't do via `ALTER TABLE`. `db/init-v2.js` now rebuilds the
+  table (create new shape → copy data → drop old → rename), guarded by
+  checking for the `locale` column first so it only runs once. Backed
+  up `data/dpp-v2.db` before running it for real, then verified row
+  count and spot-checked values (including `locked_at` timestamps)
+  survived identically.
+- `repositories/fields.js`: every `dpp_values` method
+  (`setDppValue`/`getDppValue`/`getEntityValues`/`getFieldsForLevel`/
+  `markValueLocked`/`removeDppValue`) takes an optional `locale`
+  parameter (`null` = default, unchanged behavior for every existing
+  caller that doesn't pass one). Added `getAvailableLocales()` for the
+  admin UI's language tabs.
+- `services/passport-resolver.js`: all four `resolve*Passport` methods
+  take a `locale` param. New `_resolveFieldValueLocaleAware()`
+  implements **language-first, then level** - search every level for a
+  translation before falling back to the default chain - per explicit
+  decision. Verified with a real cross-level conflict: French set at
+  Style correctly overrode English set directly on an SGTIN when a
+  French passport was requested, and reverted correctly when no
+  language was requested.
+- `services/override-service.js` and `routes/admin/styles.js`'s save
+  route also became locale-aware, since they write through the same
+  `dpp_values` table - found and fixed before it could become a bug
+  where clearing a French override would have silently deleted the
+  English default instead.
+- Public routes: `?lang=` on `/dpp/:batch/:gtin/:sgtin` (HTML) and its
+  `/json` export. Fixed a link-construction bug caught while wiring
+  this up - the JSON link on the passport page was built as
+  `${url}/json`, which breaks once `url` carries a `?lang=` query
+  string (the `/json` segment would land after the query, not before
+  it). Now built from a query-free `basePath` instead.
+- Admin UI: a language tab bar (Default + existing locales + a
+  free-text "add a locale" box, GET-navigated via `?lang=`) added to
+  all four detail pages (Style, Batch, GTIN, SGTIN) - Style's save
+  route lived in a different file (`routes/admin/styles.js`, from the
+  Phase 0 era) and was initially missed, then fixed.
+- Scope, per explicit decision: infrastructure only, no real
+  translations entered as content.
+
 ## 2026-09-16 (latest) — Phase 1: production lock + passport versioning
 
 - **Plan correction, caught before building the wrong thing**: the

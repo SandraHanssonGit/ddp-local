@@ -44,8 +44,13 @@ router.get('/:batch/:gtin/:sgtin', async (req, res) => {
     });
 
     try {
+      // ROADMAP.md Phase 2: ?lang= picks the language, falling back to
+      // the field's default value when no translation exists at any
+      // level (see passport-resolver.js's language-first resolution)
+      const locale = req.query.lang || null;
+
       // Resolve full passport with inheritance
-      const passport = await passportResolver.resolveSgtinPassport(sgtinRecord.id);
+      const passport = await passportResolver.resolveSgtinPassport(sgtinRecord.id, locale);
 
       // Get scan stats
       const scanStats = await scanService.getScanStats(sgtinRecord.id);
@@ -62,11 +67,16 @@ router.get('/:batch/:gtin/:sgtin', async (req, res) => {
         );
       });
 
+      // Base path without query string, so the JSON link below can
+      // append /json cleanly instead of breaking on a ?lang= query
+      const basePath = `${req.baseUrl}${req.path}`;
+
       res.render('dpp-passport', {
         passport,
         scanStats,
         events,
-        url: req.originalUrl
+        url: basePath,
+        locale
       });
     } catch (resolverErr) {
       console.error('[PassportResolver Error]', resolverErr);
@@ -107,7 +117,8 @@ router.get('/:batch/:gtin/:sgtin/json', async (req, res) => {
       return res.status(404).json({ error: 'SGTIN not found', params: { batch, gtin, sgtin } });
     }
 
-    const passport = await passportResolver.resolveSgtinPassport(sgtinRecord.id);
+    const locale = req.query.lang || null;
+    const passport = await passportResolver.resolveSgtinPassport(sgtinRecord.id, locale);
 
     const fieldDefs = await fieldRepository.listFieldDefinitions();
     const consumerVisibleByKey = Object.fromEntries(
@@ -121,12 +132,14 @@ router.get('/:batch/:gtin/:sgtin/json', async (req, res) => {
         label: f.label,
         category: f.category,
         value: f.value,
-        source: f.source
+        source: f.source,
+        locale: f.locale
       }));
 
     res.json({
       format: 'ESPR 2024/1781 Digital Product Passport',
       generatedAt: new Date().toISOString(),
+      requestedLocale: locale,
       identifiers: {
         gtin: passport.gtin.gtin,
         serialNumber: passport.sgtin.serial_number,

@@ -282,11 +282,18 @@
         <div class="field-row">
           <div class="field-label">Machine-readable (JSON)</div>
           <div class="field-value">
-            <a href="<%= url %>/json" class="text-blue-600 hover:underline break-all text-sm">
-              <%= url %>/json
+            <% const jsonUrl = url + '/json' + (typeof locale !== 'undefined' && locale ? '?lang=' + encodeURIComponent(locale) : ''); %>
+            <a href="<%= jsonUrl %>" class="text-blue-600 hover:underline break-all text-sm">
+              <%= jsonUrl %>
             </a>
           </div>
         </div>
+        <% if (typeof locale !== 'undefined' && locale) { %>
+          <div class="field-row">
+            <div class="field-label">Language</div>
+            <div class="field-value"><%= locale %></div>
+          </div>
+        <% } %>
       </div>
     </div>
 

@@ -226,10 +226,13 @@ router.post('/:styleId/dpp-values', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Style not found' });
     }
 
+    // ROADMAP.md Phase 2: ?lang= saves that language's translation
+    const locale = req.query.lang || null;
+
     // Save each field value
     for (const [fieldKey, value] of Object.entries(req.body)) {
       if (value) {
-        await fieldService.setValue('style', style.id, fieldKey, value);
+        await fieldService.setValue('style', style.id, fieldKey, value, { locale });
       }
     }
 

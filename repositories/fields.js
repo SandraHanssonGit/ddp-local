@@ -81,12 +81,16 @@ class FieldRepository {
   }
 
   // DPP Values
-  async setDppValue(fieldDefinitionId, entityType, entityId, value, sourceSystem = 'manual', userId = null) {
+  // locale = null means the default/fallback value (no language tag).
+  // ROADMAP.md Phase 2: dpp_values is now unique per
+  // (field_definition_id, entity_type, entity_id, locale), not just the
+  // first three - a field can have one row per language plus a default.
+  async setDppValue(fieldDefinitionId, entityType, entityId, value, sourceSystem = 'manual', userId = null, locale = null) {
     const sql = `
       INSERT INTO dpp_values
-      (field_definition_id, entity_type, entity_id, value, source_system, created_by)
-      VALUES (?, ?, ?, ?, ?, ?)
-      ON CONFLICT(field_definition_id, entity_type, entity_id)
+      (field_definition_id, entity_type, entity_id, value, locale, source_system, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(field_definition_id, entity_type, entity_id, locale)
       DO UPDATE SET value = ?, updated_at = CURRENT_TIMESTAMP
     `;
     const result = await db.run(sql, [
@@ -94,6 +98,7 @@ class FieldRepository {
       entityType,
       entityId,
       value,
+      locale,
       sourceSystem,
       userId,
       value
@@ -101,15 +106,18 @@ class FieldRepository {
     return result.lastID;
   }
 
-  async getDppValue(fieldDefinitionId, entityType, entityId) {
+  async getDppValue(fieldDefinitionId, entityType, entityId, locale = null) {
     const sql = `
       SELECT * FROM dpp_values
-      WHERE field_definition_id = ? AND entity_type = ? AND entity_id = ?
+      WHERE field_definition_id = ? AND entity_type = ? AND entity_id = ? AND locale IS ?
     `;
-    return db.get(sql, [fieldDefinitionId, entityType, entityId]);
+    return db.get(sql, [fieldDefinitionId, entityType, entityId, locale]);
   }
 
-  async getEntityValues(entityType, entityId) {
+  // locale = null returns the default/fallback values (existing callers
+  // are unaffected - all data was locale=NULL before Phase 2 anyway).
+  // Pass a specific locale to get that language's overrides only.
+  async getEntityValues(entityType, entityId, locale = null) {
     const sql = `
       SELECT
         dv.*,
@@ -119,35 +127,50 @@ class FieldRepository {
         fd.data_type
       FROM dpp_values dv
       JOIN field_definitions fd ON dv.field_definition_id = fd.id
-      WHERE dv.entity_type = ? AND dv.entity_id = ?
+      WHERE dv.entity_type = ? AND dv.entity_id = ? AND dv.locale IS ?
       ORDER BY fd.sort_order ASC, fd.label ASC
     `;
-    return db.all(sql, [entityType, entityId]);
+    return db.all(sql, [entityType, entityId, locale]);
+  }
+
+  // Every locale that has at least one value set for this entity -
+  // drives which language tabs the admin UI shows.
+  async getAvailableLocales(entityType, entityId) {
+    const sql = `
+      SELECT DISTINCT locale FROM dpp_values
+      WHERE entity_type = ? AND entity_id = ? AND locale IS NOT NULL
+      ORDER BY locale
+    `;
+    const rows = await db.all(sql, [entityType, entityId]);
+    return rows.map(r => r.locale);
   }
 
   // Stamp the current row as locked (written while its batch was already
   // produced) - see ROADMAP.md Phase 1. Purely informational for the UI;
   // history of what it changed from lives in field_change_log.
-  async markValueLocked(fieldDefinitionId, entityType, entityId) {
+  async markValueLocked(fieldDefinitionId, entityType, entityId, locale = null) {
     const sql = `
       UPDATE dpp_values SET locked_at = CURRENT_TIMESTAMP
-      WHERE field_definition_id = ? AND entity_type = ? AND entity_id = ?
+      WHERE field_definition_id = ? AND entity_type = ? AND entity_id = ? AND locale IS ?
     `;
-    await db.run(sql, [fieldDefinitionId, entityType, entityId]);
+    await db.run(sql, [fieldDefinitionId, entityType, entityId, locale]);
   }
 
-  async removeDppValue(fieldDefinitionId, entityType, entityId) {
+  async removeDppValue(fieldDefinitionId, entityType, entityId, locale = null) {
     const sql = `
       DELETE FROM dpp_values
-      WHERE field_definition_id = ? AND entity_type = ? AND entity_id = ?
+      WHERE field_definition_id = ? AND entity_type = ? AND entity_id = ? AND locale IS ?
     `;
-    await db.run(sql, [fieldDefinitionId, entityType, entityId]);
+    await db.run(sql, [fieldDefinitionId, entityType, entityId, locale]);
   }
 
   // Fields applicable at a given level, whether or not a value has been
   // set yet (LEFT JOIN) - used by the admin edit forms so a brand-new
   // field shows up as an empty, fillable input instead of not at all.
-  async getFieldsForLevel(entityType, entityId) {
+  // locale = null (default) reads/edits the base value. Pass a specific
+  // locale to work on that language's translation instead - see
+  // ROADMAP.md Phase 2.
+  async getFieldsForLevel(entityType, entityId, locale = null) {
     const editableColumn = {
       style: 'editable_at_style',
       batch: 'editable_at_batch',
@@ -174,13 +197,14 @@ class FieldRepository {
         ON dv.field_definition_id = fd.id
         AND dv.entity_type = ?
         AND dv.entity_id = ?
+        AND dv.locale IS ?
       WHERE fd.${editableColumn} = 1
       ORDER BY fd.sort_order ASC, fd.label ASC
     `;
-    return db.all(sql, [entityType, entityId]);
+    return db.all(sql, [entityType, entityId, locale]);
   }
 
-  async getEntityValuesByCategory(entityType, entityId, category) {
+  async getEntityValuesByCategory(entityType, entityId, category, locale = null) {
     const sql = `
       SELECT
         dv.*,
@@ -191,10 +215,10 @@ class FieldRepository {
         fd.consumer_visible
       FROM dpp_values dv
       JOIN field_definitions fd ON dv.field_definition_id = fd.id
-      WHERE dv.entity_type = ? AND dv.entity_id = ? AND fd.category = ?
+      WHERE dv.entity_type = ? AND dv.entity_id = ? AND fd.category = ? AND dv.locale IS ?
       ORDER BY fd.sort_order ASC, fd.label ASC
     `;
-    return db.all(sql, [entityType, entityId, category]);
+    return db.all(sql, [entityType, entityId, category, locale]);
   }
 }
 

@@ -391,8 +391,58 @@ const close = () => {
   });
 };
 
+// Phase 2 (ROADMAP.md): add dpp_values.locale for multi-language values.
+// SQLite can't ALTER a UNIQUE constraint, so adding locale to
+// UNIQUE(field_definition_id, entity_type, entity_id) means rebuilding
+// the table: create the new shape, copy data (existing rows get
+// locale = NULL, i.e. "default"), drop the old table, rename the new
+// one in. Guarded by checking for the column first, so this only runs
+// once even though init() runs on every server start.
+const migrateDppValuesLocale = async () => {
+  const columns = await all(`PRAGMA table_info(dpp_values)`);
+  const hasLocale = columns.some(c => c.name === 'locale');
+  if (hasLocale) return;
+
+  console.log('[DPP v2] Migrating dpp_values to add locale support...');
+
+  await run(`
+    CREATE TABLE dpp_values_new (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      field_definition_id INTEGER NOT NULL,
+      entity_type TEXT NOT NULL,
+      entity_id INTEGER NOT NULL,
+      value TEXT,
+      locale TEXT,
+      source_system TEXT DEFAULT 'manual',
+      created_by TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      locked_at DATETIME,
+      FOREIGN KEY (field_definition_id) REFERENCES field_definitions(id),
+      UNIQUE(field_definition_id, entity_type, entity_id, locale)
+    )
+  `);
+
+  await run(`
+    INSERT INTO dpp_values_new
+      (id, field_definition_id, entity_type, entity_id, value, locale,
+       source_system, created_by, created_at, updated_at, locked_at)
+    SELECT
+      id, field_definition_id, entity_type, entity_id, value, NULL,
+      source_system, created_by, created_at, updated_at, locked_at
+    FROM dpp_values
+  `);
+
+  await run(`DROP TABLE dpp_values`);
+  await run(`ALTER TABLE dpp_values_new RENAME TO dpp_values`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_dpp_values_entity ON dpp_values(entity_type, entity_id)`);
+
+  console.log('[DPP v2] dpp_values locale migration complete');
+};
+
 // Initialize on module load
 init();
+migrateDppValuesLocale().catch(err => console.error('[dpp_values locale migration]', err));
 
 module.exports = {
   db,

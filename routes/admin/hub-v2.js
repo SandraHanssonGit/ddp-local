@@ -18,6 +18,17 @@ const passportVersionRepository = require('../../repositories/passport-versions'
 // Turn getEntityValues() rows into a { field_key: value } lookup map
 const buildValueMap = (rows) => Object.fromEntries(rows.map(r => [r.field_key, r.value]));
 
+// ROADMAP.md Phase 2: default value merged with the requested locale's
+// translation where one exists (locale wins) - same language-first
+// principle as passport-resolver.js, applied to a single entity for
+// the admin "inherited from X" comparison.
+const buildLocaleAwareValueMap = async (entityType, entityId, locale) => {
+  const defaultMap = buildValueMap(await fieldRepository.getEntityValues(entityType, entityId, null));
+  if (!locale) return defaultMap;
+  const localizedMap = buildValueMap(await fieldRepository.getEntityValues(entityType, entityId, locale));
+  return { ...defaultMap, ...localizedMap };
+};
+
 const getOne = (sql, params = []) => new Promise((resolve, reject) => {
   db.get(sql, params, (err, row) => {
     if (err) reject(err);
@@ -350,7 +361,9 @@ router.get('/style/:styleId', async (req, res) => {
 
     // Get DPP values for this style - LEFT JOIN so a field with no
     // value set anywhere yet still shows up as an empty, fillable row
-    const dppValues = await fieldRepository.getFieldsForLevel('style', style.id);
+    const locale = req.query.lang || null;
+    const dppValues = await fieldRepository.getFieldsForLevel('style', style.id, locale);
+    const availableLocales = await fieldRepository.getAvailableLocales('style', style.id);
 
     res.render('admin/style-detail', {
       style,
@@ -360,6 +373,8 @@ router.get('/style/:styleId', async (req, res) => {
       gtinCount,
       sgtinCount,
       dppValues,
+      locale,
+      availableLocales,
       user: { username: 'demo', role: 'admin' }
     });
   } catch (err) {
@@ -494,12 +509,17 @@ router.get('/batch/:batchId', async (req, res) => {
     const sgtin_count = sgtins.length;
     const planned_total = batchGtins.reduce((sum, bg) => sum + (bg.planned_quantity || 0), 0);
 
-    // Fields applicable at Batch level - LEFT JOIN so unset fields still
-    // show up as empty, fillable rows (see Phase 0 in ROADMAP.md)
-    const dppValues = await fieldRepository.getFieldsForLevel('batch', batch.id);
+    // ROADMAP.md Phase 2: ?lang= edits/shows that language's values;
+    // default (no ?lang=) is the base value used when no translation
+    // exists. availableLocales drives the language tab bar.
+    const locale = req.query.lang || null;
+    const dppValues = await fieldRepository.getFieldsForLevel('batch', batch.id, locale);
+    const availableLocales = await fieldRepository.getAvailableLocales('batch', batch.id);
 
     res.render('admin/batch-detail', {
       batch,
+      locale,
+      availableLocales,
       batchGtins,
       sgtins,
       styles,
@@ -540,9 +560,10 @@ router.post('/batch/:batchId/dpp-values', async (req, res) => {
     const batch = await getOne('SELECT * FROM batches WHERE id = ?', [req.params.batchId]);
     if (!batch) return res.status(404).json({ success: false, error: 'Batch not found' });
 
+    const locale = req.query.lang || null;
     for (const [fieldKey, value] of Object.entries(req.body)) {
       if (value) {
-        await fieldService.setValue('batch', batch.id, fieldKey, value);
+        await fieldService.setValue('batch', batch.id, fieldKey, value, { locale });
       }
     }
 
@@ -574,13 +595,15 @@ router.get('/gtin/:gtinId', async (req, res) => {
 
     // GTIN has exactly one style_id, so "inherited from Style" is
     // well-defined here (unlike Batch, which can span several styles)
-    const gtinFields = await fieldRepository.getFieldsForLevel('gtin', gtin.id);
-    const styleValueMap = buildValueMap(await fieldRepository.getEntityValues('style', style.id));
+    const locale = req.query.lang || null;
+    const gtinFields = await fieldRepository.getFieldsForLevel('gtin', gtin.id, locale);
+    const styleValueMap = await buildLocaleAwareValueMap('style', style.id, locale);
     const dppValues = gtinFields.map(f => ({
       ...f,
       inheritedValue: styleValueMap[f.field_key] || null,
       inheritedFrom: styleValueMap[f.field_key] ? 'Style' : null
     }));
+    const availableLocales = await fieldRepository.getAvailableLocales('gtin', gtin.id);
 
     res.render('admin/gtin-detail', {
       gtin,
@@ -588,6 +611,8 @@ router.get('/gtin/:gtinId', async (req, res) => {
       variant,
       sgtins,
       dppValues,
+      locale,
+      availableLocales,
       user: { username: 'demo', role: 'admin' }
     });
   } catch (err) {
@@ -602,9 +627,10 @@ router.post('/gtin/:gtinId/dpp-values', async (req, res) => {
     const gtin = await getOne('SELECT * FROM gtins WHERE id = ?', [req.params.gtinId]);
     if (!gtin) return res.status(404).json({ success: false, error: 'GTIN not found' });
 
+    const locale = req.query.lang || null;
     for (const [fieldKey, value] of Object.entries(req.body)) {
       if (value) {
-        await fieldService.setValue('gtin', gtin.id, fieldKey, value);
+        await fieldService.setValue('gtin', gtin.id, fieldKey, value, { locale });
       }
     }
 
@@ -631,15 +657,17 @@ router.get('/sgtin/:sgtinId', async (req, res) => {
     // An SGTIN has a fixed GTIN and Batch, so the full inheritance
     // chain (GTIN > Batch > Style) is well-defined here - same
     // precedence passport-resolver.js uses for the public passport
-    const sgtinFields = await fieldRepository.getFieldsForLevel('sgtin', sgtin.id);
-    const gtinValueMap = buildValueMap(await fieldRepository.getEntityValues('gtin', gtin.id));
-    const batchValueMap = buildValueMap(await fieldRepository.getEntityValues('batch', batch.id));
-    const styleValueMap = buildValueMap(await fieldRepository.getEntityValues('style', style.id));
+    const locale = req.query.lang || null;
+    const sgtinFields = await fieldRepository.getFieldsForLevel('sgtin', sgtin.id, locale);
+    const gtinValueMap = await buildLocaleAwareValueMap('gtin', gtin.id, locale);
+    const batchValueMap = await buildLocaleAwareValueMap('batch', batch.id, locale);
+    const styleValueMap = await buildLocaleAwareValueMap('style', style.id, locale);
     const dppValues = sgtinFields.map(f => {
       const inheritedValue = gtinValueMap[f.field_key] || batchValueMap[f.field_key] || styleValueMap[f.field_key] || null;
       const inheritedFrom = gtinValueMap[f.field_key] ? 'GTIN' : batchValueMap[f.field_key] ? 'Batch' : styleValueMap[f.field_key] ? 'Style' : null;
       return { ...f, inheritedValue, inheritedFrom };
     });
+    const availableLocales = await fieldRepository.getAvailableLocales('sgtin', sgtin.id);
 
     const versionHistory = await passportVersionRepository.getHistory('sgtin', sgtin.id);
 
@@ -649,6 +677,8 @@ router.get('/sgtin/:sgtinId', async (req, res) => {
       style,
       variant,
       batch,
+      locale,
+      availableLocales,
       events,
       dppValues,
       versionHistory,
@@ -666,9 +696,10 @@ router.post('/sgtin/:sgtinId/dpp-values', async (req, res) => {
     const sgtin = await getOne('SELECT * FROM sgtins WHERE id = ?', [req.params.sgtinId]);
     if (!sgtin) return res.status(404).json({ success: false, error: 'SGTIN not found' });
 
+    const locale = req.query.lang || null;
     for (const [fieldKey, value] of Object.entries(req.body)) {
       if (value) {
-        await fieldService.setValue('sgtin', sgtin.id, fieldKey, value);
+        await fieldService.setValue('sgtin', sgtin.id, fieldKey, value, { locale });
       }
     }
 

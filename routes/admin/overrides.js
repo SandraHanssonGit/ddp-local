@@ -18,7 +18,7 @@ router.post('/:entityType/:entityId/field/:fieldKey', async (req, res) => {
       parseInt(req.params.entityId),
       req.params.fieldKey,
       value,
-      { reason }
+      { reason, locale: req.query.lang || null }
     );
 
     res.json({ success: true, override: result });
@@ -36,7 +36,7 @@ router.delete('/:entityType/:entityId/field/:fieldKey', async (req, res) => {
       req.params.entityType,
       parseInt(req.params.entityId),
       req.params.fieldKey,
-      { reason }
+      { reason, locale: req.query.lang || null }
     );
 
     res.json({ success: true, removed: result });

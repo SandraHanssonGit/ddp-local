@@ -199,6 +199,18 @@
             </button>
           </div>
 
+          <div class="flex items-center gap-2 mb-4" style="flex-wrap:wrap;">
+            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide mr-1">Language:</span>
+            <a href="?" class="px-3 py-1 rounded text-xs font-semibold <%= !locale ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700' %>">Default</a>
+            <% (typeof availableLocales !== 'undefined' ? availableLocales : []).forEach(loc => { %>
+              <a href="?lang=<%= encodeURIComponent(loc) %>" class="px-3 py-1 rounded text-xs font-semibold <%= locale === loc ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700' %>"><%= loc %></a>
+            <% }); %>
+            <form method="GET" style="display:inline-flex;align-items:center;gap:4px;margin-left:8px;" onsubmit="event.preventDefault(); const v=this.newlang.value.trim(); if(v) window.location.href='?lang='+encodeURIComponent(v);">
+              <input type="text" name="newlang" placeholder="+ add locale e.g. fr-FR" class="text-xs border border-gray-300 rounded px-2 py-1" style="width:160px;">
+              <button type="submit" class="text-xs font-semibold text-blue-600">Go</button>
+            </form>
+          </div>
+
           <div id="dpp-fields-view" class="space-y-4">
             <% (typeof dppValues !== 'undefined' ? dppValues : []).forEach(val => { %>
               <% if (val.value) { %>
@@ -266,11 +278,14 @@
             document.getElementById('dpp-fields-view').classList.toggle('hidden');
             document.getElementById('dpp-fields-edit').classList.toggle('hidden');
           }
+          const currentLocale = <%- JSON.stringify(locale || null) %>;
+          const localeQuery = currentLocale ? '?lang=' + encodeURIComponent(currentLocale) : '';
+
           async function saveSgtinDppValues() {
             const values = {};
             document.querySelectorAll('[id^="field-"]').forEach(el => { values[el.id.substring(6)] = el.value; });
             try {
-              const res = await fetch('/admin-v2/sgtin/<%= sgtin.id %>/dpp-values', {
+              const res = await fetch('/admin-v2/sgtin/<%= sgtin.id %>/dpp-values' + localeQuery, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(values)
@@ -282,7 +297,7 @@
           async function clearOverride(fieldKey) {
             if (!confirm('Clear this override? The field will go back to its inherited value.')) return;
             try {
-              const res = await fetch('/api/admin/overrides/sgtin/<%= sgtin.id %>/field/' + encodeURIComponent(fieldKey), {
+              const res = await fetch('/api/admin/overrides/sgtin/<%= sgtin.id %>/field/' + encodeURIComponent(fieldKey) + localeQuery, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({})
