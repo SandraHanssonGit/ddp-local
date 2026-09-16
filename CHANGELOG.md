@@ -4,6 +4,44 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (latest) — Phase 1: production lock + passport versioning
+
+- **Plan correction, caught before building the wrong thing**: the
+  originally-written ROADMAP.md Phase 1 called for a
+  `dpp_values.superseded_by` chain (multiple historical rows per
+  field+entity). Checking the schema first showed `dpp_values` already
+  has `UNIQUE(field_definition_id, entity_type, entity_id)`, which
+  makes that impossible without rebuilding the table. Revised to reuse
+  `field_change_log` (already exists, already records old/new values)
+  for history instead.
+- `db/init-v2.js`: added `batches.produced_at`, `dpp_values.locked_at`,
+  and a new `passport_versions` table, all via explicit `ALTER TABLE` /
+  `CREATE TABLE IF NOT EXISTS` + verified idempotent (ran init twice,
+  no errors) — `CREATE TABLE IF NOT EXISTS` alone is a no-op against an
+  existing table, which is exactly what caused the `data/dpp-v2.db`
+  schema-mismatch bug fixed earlier this session.
+- `services/field-service.js`'s `setValue()` now logs every real change
+  to `field_change_log` (previously only `override-service.js` did —
+  Phase 0's save routes logged nothing) and stamps `locked_at` when the
+  entity (batch, or an SGTIN under a produced batch) is locked. Also
+  removed a broken, unused `uuidv4` line
+  (`require('crypto').randomBytes(16).toString('hex')` destructured for
+  `v4` — never threw, never did anything either) found while editing
+  this file.
+- `repositories/passport-versions.js`: new, tracks SGTIN passport
+  version bumps. Scoped to direct SGTIN writes only, per explicit
+  decision — a Style/Batch/GTIN change does not cascade a version bump
+  to SGTINs that inherit it.
+- New route `POST /admin-v2/batch/:batchId/mark-produced`; lock banner
+  + button on `batch-detail.ejs`; matching read-only banner + new
+  "Passport Version History" panel on `sgtin-detail.ejs`.
+- Verified end-to-end: marked batch `PO45001234` produced, edited a
+  locked SGTIN's `repair_program` (old value landed in
+  `field_change_log`, new row got `locked_at`), edited a GTIN-level
+  field on the same chain and confirmed the SGTIN's passport version
+  stayed at v1 (no cascade, as decided), and confirmed the public JSON
+  export still resolves correctly afterward.
+
 ## 2026-09-16 (even later) — richer field-inheritance UI
 
 Upgraded the Phase 0 view from a flat "Set at X" badge to the full

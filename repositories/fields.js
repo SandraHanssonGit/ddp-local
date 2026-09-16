@@ -125,6 +125,17 @@ class FieldRepository {
     return db.all(sql, [entityType, entityId]);
   }
 
+  // Stamp the current row as locked (written while its batch was already
+  // produced) - see ROADMAP.md Phase 1. Purely informational for the UI;
+  // history of what it changed from lives in field_change_log.
+  async markValueLocked(fieldDefinitionId, entityType, entityId) {
+    const sql = `
+      UPDATE dpp_values SET locked_at = CURRENT_TIMESTAMP
+      WHERE field_definition_id = ? AND entity_type = ? AND entity_id = ?
+    `;
+    await db.run(sql, [fieldDefinitionId, entityType, entityId]);
+  }
+
   async removeDppValue(fieldDefinitionId, entityType, entityId) {
     const sql = `
       DELETE FROM dpp_values

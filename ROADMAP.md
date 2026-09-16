@@ -79,25 +79,53 @@ Values"):**
    free — the new Save routes don't log audit entries, only overrides
    does).
 
-## Phase 1 — Passport versioning + supersede lock
+## Phase 1 — Passport versioning + production lock ✅ Done (2026-09-16)
 
-**New tables / columns:**
+**Plan corrected during implementation**: the original idea of a
+`dpp_values.superseded_by` chain (multiple rows per field+entity) does
+not work — `dpp_values` already has
+`UNIQUE(field_definition_id, entity_type, entity_id)`, so more than one
+row per field+entity is not possible without rebuilding that
+constraint. Built instead on infrastructure that already existed:
+
+**New tables / columns actually added:**
 - `passport_versions` (`entity_type`, `entity_id`, `version_number`,
-  `issued_at`, `change_type`, `change_note`, `superseded_by`)
-- `dpp_values.superseded_by INTEGER NULL`
-- `dpp_values.locked_at DATETIME NULL`
+  `issued_at`, `change_type`, `change_note`, `superseded_by`) — new
+  table, no conflict, used exactly as planned.
+- `batches.produced_at DATETIME NULL` — manual lock trigger (a "Mark as
+  Produced" button, not automatic from `production_date`, per explicit
+  decision).
+- `dpp_values.locked_at DATETIME NULL` — stamped on the current row
+  when it's written while its batch is already produced. Purely
+  informational for the UI (shows the 🔒 banner); it does not gate
+  reads.
 
-**Behavior:** once a batch is marked "produced" (production date
-passed, or a manual flag), further writes to that batch's — or its
-SGTINs' — `dpp_values` do not `UPDATE` the row. They insert a new row
-and set `superseded_by` on the old one, preserving the original as a
-historical record. `services/passport-resolver.js` queries add
-`WHERE superseded_by IS NULL`.
+**Behavior actually implemented:** `services/field-service.js`'s
+`setValue()` (the single write path used by every Phase 0 save route)
+now: (1) always diffs against the current value and logs to
+`field_change_log` via `audit-service.js` when it changed — this was a
+pre-existing gap (Phase 0's routes never logged at all, only
+`override-service.js` did); (2) stamps `locked_at` on the row if
+`isEntityLocked()` says the batch (or the SGTIN's batch) is produced.
+History of a locked value lives in `field_change_log`, not in a second
+`dpp_values` row — `passport-resolver.js` needed **zero changes**,
+since there's still exactly one row per field+entity.
 
-Agreed tradeoff: soft lock with supersede, not a hard read-only block —
-lets you correct a mistake (e.g. batch actually produced in France, not
-Tunisia) without losing the original value or allowing silent
-overwrites.
+**Passport versioning**, scoped per explicit decision to direct SGTIN
+writes only (no cascade from Style/Batch/GTIN changes) —
+`repositories/passport-versions.js` bumps a version row each time an
+SGTIN's own field value actually changes.
+
+**UI:** "Mark as Produced" button + lock banner on `batch-detail.ejs`;
+matching read-only lock banner + a new "Passport Version History"
+panel on `sgtin-detail.ejs`.
+
+Verified end-to-end: marked a batch produced, edited a locked SGTIN's
+field, confirmed the old value landed in `field_change_log`
+(`action: 'created'`/`'updated'`) and the current row got `locked_at`
+stamped; edited a GTIN-level field on the same chain and confirmed the
+SGTIN's passport version did **not** bump (scope working as decided);
+confirmed the public `/dpp/.../json` export is unaffected.
 
 ## Phase 2 — Locale
 

@@ -290,6 +290,47 @@ const init = () => {
       if (err) console.error('[index sgtins_batch_id]', err);
     });
 
+    // Phase 1 (ROADMAP.md): Passport versioning + supersede lock
+    // Table: passport_versions - tracks version history per SGTIN passport
+    db.run(`
+      CREATE TABLE IF NOT EXISTS passport_versions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entity_type TEXT NOT NULL,
+        entity_id INTEGER NOT NULL,
+        version_number INTEGER NOT NULL,
+        issued_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        change_type TEXT,
+        change_note TEXT,
+        superseded_by INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (superseded_by) REFERENCES passport_versions(id)
+      )
+    `, (err) => {
+      if (err) console.error('[passport_versions]', err);
+      else console.log('✓ passport_versions table');
+    });
+
+    // Existing tables predate these columns - CREATE TABLE IF NOT EXISTS
+    // is a no-op once the table already exists, so new columns need an
+    // explicit ALTER TABLE (see CHANGELOG.md - this is the same class of
+    // bug that broke data/dpp-v2.db.stale-backup). "duplicate column"
+    // errors on repeat runs are expected and silently ignored.
+    //
+    // NOTE: dpp_values has UNIQUE(field_definition_id, entity_type,
+    // entity_id) - a supersede-chain of multiple rows per field+entity
+    // (as originally planned in ROADMAP.md) is not possible without
+    // rebuilding that constraint. Correcting the plan instead: history
+    // for a locked value is kept in field_change_log (already records
+    // old_value/new_value/timestamp via audit-service.js), and
+    // dpp_values.locked_at just marks that the CURRENT row was written
+    // while its batch was already produced.
+    db.run(`ALTER TABLE batches ADD COLUMN produced_at DATETIME`, () => {});
+    db.run(`ALTER TABLE dpp_values ADD COLUMN locked_at DATETIME`, () => {});
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_passport_versions_entity ON passport_versions(entity_type, entity_id)`, (err) => {
+      if (err) console.error('[index passport_versions_entity]', err);
+    });
+
     db.run(`CREATE INDEX IF NOT EXISTS idx_dpp_values_entity ON dpp_values(entity_type, entity_id)`, (err) => {
       if (err) console.error('[index dpp_values_entity]', err);
     });

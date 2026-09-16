@@ -24,6 +24,14 @@
       </div>
     </div>
 
+    <% if (batch.produced_at) { %>
+      <div class="p-4 mb-8 rounded border border-amber-200 bg-amber-50 text-sm text-amber-800">
+        🔒 <strong>Production-locked</strong> — batch <%= batch.batch_id %> was marked produced on
+        <%= new Date(batch.produced_at).toLocaleString('en-US') %>. Field changes here are kept in the
+        change log, not silently overwritten.
+      </div>
+    <% } %>
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <!-- Main Content -->
       <div class="lg:col-span-2 space-y-8">
@@ -289,6 +297,29 @@
 
       <!-- Sidebar -->
       <div class="space-y-8">
+        <!-- Version History -->
+        <div class="bg-white rounded-lg shadow-md p-8">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">Passport Version History</h3>
+          <% if (typeof versionHistory !== 'undefined' && versionHistory.length > 0) { %>
+            <div class="space-y-3">
+              <% versionHistory.forEach((v, i) => { %>
+                <div class="flex justify-between items-start p-3 rounded <%= i === 0 ? 'bg-blue-50 border border-blue-200' : 'border border-gray-200' %>">
+                  <div>
+                    <span class="text-xs font-bold text-gray-500">v<%= v.version_number %></span>
+                    <p class="text-sm text-gray-900"><%= v.change_note || v.change_type %></p>
+                    <p class="text-xs text-gray-500 mt-1"><%= new Date(v.issued_at).toLocaleString('en-US') %></p>
+                  </div>
+                  <% if (i === 0) { %>
+                    <span class="text-xs font-semibold text-blue-700">current</span>
+                  <% } %>
+                </div>
+              <% }); %>
+            </div>
+          <% } else { %>
+            <p class="text-sm text-gray-500 italic">No field changes recorded directly on this SGTIN yet. Note: changes to its Style, Batch, or GTIN don't bump this version — only direct SGTIN edits do.</p>
+          <% } %>
+        </div>
+
         <!-- Quick Links -->
         <div class="bg-white rounded-lg shadow-md p-8">
           <h3 class="text-lg font-bold text-gray-900 mb-4">Quick Links</h3>

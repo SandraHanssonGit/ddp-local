@@ -19,6 +19,23 @@
 
     <div class="max-w-7xl mx-auto p-6">
 
+      <!-- Production lock status -->
+      <% if (batch.produced_at) { %>
+        <div class="flex items-center justify-between p-4 mb-6 rounded border border-amber-200 bg-amber-50">
+          <div class="text-sm text-amber-800">
+            🔒 <strong>Production-locked</strong> since <%= new Date(batch.produced_at).toLocaleString('en-US') %>.
+            Field changes from here on are kept in the change log, not silently overwritten.
+          </div>
+        </div>
+      <% } else { %>
+        <div class="flex items-center justify-between p-4 mb-6 rounded border border-gray-200 bg-gray-50">
+          <div class="text-sm text-gray-600">This batch is not yet marked as produced — field values can be freely edited.</div>
+          <button onclick="markProduced()" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800 font-semibold text-sm">
+            Mark as Produced
+          </button>
+        </div>
+      <% } %>
+
       <!-- Statistics Cards -->
       <div class="grid grid-cols-4 gap-4 mb-8">
         <div class="bg-white rounded-lg shadow p-6">
@@ -283,6 +300,15 @@
       } catch (err) {
         alert('Error: ' + err.message);
       }
+    }
+
+    async function markProduced() {
+      if (!confirm('Mark this batch as produced? Field edits after this point will be kept in the change log instead of overwritten.')) return;
+      try {
+        const res = await fetch('/admin-v2/batch/<%= batch.id %>/mark-produced', { method: 'POST' });
+        if (res.ok) { location.reload(); }
+        else { const data = await res.json(); alert('Error: ' + (data.error || 'could not mark as produced')); }
+      } catch (err) { alert('Error: ' + err.message); }
     }
 
     async function clearOverride(fieldKey) {

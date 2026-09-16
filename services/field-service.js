@@ -1,5 +1,8 @@
 const fieldRepository = require('../repositories/fields');
-const { v4: uuidv4 } = require('crypto').randomBytes(16).toString('hex');
+const batchRepository = require('../repositories/batches');
+const sgtinRepository = require('../repositories/sgtins');
+const auditService = require('./audit-service');
+const passportVersionRepository = require('../repositories/passport-versions');
 
 class FieldService {
   // Create a new field definition
@@ -50,6 +53,12 @@ class FieldService {
   }
 
   // Set a value for an entity (style, batch, gtin, or sgtin)
+  //
+  // ROADMAP.md Phase 1: if the entity is a produced (locked) batch, or an
+  // SGTIN belonging to one, the previous value is preserved in
+  // field_change_log (not silently overwritten) and the new row is
+  // stamped locked_at. Style/GTIN never lock - they're masterdata, not
+  // tied to a specific production run.
   async setValue(entityType, entityId, fieldKey, value, options = {}) {
     // Validate entity type
     const validTypes = ['style', 'batch', 'gtin', 'sgtin'];
@@ -63,11 +72,38 @@ class FieldService {
       throw new Error(`Field '${fieldKey}' not found`);
     }
 
-    // Set the value
+    const currentDppValue = await fieldRepository.getDppValue(fieldDef.id, entityType, entityId);
+    const oldValue = currentDppValue ? currentDppValue.value : null;
+
+    const valueChanged = oldValue !== value;
+
+    if (valueChanged) {
+      await auditService.logFieldChange(
+        fieldKey,
+        entityType,
+        entityId,
+        currentDppValue ? 'updated' : 'created',
+        oldValue,
+        value,
+        options
+      );
+    }
+
+    // Phase 1 scope: only direct writes to the SGTIN itself bump its
+    // passport version - not changes on an ancestor Style/Batch/GTIN
+    if (valueChanged && entityType === 'sgtin') {
+      await passportVersionRepository.bumpVersion(
+        'sgtin',
+        entityId,
+        currentDppValue ? 'field_updated' : 'field_added',
+        `${fieldKey} changed`
+      );
+    }
+
     const sourceSystem = options.sourceSystem || 'manual';
     const userId = options.userId || null;
 
-    return fieldRepository.setDppValue(
+    const result = await fieldRepository.setDppValue(
       fieldDef.id,
       entityType,
       entityId,
@@ -75,6 +111,30 @@ class FieldService {
       sourceSystem,
       userId
     );
+
+    if (await this.isEntityLocked(entityType, entityId)) {
+      await fieldRepository.markValueLocked(fieldDef.id, entityType, entityId);
+    }
+
+    return result;
+  }
+
+  // Is this entity a produced (locked) batch, or an SGTIN belonging to one?
+  // Style and GTIN are masterdata and never lock.
+  async isEntityLocked(entityType, entityId) {
+    if (entityType === 'batch') {
+      const batch = await batchRepository.getById(entityId);
+      return !!(batch && batch.produced_at);
+    }
+
+    if (entityType === 'sgtin') {
+      const sgtin = await sgtinRepository.getById(entityId);
+      if (!sgtin) return false;
+      const batch = await batchRepository.getById(sgtin.batch_id);
+      return !!(batch && batch.produced_at);
+    }
+
+    return false;
   }
 
   // Get value for a specific entity and field
