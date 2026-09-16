@@ -196,6 +196,32 @@ COMPLIANCE.md open questions):
 
 ## Separately tracked (not phased — do independently)
 
+- **DPP Fields tab has no edit/delete UI.** `/admin-v2?tab=fields`
+  only lists field definitions and lets you create new ones. The
+  backend (`PUT /api/admin/fields/:fieldId`) already supports editing
+  a field's metadata, but nothing in the UI calls it — there's no
+  Edit or Delete action per row, and the list doesn't show which
+  levels (`editable_at_style`/`_batch`/`_gtin`/`_sgtin`) a field
+  actually applies to (that's only visible in the create form, not
+  afterward).
+- **Variant is missing as a DPP value level entirely.** The product
+  hierarchy is Style → Variant → GTIN, but `field-service.js`'s valid
+  entity types are only `style`, `batch`, `gtin`, `sgtin` — `variant`
+  isn't one of them. Per feedback: most fields (care instructions,
+  sustainability info, etc.) shouldn't need to be set per individual
+  GTIN (which is size-level granularity) - they should be settable
+  once at Style level, or once per Variant when a style has variants
+  (color/fit-level), not repeated across every size's GTIN. Fixing
+  this means: adding `variant` to the valid entity types across
+  `field-service.js`/`fieldRepository`/`override-service.js`, adding
+  it to the resolution precedence in `passport-resolver.js` (likely
+  SGTIN > GTIN > Variant > Batch > Style, batch's position relative to
+  variant still needs deciding), a `getFieldsForLevel`-style admin UI
+  for it, and an `editable_at_variant` column on `field_definitions`.
+  This is a real hierarchy change, not just a UI fix - worth scoping
+  as its own small phase rather than folding into the Fields-tab fix
+  above.
+
 - **Enforce `consumer_visible` on the live public passport page.**
   `routes/dpp.js` currently ignores it; the new JSON export endpoint
   (`GET /dpp/:batch/:gtin/:sgtin/json`) already filters correctly and
