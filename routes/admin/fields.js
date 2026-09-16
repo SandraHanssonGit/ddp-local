@@ -62,21 +62,38 @@ router.get('/:fieldIdOrKey', async (req, res) => {
 // Update field
 router.put('/:fieldId', async (req, res) => {
   try {
-    const { label, description, required, consumer_visible, sort_order, category } = req.body;
+    const {
+      label, description, required, consumer_visible, sort_order, category,
+      editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_sgtin
+    } = req.body;
 
-    await fieldService.updateField(req.params.fieldId, {
-      label,
-      description,
-      required,
-      consumer_visible,
-      sort_order,
-      category
-    });
+    // Only touch fields the caller actually sent - a bare `undefined` bind
+    // value throws in sqlite3, and omitting a field from a request body
+    // is not the same as explicitly clearing it
+    const booleanFields = new Set(['required', 'consumer_visible', 'editable_at_style', 'editable_at_variant', 'editable_at_batch', 'editable_at_gtin', 'editable_at_sgtin']);
+    const candidates = { label, description, required, consumer_visible, sort_order, category, editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_sgtin };
+    const updates = {};
+    for (const [key, value] of Object.entries(candidates)) {
+      if (value === undefined) continue;
+      updates[key] = booleanFields.has(key) ? (value ? 1 : 0) : value;
+    }
+
+    await fieldService.updateField(req.params.fieldId, updates);
 
     const field = await fieldService.getField(req.params.fieldId);
     res.json({ success: true, field });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Delete a field definition (refused if any dpp_values still reference it)
+router.delete('/:fieldId', async (req, res) => {
+  try {
+    await fieldService.deleteField(req.params.fieldId);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
   }
 });
 

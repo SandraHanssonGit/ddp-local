@@ -27,7 +27,7 @@ Updated priority order for what's left, decided 2026-09-16:
 
 | # | Item | Why this position |
 |---|---|---|
-| 1 | DPP Fields tab: Levels column + Edit/Delete (see below) | Small, contained, and the last missing piece for admins to manage what's already built (Phase 0 + Variant) before moving to net-new scope |
+| 1 | ~~DPP Fields tab: Levels column + Edit/Delete~~ | ✅ Done (2026-09-16) - see below |
 | 2 | Visual redesign in code | Design is approved (see DESIGN_SYSTEM.md); implementation hasn't started - admin pages and the consumer passport still use the old generic styling |
 | 3 | Phase 4 — Economic operators | Isolated, low-risk |
 | 4 | Phase 5 — Expanded field definitions | Pure content |
@@ -238,8 +238,8 @@ COMPLIANCE.md open questions):
 
 ## Separately tracked (not phased — do independently)
 
-- **DPP Fields tab has no edit/delete UI, and no Levels column** ⏭
-  Next up. `/admin-v2?tab=fields` only lists field definitions and lets
+- ~~**DPP Fields tab has no edit/delete UI, and no Levels column**~~ ✅
+  Done (2026-09-16). `/admin-v2?tab=fields` only lists field definitions and lets
   you create new ones. The backend (`PUT /api/admin/fields/:fieldId`)
   already supports editing a field's metadata, but nothing in the UI
   calls it — there's no Edit or Delete action per row, and the list
@@ -265,6 +265,33 @@ COMPLIANCE.md open questions):
 - **Visual redesign.** In progress as a design proposal only — see
   DESIGN_SYSTEM.md. Not blocking any phase above; can land whenever
   the team is ready to implement it in code.
+
+## DPP Fields tab: Levels column + Edit/Delete ✅ Done (2026-09-16)
+
+- Table gained a **Levels** column: five small tags (S/V/B/G/SG),
+  green when a field is editable at that level, grey when not - reads
+  straight off the `editable_at_*` columns that already existed but
+  were only ever shown in the create form.
+- **Edit**: an inline row (toggled open below the field's row) with the
+  same fields as creation, pre-filled - `PUT /api/admin/fields/:id`
+  already existed but only handled `label`/`description`/`required`/
+  `consumer_visible`/`sort_order`/`category`; added the five level
+  flags to it.
+- **Delete**: `DELETE /api/admin/fields/:id` didn't exist at all -
+  `fieldRepository.deleteFieldDefinition()` (which already refuses to
+  delete a field with values assigned) was written but never wired to
+  a route. Added the route + a `fieldService.deleteField()` wrapper.
+- Fixed a real bug while adding the level flags to the PUT route: the
+  original handler destructured `req.body` fields directly into the
+  update object, so a field a caller didn't send became `undefined` -
+  sqlite3 throws on an `undefined` bind parameter. Now only fields
+  actually present in the request are included, booleans coerced to
+  `1`/`0`.
+- Verified end-to-end: partial PUT (only one level flag) leaves every
+  other field untouched; delete succeeds on an unused field and is
+  correctly refused (400, clear error) on one with `dpp_values`
+  attached; full create → edit → delete cycle tested via the same
+  calls the UI's JS makes, not just the route in isolation.
 
 ## Variant architecture fix ✅ Done (2026-09-16)
 

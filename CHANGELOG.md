@@ -4,6 +4,24 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (very final) — DPP Fields tab: Levels + Edit/Delete
+
+- New Levels column (S/V/B/G/SG tags, green/grey) on `/admin-v2?tab=fields`.
+- Added an inline Edit row and wired up `DELETE /api/admin/fields/:id`,
+  which didn't exist despite the repository method
+  (`deleteFieldDefinition`, with its "refuse if values exist" safety
+  check) already being written.
+- Found and fixed a real bug while touching the PUT route: it
+  destructured `req.body` straight into the update object, so any
+  field the caller didn't send became `undefined` in the SQL bind
+  parameters - sqlite3 throws on that. Now filters to only
+  actually-present fields.
+- Verified: a partial PUT (one level flag only) leaves every other
+  column untouched; delete is refused with a clear error for a field
+  that has `dpp_values` attached, succeeds for one that doesn't; ran a
+  full create → edit → delete cycle through the same calls the page's
+  JS makes.
+
 ## 2026-09-16 (final) — Phase 3: GS1 Digital Link
 
 - Planned before coding, per explicit ask: mapped all four UI

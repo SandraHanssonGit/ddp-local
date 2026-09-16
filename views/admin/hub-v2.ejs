@@ -392,13 +392,23 @@
                   <th class="px-4 py-3 text-left font-semibold">Label</th>
                   <th class="px-4 py-3 text-left font-semibold">Category</th>
                   <th class="px-4 py-3 text-left font-semibold">Type</th>
+                  <th class="px-4 py-3 text-left font-semibold">Levels</th>
                   <th class="px-4 py-3 text-center font-semibold">Required</th>
                   <th class="px-4 py-3 text-center font-semibold">Consumer</th>
                   <th class="px-4 py-3 text-left font-semibold">Description</th>
+                  <th class="px-4 py-3 text-left font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                <% fields.forEach(f => { %>
+                <% fields.forEach(f => {
+                  const levels = [
+                    { key: 'editable_at_style', short: 'S', name: 'Style' },
+                    { key: 'editable_at_variant', short: 'V', name: 'Variant' },
+                    { key: 'editable_at_batch', short: 'B', name: 'Batch' },
+                    { key: 'editable_at_gtin', short: 'G', name: 'GTIN' },
+                    { key: 'editable_at_sgtin', short: 'SG', name: 'SGTIN' }
+                  ];
+                %>
                   <tr class="border-b border-gray-200 hover:bg-gray-50">
                     <td class="px-4 py-3 font-mono text-xs"><strong><%= f.field_key %></strong></td>
                     <td class="px-4 py-3"><%= f.label %></td>
@@ -412,9 +422,61 @@
                       <% } %>
                     </td>
                     <td class="px-4 py-3 text-xs text-gray-600"><%= f.data_type || 'text' %></td>
+                    <td class="px-4 py-3">
+                      <div class="flex gap-1">
+                        <% levels.forEach(lvl => { %>
+                          <span title="<%= lvl.name %>" class="inline-flex items-center justify-center w-6 h-6 rounded text-xs font-bold <%= f[lvl.key] ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-300' %>"><%= lvl.short %></span>
+                        <% }); %>
+                      </div>
+                    </td>
                     <td class="px-4 py-3 text-center"><%= f.required ? '✓' : '—' %></td>
                     <td class="px-4 py-3 text-center"><%= f.consumer_visible ? '✓' : '—' %></td>
                     <td class="px-4 py-3 text-xs text-gray-600"><%= f.description || '—' %></td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                      <a href="#" onclick="toggleFieldEdit(<%= f.id %>); return false;" class="text-blue-600 hover:underline text-xs font-semibold mr-3">Edit</a>
+                      <a href="#" onclick="deleteField(<%= f.id %>, '<%= f.field_key %>'); return false;" class="text-red-600 hover:underline text-xs font-semibold">Delete</a>
+                    </td>
+                  </tr>
+                  <tr id="field-edit-row-<%= f.id %>" class="hidden bg-gray-50 border-b border-gray-200">
+                    <td colspan="9" class="px-4 py-4">
+                      <form onsubmit="saveFieldEdit(event, <%= f.id %>)" class="space-y-3">
+                        <div class="grid grid-cols-3 gap-3">
+                          <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Label</label>
+                            <input type="text" name="label" value="<%= f.label %>" required class="w-full px-3 py-2 border border-gray-300 rounded text-sm" />
+                          </div>
+                          <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Category</label>
+                            <select name="category" class="w-full px-3 py-2 border border-gray-300 rounded text-sm">
+                              <option value="eu_required" <%= f.category === 'eu_required' ? 'selected' : '' %>>EU Required</option>
+                              <option value="nudie" <%= f.category === 'nudie' ? 'selected' : '' %>>Nudie Specific</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Description</label>
+                            <input type="text" name="description" value="<%= f.description || '' %>" class="w-full px-3 py-2 border border-gray-300 rounded text-sm" />
+                          </div>
+                        </div>
+                        <div class="flex gap-4">
+                          <label class="flex items-center text-sm"><input type="checkbox" name="required" class="mr-2" <%= f.required ? 'checked' : '' %> /> Required</label>
+                          <label class="flex items-center text-sm"><input type="checkbox" name="consumer_visible" class="mr-2" <%= f.consumer_visible ? 'checked' : '' %> /> Consumer Visible</label>
+                        </div>
+                        <div>
+                          <label class="block text-xs font-semibold text-gray-600 mb-2">Levels</label>
+                          <div class="flex gap-4">
+                            <% levels.forEach(lvl => { %>
+                              <label class="flex items-center text-sm">
+                                <input type="checkbox" name="<%= lvl.key %>" class="mr-2" <%= f[lvl.key] ? 'checked' : '' %> /> <%= lvl.name %>
+                              </label>
+                            <% }); %>
+                          </div>
+                        </div>
+                        <div class="flex gap-3">
+                          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold hover:bg-blue-700">Save</button>
+                          <button type="button" onclick="toggleFieldEdit(<%= f.id %>)" class="bg-gray-300 text-gray-900 px-4 py-2 rounded text-sm font-semibold hover:bg-gray-400">Cancel</button>
+                        </div>
+                      </form>
+                    </td>
                   </tr>
                 <% }); %>
               </tbody>
@@ -425,6 +487,59 @@
         <% } %>
 
         <script>
+          function toggleFieldEdit(fieldId) {
+            document.getElementById('field-edit-row-' + fieldId).classList.toggle('hidden');
+          }
+
+          async function saveFieldEdit(e, fieldId) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = {
+              label: formData.get('label'),
+              category: formData.get('category'),
+              description: formData.get('description'),
+              required: formData.has('required'),
+              consumer_visible: formData.has('consumer_visible'),
+              editable_at_style: formData.has('editable_at_style'),
+              editable_at_variant: formData.has('editable_at_variant'),
+              editable_at_batch: formData.has('editable_at_batch'),
+              editable_at_gtin: formData.has('editable_at_gtin'),
+              editable_at_sgtin: formData.has('editable_at_sgtin')
+            };
+
+            try {
+              const response = await fetch('/api/admin/fields/' + fieldId, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+              });
+              const result = await response.json();
+              if (result.success) {
+                location.reload();
+              } else {
+                alert('Error: ' + (result.error || 'Unknown error'));
+              }
+            } catch (err) {
+              alert('Error: ' + err.message);
+            }
+          }
+
+          async function deleteField(fieldId, fieldKey) {
+            if (!confirm('Delete field "' + fieldKey + '"? This only works if no values have been set for it anywhere.')) return;
+
+            try {
+              const response = await fetch('/api/admin/fields/' + fieldId, { method: 'DELETE' });
+              const result = await response.json();
+              if (result.success) {
+                location.reload();
+              } else {
+                alert('Error: ' + (result.error || 'Unknown error'));
+              }
+            } catch (err) {
+              alert('Error: ' + err.message);
+            }
+          }
+
           document.getElementById('fieldForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);

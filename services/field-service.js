@@ -52,6 +52,17 @@ class FieldService {
     return fieldRepository.updateFieldDefinition(fieldId, updates);
   }
 
+  // Delete a field definition - repository already refuses this if any
+  // dpp_values rows reference it (values must be removed first)
+  async deleteField(fieldId) {
+    const field = await fieldRepository.getFieldDefinition(fieldId);
+    if (!field) {
+      throw new Error(`Field ${fieldId} not found`);
+    }
+
+    return fieldRepository.deleteFieldDefinition(fieldId);
+  }
+
   // Set a value for an entity (style, batch, gtin, or sgtin)
   //
   // ROADMAP.md Phase 1: if the entity is a produced (locked) batch, or an
