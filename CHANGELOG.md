@@ -4,6 +4,19 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-16 (etapp 6) — Login page: label bug + copy fix
+
+- Removed "New Architecture" line from the login card - internal
+  dev-note copy that had leaked onto a user-facing page.
+- Fixed a real bug the user spotted: `label` had no `display` set in
+  `admin.css`, so it defaulted to inline. On the login page this made
+  the Password label sit inline next to its input (Username happened
+  to wrap onto its own line only because its longer label text pushed
+  the width:100% input down - not a real fix, just lucky wrapping).
+  Set `label { display: block; margin-bottom: 6px; }` globally -
+  `.checkbox-row` labels are unaffected since a class selector already
+  overrides the bare element rule with `display: flex`.
+
 ## 2026-09-16 (etapp 5) — Supply Chain: collapsible sub-categories
 
 User feedback on the consumer passport's Supply Chain section (style
