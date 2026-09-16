@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const passportResolver = require('../services/passport-resolver');
 const scanService = require('../services/scan-service');
+const fieldRepository = require('../repositories/fields');
 
 /**
  * Public Digital Product Passport
@@ -76,6 +77,78 @@ router.get('/:batch/:gtin/:sgtin', async (req, res) => {
     }
   } catch (err) {
     console.error('[dpp-passport]', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Machine-readable JSON export (for the EU DPP registry / interoperability)
+ * URL: /dpp/:batch/:gtin/:sgtin/json
+ * Only includes consumer_visible fields - does not log a scan event.
+ */
+router.get('/:batch/:gtin/:sgtin/json', async (req, res) => {
+  try {
+    const { batch, gtin, sgtin } = req.params;
+    const db = require('../db/init-v2').db;
+
+    const sgtinRecord = await new Promise((resolve, reject) => {
+      db.get(
+        `SELECT sg.* FROM sgtins sg
+         JOIN gtins g ON g.id = sg.gtin_id
+         JOIN batches b ON b.id = sg.batch_id
+         WHERE b.batch_id = ? AND g.gtin = ? AND sg.serial_number = ?
+         LIMIT 1`,
+        [batch, gtin, sgtin],
+        (err, row) => (err ? reject(err) : resolve(row))
+      );
+    });
+
+    if (!sgtinRecord) {
+      return res.status(404).json({ error: 'SGTIN not found', params: { batch, gtin, sgtin } });
+    }
+
+    const passport = await passportResolver.resolveSgtinPassport(sgtinRecord.id);
+
+    const fieldDefs = await fieldRepository.listFieldDefinitions();
+    const consumerVisibleByKey = Object.fromEntries(
+      fieldDefs.map(f => [f.field_key, !!f.consumer_visible])
+    );
+
+    const fields = passport.resolvedFields
+      .filter(f => f.value && consumerVisibleByKey[f.fieldKey])
+      .map(f => ({
+        key: f.fieldKey,
+        label: f.label,
+        category: f.category,
+        value: f.value,
+        source: f.source
+      }));
+
+    res.json({
+      format: 'ESPR 2024/1781 Digital Product Passport',
+      generatedAt: new Date().toISOString(),
+      identifiers: {
+        gtin: passport.gtin.gtin,
+        serialNumber: passport.sgtin.serial_number,
+        sgtin: passport.sgtin.sgtin,
+        styleNumber: passport.style.style_number,
+        batchId: passport.batch.batch_id
+      },
+      product: {
+        name: passport.style.product_name,
+        type: passport.style.product_type,
+        size: passport.gtin.size_value_1,
+        color: passport.gtin.color
+      },
+      manufacturing: {
+        factory: passport.batch.factory,
+        countryOfProduction: passport.batch.country_of_production,
+        productionDate: passport.batch.production_date
+      },
+      fields
+    });
+  } catch (err) {
+    console.error('[dpp-json]', err);
     res.status(500).json({ error: err.message });
   }
 });
