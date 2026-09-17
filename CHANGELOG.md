@@ -4,6 +4,17 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-17 (etapp 31) — Drop "Passport" from login subtitle
+
+User: "Passport" in the login card's "Digital Product Passport
+Administration" subtitle overstates the admin tool's scope, same
+reasoning as the "Product Data Hub" rename above. Changed to "Digital
+Product Administration". Left every other "Digital Product Passport"
+occurrence alone - those refer to the actual consumer-facing DPP
+concept (the public passport page, its `<title>`, its footer), which
+genuinely is a Digital Product Passport per EU terminology, unlike the
+admin tool.
+
 ## 2026-09-17 (etapp 30) — Rename "DPP Hub" to "Product Data Hub" (display only)
 
 User feedback: "DPP" is tightly coupled to what EU regulation requires
