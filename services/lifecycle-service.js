@@ -6,18 +6,12 @@ class LifecycleService {
    * Valid lifecycle event types
    */
   static VALID_EVENT_TYPES = [
-    'manufactured',
-    'quality_checked',
-    'packaged',
-    'shipped',
-    'delivered',
+    'viewed',
     'sold',
-    'worn',
     'repaired',
-    'resold',
-    'returned',
+    'reuse',
     'recycled',
-    'other'
+    'returned'
   ];
 
   /**
@@ -175,17 +169,12 @@ class LifecycleService {
    */
   formatEventForDisplay(event) {
     const eventDescriptions = {
-      manufactured: 'Manufactured',
-      quality_checked: 'Quality Checked',
-      packaged: 'Packaged',
-      shipped: 'Shipped',
-      delivered: 'Delivered',
+      viewed: 'Viewed',
       sold: 'Sold',
-      worn: 'In Use',
       repaired: 'Repaired',
-      resold: 'Resold',
-      returned: 'Returned',
-      recycled: 'Recycled'
+      reuse: 'Reuse',
+      recycled: 'Recycled',
+      returned: 'Returned'
     };
 
     return {
