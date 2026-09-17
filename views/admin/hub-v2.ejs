@@ -132,7 +132,7 @@
         </div>
 
         <div class="field-row">
-          <input type="text" id="productSearch" placeholder="Search Style #, Product Name, Variant..." style="width:320px;" value="<%= search || '' %>">
+          <input type="text" id="productSearch" placeholder="Search Style #, Product Name, Variant, GTIN, SKU..." style="width:340px;" value="<%= search || '' %>">
         </div>
 
         <% if (products && products.length > 0) { %>
@@ -140,24 +140,26 @@
             <table>
               <thead>
                 <tr>
-                  <th>Style #</th>
-                  <th>Product Name</th>
-                  <th>Type</th>
+                  <th>Style / Variant / GTIN</th>
+                  <th>Name / GTIN</th>
+                  <th>Type / SKU</th>
                   <th class="center">GTINs</th>
                   <th class="center">SGTINs</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
+                <% const expanded = !!search; %>
                 <% products.forEach(p => { %>
-                  <% const expanded = !!search; %>
+                  <% const styleKey = 'style-' + p.id; %>
+                  <% const styleHasChildren = p.variants.length > 0 || p.gtins.length > 0; %>
                   <tr
-                    style="background:var(--surface-2); <%= p.variants.length > 0 ? 'cursor:pointer;' : '' %>"
-                    <% if (p.variants.length > 0) { %>onclick="toggleProductGroup(<%= p.id %>)"<% } %>
+                    style="background:var(--surface-2); <%= styleHasChildren ? 'cursor:pointer;' : '' %>"
+                    <% if (styleHasChildren) { %>onclick="toggleGroup('<%= styleKey %>')"<% } %>
                   >
                     <td class="mono">
-                      <% if (p.variants.length > 0) { %>
-                        <span id="chevron-<%= p.id %>" style="display:inline-block; margin-right:6px; transition:transform 0.15s ease; color:var(--muted); <%= expanded ? 'transform:rotate(90deg);' : '' %>">▸</span>
+                      <% if (styleHasChildren) { %>
+                        <span data-chevron="<%= styleKey %>" style="display:inline-block; margin-right:6px; transition:transform 0.15s ease; color:var(--muted);">▸</span>
                       <% } %>
                       <strong><%= p.style_number %></strong>
                     </td>
@@ -173,20 +175,73 @@
                       <td><a href="/admin-v2/style/<%= p.id %>" onclick="event.stopPropagation();" class="link-action">Style Detail →</a></td>
                     <% } %>
                   </tr>
+
+                  <!-- GTINs directly under the Style (no Variant) -->
+                  <% p.gtins.forEach(g => { %>
+                    <tr data-parent="<%= styleKey %>" class="hidden">
+                      <td class="mono small" style="padding-left:28px;">↳ <%= gtinLabel(g) %></td>
+                      <td class="small mono"><%= g.gtin %></td>
+                      <td class="small muted"><%= g.item_number || '—' %></td>
+                      <td></td>
+                      <td class="center"><span class="badge badge-success small"><%= g.sgtin_count || 0 %></span></td>
+                      <td><a href="/admin-v2/gtin/<%= g.id %>" class="link-action">Detail →</a></td>
+                    </tr>
+                  <% }); %>
+
+                  <!-- Variants, each optionally expandable to their own GTINs -->
                   <% p.variants.forEach(v => { %>
-                    <tr class="product-variant-row-<%= p.id %> <%= expanded ? '' : 'hidden' %>">
-                      <td class="mono small" style="padding-left:28px;">↳ <%= v.variant_name %></td>
+                    <% const variantKey = 'variant-' + v.id; %>
+                    <tr
+                      data-parent="<%= styleKey %>" class="hidden"
+                      style="<%= v.gtins.length > 0 ? 'cursor:pointer;' : '' %>"
+                      <% if (v.gtins.length > 0) { %>onclick="toggleGroup('<%= variantKey %>')"<% } %>
+                    >
+                      <td class="mono small" style="padding-left:28px;">
+                        <% if (v.gtins.length > 0) { %>
+                          <span data-chevron="<%= variantKey %>" style="display:inline-block; margin-right:4px; transition:transform 0.15s ease; color:var(--muted);">▸</span>
+                        <% } %>
+                        ↳ <%= v.variant_name %>
+                      </td>
                       <td class="small"><%= v.effective_product_name %></td>
                       <td></td>
                       <td class="center"><span class="badge badge-accent small"><%= v.gtin_count || 0 %></span></td>
                       <td class="center"><span class="badge badge-success small"><%= v.sgtin_count || 0 %></span></td>
-                      <td><a href="/admin-v2/variant/<%= v.id %>" class="link-action">Detail →</a></td>
+                      <td><a href="/admin-v2/variant/<%= v.id %>" onclick="event.stopPropagation();" class="link-action">Detail →</a></td>
                     </tr>
+                    <% v.gtins.forEach(g => { %>
+                      <tr data-parent="<%= variantKey %>" data-grandparent="<%= styleKey %>" class="hidden">
+                        <td class="mono small" style="padding-left:48px;">↳ <%= gtinLabel(g) %></td>
+                        <td class="small mono"><%= g.gtin %></td>
+                        <td class="small muted"><%= g.item_number || '—' %></td>
+                        <td></td>
+                        <td class="center"><span class="badge badge-success small"><%= g.sgtin_count || 0 %></span></td>
+                        <td><a href="/admin-v2/gtin/<%= g.id %>" class="link-action">Detail →</a></td>
+                      </tr>
+                    <% }); %>
                   <% }); %>
+
                 <% }); %>
               </tbody>
             </table>
           </div>
+          <script>
+            (function() {
+              const expanded = <%- expanded %>;
+              const keys = [];
+              <% products.forEach(p => { %>
+                <% if (p.variants.length > 0 || p.gtins.length > 0) { %>
+                  keys.push(<%- JSON.stringify('style-' + p.id) %>);
+                <% } %>
+                <% p.variants.forEach(v => { %>
+                  <% if (v.gtins.length > 0) { %>
+                    keys.push(<%- JSON.stringify('variant-' + v.id) %>);
+                  <% } %>
+                <% }); %>
+              <% }); %>
+              keys.forEach(k => initGroup(k, expanded));
+              renderProductVisibility();
+            })();
+          </script>
         <% } else { %>
           <div class="empty-state">No products found</div>
         <% } %>
@@ -951,10 +1006,34 @@
       window.location = '/admin-v2?tab=products&search=' + encodeURIComponent(this.value);
     });
 
-    function toggleProductGroup(styleId) {
-      document.querySelectorAll('.product-variant-row-' + styleId).forEach(row => row.classList.toggle('hidden'));
-      const chevron = document.getElementById('chevron-' + styleId);
-      if (chevron) chevron.style.transform = chevron.style.transform === 'rotate(90deg)' ? '' : 'rotate(90deg)';
+    // Products tab: 3-level accordion (Style > Variant > GTIN). A row
+    // is visible only if every ancestor group it declares
+    // (data-parent, data-grandparent) is expanded - recomputed as a
+    // whole on every toggle rather than blindly flipping classList,
+    // so a GTIN nested under a Variant can't end up visible while its
+    // Style is collapsed (or vice versa via stale toggle state).
+    const productGroupState = {};
+
+    function initGroup(key, isExpanded) {
+      productGroupState[key] = isExpanded;
+    }
+
+    function toggleGroup(key) {
+      productGroupState[key] = !productGroupState[key];
+      renderProductVisibility();
+    }
+
+    function renderProductVisibility() {
+      document.querySelectorAll('[data-parent]').forEach(row => {
+        let visible = !!productGroupState[row.getAttribute('data-parent')];
+        const grandparent = row.getAttribute('data-grandparent');
+        if (visible && grandparent) visible = !!productGroupState[grandparent];
+        row.classList.toggle('hidden', !visible);
+      });
+      document.querySelectorAll('[data-chevron]').forEach(chevron => {
+        const key = chevron.getAttribute('data-chevron');
+        chevron.style.transform = productGroupState[key] ? 'rotate(90deg)' : '';
+      });
     }
 
     document.getElementById('gtinSearch')?.addEventListener('change', function() {

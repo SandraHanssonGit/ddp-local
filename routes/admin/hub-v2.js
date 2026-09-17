@@ -143,28 +143,64 @@ router.get('/', async (req, res) => {
         ORDER BY v.variant_name ASC
       `);
 
+      // GTINs are masterdata (not tied to a Batch) that live under
+      // either a Variant, or directly under a Style when it has none -
+      // the third and last level of "everything that isn't production"
+      // per user request (Batch/SGTIN stay their own separate tabs).
+      const gtins = await getAll(`
+        SELECT
+          g.id, g.gtin, g.item_number, g.style_id, g.variant_id,
+          g.size_value_1, g.size_value_2, g.size_value_3,
+          COUNT(DISTINCT sg.id) as sgtin_count
+        FROM gtins g
+        LEFT JOIN sgtins sg ON sg.gtin_id = g.id
+        GROUP BY g.id
+        ORDER BY g.item_number ASC
+      `);
+
       const variantsByStyle = {};
       variants.forEach(v => {
         (variantsByStyle[v.style_id] = variantsByStyle[v.style_id] || []).push(v);
       });
 
-      let products = styles.map(s => ({ ...s, variants: variantsByStyle[s.id] || [] }));
+      const gtinsByVariant = {};
+      const gtinsByStyleDirect = {};
+      gtins.forEach(g => {
+        if (g.variant_id) {
+          (gtinsByVariant[g.variant_id] = gtinsByVariant[g.variant_id] || []).push(g);
+        } else {
+          (gtinsByStyleDirect[g.style_id] = gtinsByStyleDirect[g.style_id] || []).push(g);
+        }
+      });
+
+      let products = styles.map(s => ({
+        ...s,
+        gtins: gtinsByStyleDirect[s.id] || [],
+        variants: (variantsByStyle[s.id] || []).map(v => ({ ...v, gtins: gtinsByVariant[v.id] || [] }))
+      }));
+
+      const gtinLabel = g => [g.size_value_1, g.size_value_2, g.size_value_3].filter(Boolean).join('-') || g.item_number || g.gtin;
 
       // Small dataset for a POC - filtering the grouped structure in
       // JS is simpler and clearer here than a SQL query that has to
-      // match against a style OR any of its nested variants.
+      // match against a style, any of its variants, or any GTIN
+      // nested under either.
       if (search) {
+        const gtinMatches = g => g.gtin.toLowerCase().includes(search) || (g.item_number || '').toLowerCase().includes(search);
         products = products.filter(p =>
           p.style_number.toLowerCase().includes(search) ||
           (p.product_name || '').toLowerCase().includes(search) ||
+          p.gtins.some(gtinMatches) ||
           p.variants.some(v =>
             v.variant_name.toLowerCase().includes(search) ||
-            (v.effective_product_name || '').toLowerCase().includes(search)
+            (v.effective_product_name || '').toLowerCase().includes(search) ||
+            v.gtins.some(gtinMatches)
           )
         );
       }
 
       data.products = products;
+      data.gtinLabel = gtinLabel;
       data.search = req.query.search || '';
     }
 

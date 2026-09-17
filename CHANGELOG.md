@@ -4,6 +4,39 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-17 (etapp 34) — Weave GTINs into the Products tab (3-level tree)
+
+User: GTINs really live under a unique Style + Style Variant too, so
+they should be woven into the Products view as well - the single place
+to manage all masterdata outside the Batch (Batch/SGTIN stay separate,
+since those are production, not masterdata).
+
+- New `gtins` query in the `products` tab branch, grouped in JS by
+  `variant_id` (nested under a Variant) or `style_id` when
+  `variant_id IS NULL` (nested directly under a variant-less Style,
+  e.g. jeans' waist×length matrix).
+- Rewrote the accordion from a single style→variant toggle to a proper
+  3-level one (Style > Variant > GTIN). Rather than blindly toggling
+  `classList` per click (which could desync - a GTIN row nested under
+  an expanded Variant could stay visible even after its parent Style
+  collapsed), visibility is now recomputed from scratch on every
+  toggle: each row declares `data-parent` (and `data-grandparent` for
+  GTINs nested two levels deep) and is shown only if every declared
+  ancestor group is expanded.
+- Search extended to match GTIN number and SKU too; a match still
+  expands its whole ancestor chain (Style and, if applicable, Variant)
+  so a found GTIN is never left hidden inside a collapsed group.
+- Table header changed to "Style / Variant / GTIN" | "Name / GTIN" |
+  "Type / SKU" to reflect what each row type actually shows in those
+  columns.
+
+Verified against all 12 real GTINs across all 5 styles: the 2 variant-
+less styles' GTINs nest directly under their Style row (112327: 3
+sizes, 113756: 1 test GTIN); the 3 variant-having styles' GTINs nest
+under their respective Variant rows (131274: 3 across B01/B02, 500001:
+1 each under BLK/BRN, 910006: 3 under B26) - all 12 accounted for with
+no duplicates. Full regression sweep of all 9 hub tabs still 200.
+
 ## 2026-09-17 (etapp 33) — Products tab: collapse variant groups by default
 
 User liked the new Products tab and asked for variant groups to be
