@@ -4,6 +4,37 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-17 (etapp 32) — Add new "Products" tab (Style/Variant unified, additive)
+
+User: Styles and Variants are really both just "the unique product
+level" (a bare Style for jeans with no variants, a Style+Variant for
+T-shirts/belts) - same concept `effective_product_name` already uses
+- so why two separate tabs? Agreed and proposed a grouped "Products"
+view (Style header row, Variant rows nested underneath when they
+exist). Per user's own suggested rollout: **added as a new tab
+alongside Styles/Variants, not a replacement yet** - verify it works,
+then remove the old two tabs in a separate commit once confirmed.
+
+- New `tab=products` branch in `hub-v2.js`: one query for styles, one
+  for variants (same shape as the existing Styles/Variants tab
+  queries), grouped in JS by `style_id` - simpler than a single nested
+  SQL query for this grouped shape.
+- Search matches Style #, Style product name, Variant code, or the
+  variant's effective name; implemented in JS post-query (dataset is
+  small for a POC) rather than SQL, since filtering a *grouped*
+  structure by "the style OR any of its nested variants" doesn't map
+  cleanly to a flat `WHERE`. A match on any variant keeps the whole
+  Style group visible (shows full context) rather than hiding sibling
+  variants.
+- Nav link labeled "Products (new)" temporarily, so it doesn't get
+  mistaken for the final version while both exist side by side.
+
+Verified against all 5 real styles: 112327/113756 (jeans, no variants)
+render as flat rows; 131274/500001/910006 (T-shirts, belts, kids)
+correctly nest their variants (B01/B02, BLK/BRN, B26) with working
+links to `style-detail`/`variant-detail`; search for "Black" and for a
+jeans style number both return the right rows.
+
 ## 2026-09-17 (etapp 31) — Drop "Passport" from login subtitle
 
 User: "Passport" in the login card's "Digital Product Passport

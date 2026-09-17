@@ -27,6 +27,7 @@
     <div class="admin-nav">
       <a href="/admin-v2" class="<%= tab === 'styles' ? 'active' : '' %>">Styles</a>
       <a href="/admin-v2?tab=variants" class="<%= tab === 'variants' ? 'active' : '' %>">Variants</a>
+      <a href="/admin-v2?tab=products" class="<%= tab === 'products' ? 'active' : '' %>">Products (new)</a>
       <a href="/admin-v2?tab=gtins" class="<%= tab === 'gtins' ? 'active' : '' %>">GTINs</a>
       <a href="/admin-v2?tab=batches" class="<%= tab === 'batches' ? 'active' : '' %>">Batches</a>
       <a href="/admin-v2?tab=sgtins" class="<%= tab === 'sgtins' ? 'active' : '' %>">SGTINs</a>
@@ -119,6 +120,66 @@
           </div>
         <% } else { %>
           <div class="empty-state">No variants found (jeans styles have no variants)</div>
+        <% } %>
+      <% } %>
+
+      <!-- PRODUCTS TAB (new, 2026-09-17) - unified Style/Style+Variant
+           view, testing alongside Styles+Variants before those two are
+           removed -->
+      <% if (tab === 'products') { %>
+        <div class="section-head">
+          <h2>Products</h2>
+        </div>
+
+        <div class="field-row">
+          <input type="text" id="productSearch" placeholder="Search Style #, Product Name, Variant..." style="width:320px;" value="<%= search || '' %>">
+        </div>
+
+        <% if (products && products.length > 0) { %>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Style #</th>
+                  <th>Product Name</th>
+                  <th>Type</th>
+                  <th class="center">GTINs</th>
+                  <th class="center">SGTINs</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% products.forEach(p => { %>
+                  <tr style="background:var(--surface-2);">
+                    <td class="mono"><strong><%= p.style_number %></strong></td>
+                    <td><strong><%= p.product_name %></strong></td>
+                    <td class="small muted"><%= p.product_type %></td>
+                    <% if (p.variants.length === 0) { %>
+                      <td class="center"><span class="badge badge-accent"><%= p.gtin_count || 0 %></span></td>
+                      <td class="center"><span class="badge badge-success"><%= p.sgtin_count || 0 %></span></td>
+                      <td><a href="/admin-v2/style/<%= p.id %>" class="link-action">Detail →</a></td>
+                    <% } else { %>
+                      <td class="center small muted"><%= p.variants.length %> variants</td>
+                      <td class="center small muted"><%= p.sgtin_count || 0 %> total</td>
+                      <td><a href="/admin-v2/style/<%= p.id %>" class="link-action">Style Detail →</a></td>
+                    <% } %>
+                  </tr>
+                  <% p.variants.forEach(v => { %>
+                    <tr>
+                      <td class="mono small" style="padding-left:28px;">↳ <%= v.variant_name %></td>
+                      <td class="small"><%= v.effective_product_name %></td>
+                      <td></td>
+                      <td class="center"><span class="badge badge-accent small"><%= v.gtin_count || 0 %></span></td>
+                      <td class="center"><span class="badge badge-success small"><%= v.sgtin_count || 0 %></span></td>
+                      <td><a href="/admin-v2/variant/<%= v.id %>" class="link-action">Detail →</a></td>
+                    </tr>
+                  <% }); %>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } else { %>
+          <div class="empty-state">No products found</div>
         <% } %>
       <% } %>
 
@@ -877,6 +938,10 @@
   </div>
 
   <script>
+    document.getElementById('productSearch')?.addEventListener('change', function() {
+      window.location = '/admin-v2?tab=products&search=' + encodeURIComponent(this.value);
+    });
+
     document.getElementById('gtinSearch')?.addEventListener('change', function() {
       window.location = '/admin-v2?tab=gtins&search=' + encodeURIComponent(this.value);
     });

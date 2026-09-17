@@ -107,6 +107,67 @@ router.get('/', async (req, res) => {
       `);
     }
 
+    // PRODUCTS TAB (2026-09-17) - new unified Style/Style+Variant view,
+    // added alongside the existing Styles/Variants tabs so it can be
+    // verified before those two are removed. The "product" level is
+    // either a bare Style (no variants - jeans) or a Style×Variant
+    // (T-shirts, belts) - same concept `effective_product_name`
+    // already uses elsewhere, just applied to the whole list instead
+    // of one entity at a time.
+    else if (tab === 'products') {
+      const search = (req.query.search || '').toLowerCase();
+
+      const styles = await getAll(`
+        SELECT
+          s.id, s.style_number, s.product_name, s.product_type,
+          COUNT(DISTINCT g.id) as gtin_count,
+          COUNT(DISTINCT sg.id) as sgtin_count
+        FROM styles s
+        LEFT JOIN gtins g ON g.style_id = s.id
+        LEFT JOIN sgtins sg ON sg.gtin_id = g.id
+        GROUP BY s.id
+        ORDER BY s.style_number DESC
+      `);
+
+      const variants = await getAll(`
+        SELECT
+          v.id, v.style_id, v.variant_name,
+          COALESCE(v.product_name, s.product_name) AS effective_product_name,
+          COUNT(DISTINCT g.id) as gtin_count,
+          COUNT(DISTINCT sg.id) as sgtin_count
+        FROM variants v
+        JOIN styles s ON s.id = v.style_id
+        LEFT JOIN gtins g ON g.variant_id = v.id
+        LEFT JOIN sgtins sg ON sg.gtin_id = g.id
+        GROUP BY v.id
+        ORDER BY v.variant_name ASC
+      `);
+
+      const variantsByStyle = {};
+      variants.forEach(v => {
+        (variantsByStyle[v.style_id] = variantsByStyle[v.style_id] || []).push(v);
+      });
+
+      let products = styles.map(s => ({ ...s, variants: variantsByStyle[s.id] || [] }));
+
+      // Small dataset for a POC - filtering the grouped structure in
+      // JS is simpler and clearer here than a SQL query that has to
+      // match against a style OR any of its nested variants.
+      if (search) {
+        products = products.filter(p =>
+          p.style_number.toLowerCase().includes(search) ||
+          (p.product_name || '').toLowerCase().includes(search) ||
+          p.variants.some(v =>
+            v.variant_name.toLowerCase().includes(search) ||
+            (v.effective_product_name || '').toLowerCase().includes(search)
+          )
+        );
+      }
+
+      data.products = products;
+      data.search = req.query.search || '';
+    }
+
     // VARIANTS TAB
     else if (tab === 'variants') {
       const styleId = req.query.style;
