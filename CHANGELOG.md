@@ -4,6 +4,16 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-17 (etapp 38) — Rename "DPP Fields" tab to "Field Config"
+
+User feedback: the tab configures field definitions (levels, category,
+visibility), not the field values themselves - "Field Config" signals
+configuration and fits the "no hardcoded columns, everything is
+configurable fields" architecture principle better than "DPP Fields".
+Left "DPP Field Values" cards on the Style/Variant/GTIN/SGTIN/Batch
+detail pages unchanged - those show actual resolved data values, a
+legitimately different DPP-specific concept.
+
 ## 2026-09-17 (etapp 37) — Products tab: fix GTINs column showing "X variants"
 
 User spotted an inconsistency: a Style row with variants showed "2
