@@ -4,6 +4,24 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-17 (etapp 39) — Rename "SGTINs" tab to "Individual Units"
+
+Same reasoning as the earlier "DPP Hub"/"DPP Fields" renames: "SGTIN"
+is GS1/RFID jargon (Serialized GTIN) - meaningless to a non-technical
+user. Worked through several options with the user (Garments, Item
+IDs, Produced Items, Lifecycle, Serial Numbers) before landing on
+"Individual Units" - plain language, product-type-neutral (works for
+jeans, belts, kids items alike), and accurate: each row is one
+physical, serialized item, tracked from production through its whole
+lifecycle (QC, sale, repair, resale, recycling), not just a one-time
+"produced" state.
+
+Renamed the nav link, the tab's own `<h2>`, and its empty-state text.
+Left `sgtin-detail.ejs`'s own "SGTIN: <serial>" heading and the
+Batches tab's "SGTINs" *count* column unchanged for now - this pass
+was scoped to the tab/list level, same incremental approach as the
+other renames.
+
 ## 2026-09-17 (etapp 38) — Rename "DPP Fields" tab to "Field Config"
 
 User feedback: the tab configures field definitions (levels, category,

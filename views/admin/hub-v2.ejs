@@ -27,7 +27,7 @@
     <div class="admin-nav">
       <a href="/admin-v2" class="<%= tab === 'products' ? 'active' : '' %>">Products</a>
       <a href="/admin-v2?tab=batches" class="<%= tab === 'batches' ? 'active' : '' %>">Batches</a>
-      <a href="/admin-v2?tab=sgtins" class="<%= tab === 'sgtins' ? 'active' : '' %>">SGTINs</a>
+      <a href="/admin-v2?tab=sgtins" class="<%= tab === 'sgtins' ? 'active' : '' %>">Individual Units</a>
       <a href="/admin-v2?tab=fields" class="<%= tab === 'fields' ? 'active' : '' %>">Field Config</a>
       <a href="/admin-v2?tab=operators" class="<%= tab === 'operators' ? 'active' : '' %>">Economic Operators</a>
       <a href="/admin-v2?tab=analytics" class="<%= tab === 'analytics' ? 'active' : '' %>">Scan Analytics</a>
@@ -201,10 +201,10 @@
         <% } %>
       <% } %>
 
-      <!-- SGTINS TAB (Individual garments) -->
+      <!-- SGTINS TAB (Individual Units - one row per physical, serialized item) -->
       <% if (tab === 'sgtins') { %>
         <div class="section-head">
-          <h2>Individual Garments (SGTINs)</h2>
+          <h2>Individual Units</h2>
         </div>
 
         <% if (sgtins && sgtins.length > 0) { %>
@@ -251,7 +251,7 @@
             </table>
           </div>
         <% } else { %>
-          <div class="empty-state">No SGTINs found</div>
+          <div class="empty-state">No individual units found</div>
         <% } %>
       <% } %>
 
