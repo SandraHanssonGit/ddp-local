@@ -274,7 +274,7 @@ router.get('/', async (req, res) => {
     // own sub-nav rather than as separate top-level tabs. The natural
     // place to add Users/Permissions once those exist.
     else if (tab === 'settings') {
-      const sub = req.query.sub || 'operators';
+      const sub = req.query.sub || 'fields';
       data.settingsSub = sub;
 
       if (sub === 'fields') {
