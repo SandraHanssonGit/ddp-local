@@ -4,6 +4,28 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-17 (etapp 36) — Remove Styles/Variants/GTINs tabs, Products is now primary
+
+Final step of the agreed rollout (add Products additively, verify,
+then remove the old tabs): removed the Styles, Variants, and GTINs
+Masterdata tabs entirely - nav links, `hub-v2.js` route branches, and
+`hub-v2.ejs` view sections all deleted. Confirmed first that nothing
+else in the codebase still linked to the old `?tab=styles/variants/
+gtins` params except their own self-contained filter dropdowns
+(removed with them) and `import.ejs`'s post-import "View GTINs in Hub"
+button, which now points at `?tab=products` instead.
+
+Also changed the hub's default tab from `'styles'` to `'products'` so
+a bare `/admin-v2` (no `?tab=`) lands on the right page, and renamed
+the nav link from "Products (new)" to plain "Products" now that it's
+the only masterdata tab.
+
+Detail pages (`/admin-v2/style/:id`, `/variant/:id`, `/gtin/:id`) are
+completely unaffected - they're separate routes the list tabs only
+ever linked to, never depended on. Verified: bare `/admin-v2` renders
+Products; old tab params degrade gracefully (empty card, not a crash);
+full regression sweep of all remaining tabs and detail pages still 200.
+
 ## 2026-09-17 (etapp 35) — Products tab: drop SGTIN column, simplify Action to a bare arrow
 
 Two follow-up refinements per user feedback:

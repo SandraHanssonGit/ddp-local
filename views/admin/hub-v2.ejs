@@ -25,10 +25,7 @@
     </div>
 
     <div class="admin-nav">
-      <a href="/admin-v2" class="<%= tab === 'styles' ? 'active' : '' %>">Styles</a>
-      <a href="/admin-v2?tab=variants" class="<%= tab === 'variants' ? 'active' : '' %>">Variants</a>
-      <a href="/admin-v2?tab=products" class="<%= tab === 'products' ? 'active' : '' %>">Products (new)</a>
-      <a href="/admin-v2?tab=gtins" class="<%= tab === 'gtins' ? 'active' : '' %>">GTINs</a>
+      <a href="/admin-v2" class="<%= tab === 'products' ? 'active' : '' %>">Products</a>
       <a href="/admin-v2?tab=batches" class="<%= tab === 'batches' ? 'active' : '' %>">Batches</a>
       <a href="/admin-v2?tab=sgtins" class="<%= tab === 'sgtins' ? 'active' : '' %>">SGTINs</a>
       <a href="/admin-v2?tab=fields" class="<%= tab === 'fields' ? 'active' : '' %>">DPP Fields</a>
@@ -37,95 +34,9 @@
     </div>
 
     <div class="card">
-      <!-- STYLES TAB -->
-      <% if (tab === 'styles') { %>
-        <div class="section-head">
-          <h2>Styles Masterdata</h2>
-        </div>
-
-        <% if (styles && styles.length > 0) { %>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Style #</th>
-                  <th>Name</th>
-                  <th>Type</th>
-                  <th class="center">Variants</th>
-                  <th class="center">GTINs</th>
-                  <th class="center">SGTINs</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% styles.forEach(s => { %>
-                  <tr>
-                    <td class="mono"><strong><%= s.style_number %></strong></td>
-                    <td><%= s.product_name %></td>
-                    <td class="muted small"><%= s.product_type %></td>
-                    <td class="center"><span class="badge badge-accent"><%= s.variant_count || 0 %></span></td>
-                    <td class="center"><span class="badge badge-accent"><%= s.gtin_count || 0 %></span></td>
-                    <td class="center"><span class="badge badge-success"><%= s.sgtin_count || 0 %></span></td>
-                    <td><a href="/admin-v2/style/<%= s.id %>" class="link-action">Detail →</a></td>
-                  </tr>
-                <% }); %>
-              </tbody>
-            </table>
-          </div>
-        <% } else { %>
-          <div class="empty-state">No styles found</div>
-        <% } %>
-      <% } %>
-
-      <!-- VARIANTS TAB -->
-      <% if (tab === 'variants') { %>
-        <div class="section-head">
-          <h2>Style Variants</h2>
-          <% if (styles && styles.length > 0) { %>
-            <select id="filterStyle" onchange="window.location = '/admin-v2?tab=variants&style=' + this.value" style="width:auto;">
-              <option value="">All Styles</option>
-              <% styles.forEach(s => { %>
-                <option value="<%= s.id %>" <%= typeof selectedStyleId !== 'undefined' && selectedStyleId == s.id ? 'selected' : '' %>><%= s.style_number %> - <%= s.product_name %></option>
-              <% }); %>
-            </select>
-          <% } %>
-        </div>
-
-        <% if (variants && variants.length > 0) { %>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Product Name</th>
-                  <th>Style #</th>
-                  <th>Variant</th>
-                  <th class="center">GTINs</th>
-                  <th class="center">SGTINs</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% variants.forEach(v => { %>
-                  <tr>
-                    <td><%= v.effective_product_name %></td>
-                    <td class="mono"><strong><%= v.style_number %></strong></td>
-                    <td class="mono"><strong><%= v.variant_name %></strong></td>
-                    <td class="center"><span class="badge badge-accent"><%= v.gtin_count || 0 %></span></td>
-                    <td class="center"><span class="badge badge-success"><%= v.sgtin_count || 0 %></span></td>
-                    <td><a href="/admin-v2/variant/<%= v.id %>" class="link-action">Detail →</a></td>
-                  </tr>
-                <% }); %>
-              </tbody>
-            </table>
-          </div>
-        <% } else { %>
-          <div class="empty-state">No variants found (jeans styles have no variants)</div>
-        <% } %>
-      <% } %>
-
-      <!-- PRODUCTS TAB (new, 2026-09-17) - unified Style/Style+Variant
-           view, testing alongside Styles+Variants before those two are
-           removed -->
+      <!-- PRODUCTS TAB - unified Style/Style+Variant/GTIN masterdata
+           view, replaced the old separate Styles/Variants/GTINs tabs
+           on 2026-09-17 -->
       <% if (tab === 'products') { %>
         <div class="section-head">
           <h2>Products</h2>
@@ -238,87 +149,6 @@
           </script>
         <% } else { %>
           <div class="empty-state">No products found</div>
-        <% } %>
-      <% } %>
-
-      <!-- GTINS TAB (Masterdata) -->
-      <% if (tab === 'gtins') { %>
-        <div class="section-head">
-          <h2>GTIN Masterdata</h2>
-          <div style="display:flex; gap:10px;">
-            <% if (typeof styles !== 'undefined' && styles && styles.length > 0) { %>
-              <select id="filterStyle" onchange="window.location = '/admin-v2?tab=gtins&style=' + this.value" style="width:auto;">
-                <option value="">All Styles</option>
-                <% styles.forEach(s => { %>
-                  <option value="<%= s.id %>" <%= typeof selectedStyleId !== 'undefined' && selectedStyleId == s.id ? 'selected' : '' %>><%= s.style_number %> - <%= s.product_name %></option>
-                <% }); %>
-              </select>
-            <% } %>
-            <% if (typeof selectedStyleId !== 'undefined' && selectedStyleId && typeof variants !== 'undefined' && variants && variants.length > 0) { %>
-              <select id="filterVariant" onchange="window.location = '/admin-v2?tab=gtins&style=<%= selectedStyleId %>&variant=' + this.value" style="width:auto;">
-                <option value="">All Variants</option>
-                <% variants.forEach(v => { %>
-                  <option value="<%= v.id %>" <%= typeof selectedVariantId !== 'undefined' && selectedVariantId == v.id ? 'selected' : '' %>><%= v.variant_name %></option>
-                <% }); %>
-              </select>
-            <% } %>
-            <input type="text" id="gtinSearch" placeholder="Search GTIN, SKU, Style #, Name, Variant..." style="width:260px;" value="<%= search || '' %>">
-          </div>
-        </div>
-
-        <% if (gtins && gtins.length > 0) { %>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>GTIN</th>
-                  <th>SKU</th>
-                  <th>Style</th>
-                  <th>Name</th>
-                  <th>Variant</th>
-                  <th>Size</th>
-                  <th class="center">SGTINs</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% gtins.forEach(g => {
-                  let sizeDisplay = '';
-                  if (g.variant_id) {
-                    sizeDisplay = g.size_value_1 || '—';
-                  } else {
-                    if (g.size_value_1) sizeDisplay += g.size_value_1;
-                    if (g.size_value_2) sizeDisplay += '-' + g.size_value_2;
-                    if (g.size_value_3) sizeDisplay += '-' + g.size_value_3;
-                  }
-                %>
-                  <tr>
-                    <td class="mono"><strong><%= g.gtin %></strong></td>
-                    <td class="mono small"><%= g.item_number || '—' %></td>
-                    <td class="mono small"><%= g.style_number %></td>
-                    <td class="small"><strong><%= g.product_name || '—' %></strong></td>
-                    <td class="small"><%= g.variant_name || '—' %></td>
-                    <td class="small"><%= sizeDisplay || '—' %></td>
-                    <td class="center"><span class="badge badge-success small"><%= g.sgtin_count || 0 %></span></td>
-                    <td><a href="/admin-v2/gtin/<%= g.id %>" class="link-action">→</a></td>
-                  </tr>
-                <% }); %>
-              </tbody>
-            </table>
-          </div>
-          <% if (typeof totalPages !== 'undefined' && totalPages > 1) {
-            const pageQuery = (p) => `?tab=gtins&page=${p}` + (search ? `&search=${encodeURIComponent(search)}` : '') + (selectedStyleId ? `&style=${selectedStyleId}` : '') + (selectedVariantId ? `&variant=${selectedVariantId}` : '');
-          %>
-            <div class="pagination">
-              <span><%= totalCount %> GTINs &middot; page <%= page %> of <%= totalPages %></span>
-              <div class="page-links">
-                <a href="<%= pageQuery(page - 1) %>" class="<%= page <= 1 ? 'disabled' : '' %>">← Prev</a>
-                <a href="<%= pageQuery(page + 1) %>" class="<%= page >= totalPages ? 'disabled' : '' %>">Next →</a>
-              </div>
-            </div>
-          <% } %>
-        <% } else { %>
-          <div class="empty-state">No GTINs found</div>
         <% } %>
       <% } %>
 
@@ -1029,10 +859,6 @@
         chevron.style.transform = productGroupState[key] ? 'rotate(90deg)' : '';
       });
     }
-
-    document.getElementById('gtinSearch')?.addEventListener('change', function() {
-      window.location = '/admin-v2?tab=gtins&search=' + encodeURIComponent(this.value);
-    });
 
     document.getElementById('batchSearch')?.addEventListener('change', function() {
       const style = <%- JSON.stringify(typeof selectedStyleId !== 'undefined' ? selectedStyleId : null) %>;

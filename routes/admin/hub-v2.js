@@ -83,38 +83,17 @@ const run = (sql, params = []) => new Promise((resolve, reject) => {
 // Main hub
 router.get('/', async (req, res) => {
   try {
-    const tab = req.query.tab || 'styles';
+    const tab = req.query.tab || 'products';
     const user = { username: 'demo', role: 'admin' };
     let data = { tab, user };
 
-    // STYLES TAB
-    if (tab === 'styles') {
-      data.styles = await getAll(`
-        SELECT
-          s.id,
-          s.style_number,
-          s.product_name,
-          s.product_type,
-          COUNT(DISTINCT g.id) as gtin_count,
-          COUNT(DISTINCT v.id) as variant_count,
-          COUNT(DISTINCT sg.id) as sgtin_count
-        FROM styles s
-        LEFT JOIN gtins g ON g.style_id = s.id
-        LEFT JOIN variants v ON v.style_id = s.id
-        LEFT JOIN sgtins sg ON sg.gtin_id = g.id
-        GROUP BY s.id
-        ORDER BY s.style_number DESC
-      `);
-    }
-
-    // PRODUCTS TAB (2026-09-17) - new unified Style/Style+Variant view,
-    // added alongside the existing Styles/Variants tabs so it can be
-    // verified before those two are removed. The "product" level is
-    // either a bare Style (no variants - jeans) or a Style×Variant
-    // (T-shirts, belts) - same concept `effective_product_name`
-    // already uses elsewhere, just applied to the whole list instead
-    // of one entity at a time.
-    else if (tab === 'products') {
+    // PRODUCTS TAB - the unified Style/Style+Variant/GTIN masterdata
+    // view (replaced the old separate Styles/Variants/GTINs tabs on
+    // 2026-09-17). The "product" level is either a bare Style (no
+    // variants - jeans) or a Style×Variant (T-shirts, belts) - same
+    // concept `effective_product_name` already uses elsewhere, just
+    // applied to the whole list instead of one entity at a time.
+    if (tab === 'products') {
       const search = (req.query.search || '').toLowerCase();
 
       const styles = await getAll(`
@@ -202,127 +181,6 @@ router.get('/', async (req, res) => {
       data.products = products;
       data.gtinLabel = gtinLabel;
       data.search = req.query.search || '';
-    }
-
-    // VARIANTS TAB
-    else if (tab === 'variants') {
-      const styleId = req.query.style;
-      let query = `
-        SELECT
-          v.id,
-          v.style_id,
-          v.variant_name,
-          s.style_number,
-          s.product_name,
-          COALESCE(v.product_name, s.product_name) AS effective_product_name,
-          COUNT(DISTINCT g.id) as gtin_count,
-          COUNT(DISTINCT sg.id) as sgtin_count
-        FROM variants v
-        JOIN styles s ON s.id = v.style_id
-        LEFT JOIN gtins g ON g.variant_id = v.id
-        LEFT JOIN sgtins sg ON sg.gtin_id = g.id
-      `;
-      const params = [];
-
-      if (styleId) {
-        query += ' WHERE v.style_id = ?';
-        params.push(styleId);
-      }
-
-      query += ` GROUP BY v.id ORDER BY s.style_number, v.variant_name`;
-
-      data.variants = await getAll(query, params);
-      // Only styles that actually have variants - filtering by a
-      // variant-less style (e.g. jeans) would always show zero rows
-      data.styles = await getAll(`
-        SELECT DISTINCT s.id, s.style_number, s.product_name
-        FROM styles s
-        JOIN variants v ON v.style_id = s.id
-        ORDER BY s.style_number
-      `);
-      data.selectedStyleId = styleId;
-    }
-
-    // GTINS TAB (Masterdata)
-    else if (tab === 'gtins') {
-      const search = req.query.search || '';
-      const styleId = req.query.style;
-      const variantId = req.query.variant;
-
-      let query = `
-        SELECT
-          g.id,
-          g.gtin,
-          g.item_number,
-          g.product_type,
-          g.size_value_1,
-          g.size_value_2,
-          g.size_value_3,
-          g.style_id,
-          s.style_number,
-          COALESCE(v.product_name, s.product_name) AS product_name,
-          v.id as variant_id,
-          v.variant_name,
-          COUNT(DISTINCT sg.id) as sgtin_count
-        FROM gtins g
-        JOIN styles s ON g.style_id = s.id
-        LEFT JOIN variants v ON g.variant_id = v.id
-        LEFT JOIN sgtins sg ON sg.gtin_id = g.id
-      `;
-      const params = [];
-      const conditions = [];
-
-      if (search) {
-        // Match every column actually visible in the table (GTIN, SKU,
-        // Style #, Name, Variant) - was only GTIN/SKU/Style #, so
-        // searching for a product or variant name (both shown columns)
-        // silently found nothing.
-        conditions.push(`(
-          g.gtin LIKE ? OR g.item_number LIKE ? OR s.style_number LIKE ?
-          OR s.product_name LIKE ? OR v.product_name LIKE ? OR v.variant_name LIKE ?
-        )`);
-        params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
-      }
-
-      if (styleId) {
-        conditions.push(`g.style_id = ?`);
-        params.push(styleId);
-      }
-
-      if (variantId) {
-        conditions.push(`g.variant_id = ?`);
-        params.push(variantId);
-      }
-
-      const whereClause = conditions.length > 0 ? ` WHERE ` + conditions.join(' AND ') : '';
-
-      // Pagination - a single jeans style's full waist x length matrix
-      // can already be dozens of GTINs; this list only grows as more
-      // styles are added, so it needs a hard page size from the start
-      // rather than rendering every matching row.
-      const perPage = 50;
-      const page = Math.max(1, parseInt(req.query.page) || 1);
-      const totalRow = await getOne(`SELECT COUNT(DISTINCT g.id) as total FROM gtins g JOIN styles s ON g.style_id = s.id LEFT JOIN variants v ON g.variant_id = v.id${whereClause}`, params);
-      const totalCount = totalRow.total;
-      const totalPages = Math.max(1, Math.ceil(totalCount / perPage));
-
-      query += whereClause;
-      query += ` GROUP BY g.id ORDER BY s.style_number, COALESCE(v.variant_name, ''), g.item_number`;
-      query += ` LIMIT ? OFFSET ?`;
-
-      data.gtins = await getAll(query, [...params, perPage, (page - 1) * perPage]);
-      data.search = search;
-      data.selectedStyleId = styleId;
-      data.selectedVariantId = variantId;
-      data.page = page;
-      data.totalPages = totalPages;
-      data.totalCount = totalCount;
-      data.styles = await getAll(`SELECT id, style_number, product_name FROM styles ORDER BY style_number`);
-
-      // Get variants for selected style
-      if (styleId) {
-        data.variants = await getAll(`SELECT id, variant_name FROM variants WHERE style_id = ? ORDER BY variant_name`, [styleId]);
-      }
     }
 
     // BATCHES TAB

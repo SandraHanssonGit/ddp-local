@@ -377,6 +377,29 @@ starting implementation.
   the CHANGELOG etapp 1-8 entries. Consumer passport, DPP Hub, all 5
   detail pages, login, and the confirm/alert modal are all in code now.
 
+## Products tab: replaced Styles/Variants/GTINs ✅ Done (2026-09-17)
+
+Per user's own proposed rollout (add additively, verify, then remove):
+the Styles, Variants, and GTINs Masterdata tabs are now **removed** -
+their nav links, route branches, and view sections are gone. Detail
+pages (`/admin-v2/style/:id`, `/variant/:id`, `/gtin/:id`) are
+untouched and fully reachable (they're separate routes from the list
+tabs that pointed to them) - only the flat "browse all Styles" /
+"browse all Variants" / "browse all GTINs" list views are gone,
+replaced by the Products tab's grouped 3-level tree.
+
+Also updated: the hub's default tab (`req.query.tab || ...`) from
+`'styles'` to `'products'`, so a bare `/admin-v2` lands on the right
+page; `import.ejs`'s post-import "View GTINs in Hub" link now points
+at `?tab=products`; the Products nav link is now just "Products" (was
+"Products (new)" during the parallel-testing period).
+
+Verified: bare `/admin-v2` now renders the Products tab; the old
+`?tab=styles/variants/gtins` params no longer crash (render an empty
+card, matching how an unrecognized tab always behaved) since no code
+elsewhere still links to them; full regression sweep of all 9
+(now effectively 6) tabs still 200.
+
 ## Discovery session (2026-09-16) — not built yet, decisions only
 
 A working session going through open questions before the next build
