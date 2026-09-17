@@ -259,8 +259,9 @@
            top-level tabs. Natural place to add Users/Permissions later. -->
       <% if (tab === 'settings') { %>
         <div class="admin-nav" style="margin-bottom:24px; border-bottom:1px solid var(--hairline); padding-bottom:0;">
-          <a href="/admin-v2?tab=settings&sub=operators" class="<%= settingsSub === 'operators' ? 'active' : '' %>">Economic Operators</a>
           <a href="/admin-v2?tab=settings&sub=fields" class="<%= settingsSub === 'fields' ? 'active' : '' %>">Field Config</a>
+          <a href="/admin-v2?tab=settings&sub=operators" class="<%= settingsSub === 'operators' ? 'active' : '' %>">Economic Operators</a>
+          <a href="/admin-v2?tab=settings&sub=access" class="<%= settingsSub === 'access' ? 'active' : '' %>">Access</a>
         </div>
       <% } %>
 
@@ -724,6 +725,18 @@
             }
           });
         </script>
+      <% } %>
+
+      <!-- ACCESS TAB (placeholder - user accounts/roles/permissions
+           not built yet, added here so the Settings sub-nav already
+           has its future home) -->
+      <% if (tab === 'settings' && settingsSub === 'access') { %>
+        <div class="section-head">
+          <h2>Access</h2>
+        </div>
+        <div class="empty-state">
+          User accounts and role-based permissions - feature arriving soon.
+        </div>
       <% } %>
 
       <!-- ANALYTICS TAB (Scan statistics) -->
