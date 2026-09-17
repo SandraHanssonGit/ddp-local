@@ -696,12 +696,14 @@ router.get('/batch/:batchId', async (req, res) => {
         s.style_number,
         s.product_name,
         v.variant_name,
-        COUNT(DISTINCT sg.id) as created_quantity
+        COUNT(DISTINCT sg.id) as created_quantity,
+        COUNT(DISTINCT le.sgtin_id) as activated_quantity
       FROM batch_gtins bg
       JOIN gtins g ON g.id = bg.gtin_id
       JOIN styles s ON s.id = g.style_id
       LEFT JOIN variants v ON v.id = g.variant_id
       LEFT JOIN sgtins sg ON sg.gtin_id = g.id AND sg.batch_id = ?
+      LEFT JOIN lifecycle_events le ON le.sgtin_id = sg.id AND le.event_type = 'viewed'
       WHERE bg.batch_id = ?
       GROUP BY bg.id
       ORDER BY s.style_number, COALESCE(v.variant_name, ''), g.item_number
@@ -764,6 +766,11 @@ router.get('/batch/:batchId', async (req, res) => {
     const style_count = new Set(batchGtins.map(bg => bg.style_number)).size;
     const sgtin_count = sgtins.length;
     const planned_total = batchGtins.reduce((sum, bg) => sum + (bg.planned_quantity || 0), 0);
+    const activated_total = batchGtins.reduce((sum, bg) => sum + (bg.activated_quantity || 0), 0);
+    // Batch status: "Under development" until production is marked
+    // complete (batch.produced_at set), then "Completed" - the point
+    // at which field changes start being tracked in the change log.
+    const batchStatus = batch.produced_at ? 'Completed' : 'Under development';
 
     // ROADMAP.md Phase 2: ?lang= edits/shows that language's values;
     // default (no ?lang=) is the base value used when no translation
@@ -805,6 +812,8 @@ router.get('/batch/:batchId', async (req, res) => {
       style_count,
       sgtin_count,
       planned_total,
+      activated_total,
+      batchStatus,
       dppValues,
       operators,
       scopeCombos,

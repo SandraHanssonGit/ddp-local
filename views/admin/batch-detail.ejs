@@ -37,6 +37,10 @@
     <!-- Statistics Cards -->
     <div class="stat-grid">
       <div class="stat-card">
+        <div class="stat-label">Status</div>
+        <div class="stat-value" style="<%= batchStatus === 'Completed' ? 'color:var(--success);' : '' %> font-size:20px;"><%= batchStatus %></div>
+      </div>
+      <div class="stat-card">
         <div class="stat-label">Styles</div>
         <div class="stat-value" style="color:var(--accent);"><%= style_count %></div>
       </div>
@@ -45,7 +49,7 @@
         <div class="stat-value" style="color:var(--accent);"><%= gtin_count %></div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">QR Codes Needed</div>
+        <div class="stat-label">Code Needed</div>
         <div class="stat-value"><%= typeof planned_total !== 'undefined' ? planned_total : 0 %></div>
       </div>
       <div class="stat-card">
@@ -81,7 +85,7 @@
         </div>
 
         <div class="field-row">
-          <label>QR Codes Needed</label>
+          <label>Code Needed</label>
           <input type="number" id="quantityInput" min="1" value="100" required>
         </div>
 
@@ -106,31 +110,26 @@
                 <th>Variant</th>
                 <th>Item #</th>
                 <th>GTIN</th>
-                <th class="center">QR Codes Needed</th>
-                <th class="center">Units Created</th>
-                <th class="center">Progress</th>
+                <th class="center">Code Needed</th>
+                <th class="center">Code Used</th>
+                <th class="center" title="First time the Viewed event was triggered for that unit">Code Activated</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody>
               <% batchGtins.forEach(bg => {
-                const created = bg.created_quantity || 0;
-                const planned = bg.planned_quantity || 0;
-                const pct = planned > 0 ? Math.round((created/planned)*100) : 0;
+                const used = bg.created_quantity || 0;
+                const needed = bg.planned_quantity || 0;
+                const activated = bg.activated_quantity || 0;
               %>
                 <tr>
                   <td class="mono small"><strong><%= bg.style_number %></strong></td>
                   <td class="small"><%= bg.variant_name || '—' %></td>
                   <td class="small"><%= bg.item_number %></td>
                   <td class="mono small"><strong><%= bg.gtin %></strong></td>
-                  <td class="center" style="font-weight:600;"><%= planned %></td>
-                  <td class="center"><span class="badge badge-success small"><%= created %></span></td>
-                  <td>
-                    <div class="progress-row">
-                      <div class="progress-track"><div class="progress-fill" style="width: <%= Math.min(pct, 100) %>%"></div></div>
-                      <span class="progress-pct"><%= pct %>%</span>
-                    </div>
-                  </td>
+                  <td class="center" style="font-weight:600;"><%= needed %></td>
+                  <td class="center"><span class="badge badge-success small"><%= used %></span></td>
+                  <td class="center"><span class="badge small"><%= activated %></span></td>
                   <td><a href="#" onclick="removeBatchGtin(<%= bg.batch_gtin_id %>); return false;" class="link-action danger">Remove</a></td>
                 </tr>
               <% }); %>
@@ -138,10 +137,7 @@
                 <td colspan="4" style="text-align:right;">TOTALS:</td>
                 <td class="center"><%= planned_total %></td>
                 <td class="center"><span class="badge badge-success small"><%= sgtin_count %></span></td>
-                <td class="center">
-                  <% const totalPct = planned_total > 0 ? Math.round((sgtin_count/planned_total)*100) : 0; %>
-                  <%= totalPct %>%
-                </td>
+                <td class="center"><span class="badge small"><%= typeof activated_total !== 'undefined' ? activated_total : 0 %></span></td>
                 <td></td>
               </tr>
             </tbody>
