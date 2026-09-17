@@ -4,6 +4,22 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-17 (etapp 35) — Products tab: drop SGTIN column, simplify Action to a bare arrow
+
+Two follow-up refinements per user feedback:
+- **Removed the SGTINs count column entirely.** SGTIN counts are
+  production data (tied to actual manufactured garments via Batch),
+  not masterdata - out of scope for a view meant to hold Style/
+  Variant/GTIN masterdata only, separate from Batch/SGTIN production
+  tracking (which keep their own tabs).
+- **Simplified every Action link to a bare "→"** (was "Detail →" /
+  "Style Detail →"), matching the convention already used on the
+  GTINs Masterdata tab. Considered removing the Action column
+  entirely in favor of double-click-to-navigate (discussed with user
+  - a legitimate, common pattern, e.g. Explorer's single-click-selects/
+  double-click-opens) but decided to keep the explicit column for now
+  since it's more discoverable; double-click can be revisited later.
+
 ## 2026-09-17 (etapp 34) — Weave GTINs into the Products tab (3-level tree)
 
 User: GTINs really live under a unique Style + Style Variant too, so
