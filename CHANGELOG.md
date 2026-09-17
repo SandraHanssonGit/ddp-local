@@ -4,6 +4,15 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-17 (etapp 37) — Products tab: fix GTINs column showing "X variants"
+
+User spotted an inconsistency: a Style row with variants showed "2
+variants" in the column labeled "GTINs" - the header promised one
+thing, the cell showed another. Moved the variant count into the
+product name cell instead ("Raw Hem T-Shirt (2 variants)"), and made
+the GTINs column always show the actual GTIN count for every Style
+row, with or without variants.
+
 ## 2026-09-17 (etapp 36) — Remove Styles/Variants/GTINs tabs, Products is now primary
 
 Final step of the agreed rollout (add Products additively, verify,

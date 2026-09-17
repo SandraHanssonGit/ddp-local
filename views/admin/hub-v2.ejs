@@ -73,15 +73,15 @@
                       <% } %>
                       <strong><%= p.style_number %></strong>
                     </td>
-                    <td><%= p.product_name %></td>
+                    <td>
+                      <%= p.product_name %>
+                      <% if (p.variants.length > 0) { %>
+                        <span class="small muted">(<%= p.variants.length %> variant<%= p.variants.length === 1 ? '' : 's' %>)</span>
+                      <% } %>
+                    </td>
                     <td class="small muted"><%= p.product_type %></td>
-                    <% if (p.variants.length === 0) { %>
-                      <td class="center"><span class="badge badge-accent"><%= p.gtin_count || 0 %></span></td>
-                      <td><a href="/admin-v2/style/<%= p.id %>" onclick="event.stopPropagation();" class="link-action">→</a></td>
-                    <% } else { %>
-                      <td class="center small muted"><%= p.variants.length %> variants</td>
-                      <td><a href="/admin-v2/style/<%= p.id %>" onclick="event.stopPropagation();" class="link-action">→</a></td>
-                    <% } %>
+                    <td class="center"><span class="badge badge-accent"><%= p.gtin_count || 0 %></span></td>
+                    <td><a href="/admin-v2/style/<%= p.id %>" onclick="event.stopPropagation();" class="link-action">→</a></td>
                   </tr>
 
                   <!-- GTINs directly under the Style (no Variant) -->
