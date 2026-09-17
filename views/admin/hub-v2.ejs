@@ -28,9 +28,8 @@
       <a href="/admin-v2" class="<%= tab === 'products' ? 'active' : '' %>">Products</a>
       <a href="/admin-v2?tab=batches" class="<%= tab === 'batches' ? 'active' : '' %>">Batches</a>
       <a href="/admin-v2?tab=sgtins" class="<%= tab === 'sgtins' ? 'active' : '' %>">Individual Units</a>
-      <a href="/admin-v2?tab=fields" class="<%= tab === 'fields' ? 'active' : '' %>">Field Config</a>
-      <a href="/admin-v2?tab=operators" class="<%= tab === 'operators' ? 'active' : '' %>">Economic Operators</a>
       <a href="/admin-v2?tab=analytics" class="<%= tab === 'analytics' ? 'active' : '' %>">Scan Analytics</a>
+      <a href="/admin-v2?tab=settings" class="<%= tab === 'settings' ? 'active' : '' %>">Settings</a>
     </div>
 
     <div class="card">
@@ -254,8 +253,19 @@
         <% } %>
       <% } %>
 
+      <!-- SETTINGS TAB (2026-09-17) - Economic Operators and Field
+           Config are global, system-wide configuration, so they share
+           this tab with their own sub-nav rather than being separate
+           top-level tabs. Natural place to add Users/Permissions later. -->
+      <% if (tab === 'settings') { %>
+        <div class="admin-nav" style="margin-bottom:24px; border-bottom:1px solid var(--hairline); padding-bottom:0;">
+          <a href="/admin-v2?tab=settings&sub=operators" class="<%= settingsSub === 'operators' ? 'active' : '' %>">Economic Operators</a>
+          <a href="/admin-v2?tab=settings&sub=fields" class="<%= settingsSub === 'fields' ? 'active' : '' %>">Field Config</a>
+        </div>
+      <% } %>
+
       <!-- FIELDS TAB (Field Config - field_definitions) -->
-      <% if (tab === 'fields') { %>
+      <% if (tab === 'settings' && settingsSub === 'fields') { %>
         <div class="section-head">
           <h2>Field Config</h2>
           <button onclick="document.getElementById('addFieldForm').classList.toggle('hidden')" class="btn btn-primary">
@@ -321,9 +331,9 @@
         <!-- Category Filter -->
         <% if (categories && categories.length > 0) { %>
           <div class="filter-pills">
-            <a href="/admin-v2?tab=fields" class="<%= !selectedCategory ? 'active' : '' %>">All</a>
+            <a href="/admin-v2?tab=settings&sub=fields" class="<%= !selectedCategory ? 'active' : '' %>">All</a>
             <% categories.forEach(cat => { %>
-              <a href="/admin-v2?tab=fields&category=<%= cat %>" class="<%= selectedCategory === cat ? 'active' : '' %>">
+              <a href="/admin-v2?tab=settings&sub=fields&category=<%= cat %>" class="<%= selectedCategory === cat ? 'active' : '' %>">
                 <%= cat.replace('_', ' ').toUpperCase() %>
               </a>
             <% }); %>
@@ -528,7 +538,7 @@
       <% } %>
 
       <!-- ECONOMIC OPERATORS TAB (ROADMAP.md Phase 4) -->
-      <% if (tab === 'operators') { %>
+      <% if (tab === 'settings' && settingsSub === 'operators') { %>
         <div class="section-head">
           <h2>Economic Operators</h2>
           <button onclick="document.getElementById('addOperatorForm').classList.toggle('hidden')" class="btn btn-primary">

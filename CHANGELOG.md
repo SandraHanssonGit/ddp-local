@@ -4,6 +4,33 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-17 (etapp 41) — Merge Economic Operators + Field Config into "Settings"
+
+Discussion starting from "isn't Economic Operator just a field?" led
+somewhere more useful: it's reusable master data (like Transparency),
+but confirmed via the actual data (exactly one operator row, "Nudie
+Jeans AB") that in practice it's a near-universal default, not
+per-product data - which reframed it as "global configuration," same
+category as Field Config and future Users/Permissions, not something
+that belongs as its own top-level tab next to Products/Batches.
+
+Merged "Economic Operators" and "Field Config" into one **Settings**
+tab with a sub-nav (`?tab=settings&sub=operators` / `&sub=fields`).
+`hub-v2.js`'s new `tab === 'settings'` branch dispatches to the exact
+same two queries that previously lived in separate top-level branches
+- no behavior change, just regrouped navigation. Fixed every internal
+link that pointed at the old `?tab=fields`/`?tab=operators` (category
+filter pills, `style-detail.ejs`'s "no operators yet" link).
+
+Logged as a real follow-up (not built now): a default-operator
+fallback so assigning one per Style isn't the expected normal
+workflow, since in reality there's just one that applies almost
+everywhere - see ROADMAP.md.
+
+Verified: bare `?tab=settings` defaults to Operators, `&sub=fields`
+switches correctly, sub-nav active states correct, full regression
+sweep (top-level tabs, all detail page types, public passport) 200.
+
 ## 2026-09-17 (etapp 40) — Individual Units: SKU/Name column, arrows, detail page rename
 
 Follow-up refinements to etapp 39's rename:

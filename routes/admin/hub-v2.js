@@ -268,21 +268,39 @@ router.get('/', async (req, res) => {
     }
 
     // FIELDS TAB (DPP Field Definitions)
-    else if (tab === 'fields') {
-      const category = req.query.category || null;
-      let query = 'SELECT * FROM field_definitions';
-      const params = [];
+    // SETTINGS TAB (2026-09-17) - Economic Operators and Field Config
+    // are both global, system-wide configuration (not data you browse
+    // like Products/Batches), so they live together here with their
+    // own sub-nav rather than as separate top-level tabs. The natural
+    // place to add Users/Permissions once those exist.
+    else if (tab === 'settings') {
+      const sub = req.query.sub || 'operators';
+      data.settingsSub = sub;
 
-      if (category) {
-        query += ' WHERE category = ?';
-        params.push(category);
+      if (sub === 'fields') {
+        const category = req.query.category || null;
+        let query = 'SELECT * FROM field_definitions';
+        const params = [];
+
+        if (category) {
+          query += ' WHERE category = ?';
+          params.push(category);
+        }
+
+        query += ' ORDER BY category, sort_order, label';
+
+        data.fields = await getAll(query, params);
+        data.selectedCategory = category;
+        data.categories = ['eu_required', 'nudie'];
+      } else if (sub === 'operators') {
+        data.operators = await getAll(`
+          SELECT eo.*,
+            (SELECT COUNT(*) FROM styles WHERE operator_id = eo.id) as style_count,
+            (SELECT COUNT(*) FROM batches WHERE operator_id = eo.id) as batch_count
+          FROM economic_operators eo
+          ORDER BY eo.legal_name ASC
+        `);
       }
-
-      query += ' ORDER BY category, sort_order, label';
-
-      data.fields = await getAll(query, params);
-      data.selectedCategory = category;
-      data.categories = ['eu_required', 'nudie'];
     }
 
     // ANALYTICS TAB (Scan statistics)
@@ -337,17 +355,6 @@ router.get('/', async (req, res) => {
         GROUP BY DATE(scan_timestamp)
         ORDER BY day DESC
         LIMIT 14
-      `);
-    }
-
-    // ECONOMIC OPERATORS TAB (ROADMAP.md Phase 4)
-    else if (tab === 'operators') {
-      data.operators = await getAll(`
-        SELECT eo.*,
-          (SELECT COUNT(*) FROM styles WHERE operator_id = eo.id) as style_count,
-          (SELECT COUNT(*) FROM batches WHERE operator_id = eo.id) as batch_count
-        FROM economic_operators eo
-        ORDER BY eo.legal_name ASC
       `);
     }
 

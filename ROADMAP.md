@@ -377,6 +377,37 @@ starting implementation.
   the CHANGELOG etapp 1-8 entries. Consumer passport, DPP Hub, all 5
   detail pages, login, and the confirm/alert modal are all in code now.
 
+## Settings tab: merged Economic Operators + Field Config ✅ Done (2026-09-17)
+
+User insight, arrived at via discussing Economic Operators: in
+practice Nudie is the manufacturer/responsible party for effectively
+all its own products (confirmed: exactly one operator row exists,
+"Nudie Jeans AB") - this isn't per-product masterdata you assign one
+at a time, it's closer to a **global company setting** with rare
+exceptions. That reframing led to a broader point: Economic Operators
+and Field Config are both system-wide configuration, not data you
+browse (unlike Products/Batches/Individual Units) - and the same
+category will eventually include Users and Permissions.
+
+**Built now**: merged the two into one **Settings** tab with its own
+sub-nav (`?tab=settings&sub=operators` / `&sub=fields`), replacing
+their separate top-level nav entries. `routes/admin/hub-v2.js`'s
+`tab === 'settings'` branch dispatches to the same two queries that
+previously lived in separate `'operators'`/`'fields'` branches -
+behavior unchanged, just regrouped. Updated every internal link that
+pointed at the old `?tab=fields`/`?tab=operators` (category filter
+pills, `style-detail.ejs`'s "no operators yet" link).
+
+**Deliberately not built yet**: no default-operator fallback (the
+"you shouldn't have to assign an operator per Style for the normal
+case" idea) and no Users/Permissions placeholder tabs - both are real
+follow-ups, tracked separately, not built speculatively ahead of need.
+
+Verified: bare `/admin-v2?tab=settings` defaults to the Operators
+sub-tab; `&sub=fields` switches correctly; sub-nav active states
+correct; full regression sweep (all top-level tabs + all detail page
+types + the public passport) still 200.
+
 ## Products tab: replaced Styles/Variants/GTINs ✅ Done (2026-09-17)
 
 Per user's own proposed rollout (add additively, verify, then remove):
@@ -496,6 +527,17 @@ phase. Each item below is a decision/plan, not yet implemented.
   real "produce SGTINs for this batch" feature needs to look up the
   highest existing serial for that GTIN across ALL batches and continue
   from there, never restart at `0001` per batch.
+- **Economic operator: default with rare override, instead of
+  per-Style assignment.** User: "we're responsible for all our
+  products" - in reality there's one operator (Nudie Jeans AB) that
+  applies to virtually the whole catalog, confirmed by the data (only
+  one row exists). Plan: add an `is_default` flag to
+  `economic_operators`; `passport-resolver.js` falls back to the
+  default operator when neither Batch nor Style has one explicitly
+  assigned, so assigning one per Style stops being the expected normal
+  workflow and becomes the rare exception (e.g. a licensed line with a
+  different importer). Style/Batch-level assignment (already built)
+  stays as the override mechanism, just de-emphasized.
 - **Database cleanup.** Untracked stale files sitting in the repo
   (`data/dpp-v2.db.stale-backup`, `data/dpp.db.stale-backup`) should be
   deleted once confirmed unneeded. Also folds in the hardcoded-columns
