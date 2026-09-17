@@ -113,7 +113,6 @@
                 <th class="center">Code Needed</th>
                 <th class="center" title="Units received from the factory, each with a code attached">Units Shipped</th>
                 <th class="center" title="First time the Viewed event was triggered for that unit">Code Activated</th>
-                <th>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -130,7 +129,6 @@
                   <td class="center" style="font-weight:600;"><%= needed %></td>
                   <td class="center"><span class="badge badge-success small"><%= used %></span></td>
                   <td class="center"><span class="badge small"><%= activated %></span></td>
-                  <td><a href="#" onclick="removeBatchGtin(<%= bg.batch_gtin_id %>); return false;" class="link-action danger">Remove</a></td>
                 </tr>
               <% }); %>
               <tr class="totals-row">
@@ -138,7 +136,6 @@
                 <td class="center"><%= planned_total %></td>
                 <td class="center"><span class="badge badge-success small"><%= sgtin_count %></span></td>
                 <td class="center"><span class="badge small"><%= typeof activated_total !== 'undefined' ? activated_total : 0 %></span></td>
-                <td></td>
               </tr>
             </tbody>
           </table>
@@ -503,25 +500,6 @@
       }
     });
 
-    async function removeBatchGtin(batchGtinId) {
-      if (!(await dppConfirm('Remove this GTIN from batch?'))) return;
-
-      try {
-        const res = await fetch(`/admin-v2/batch-gtins/${batchGtinId}`, {
-          method: 'DELETE'
-        });
-
-        if (res.ok) {
-          await dppAlert('GTIN removed');
-          location.reload();
-        } else {
-          const data = await res.json();
-          await dppAlert('Error: ' + (data.error || 'Failed to remove GTIN'));
-        }
-      } catch (err) {
-        await dppAlert('Error: ' + err.message);
-      }
-    }
   </script>
 </body>
 </html>
