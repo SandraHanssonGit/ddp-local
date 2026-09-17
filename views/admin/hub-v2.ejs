@@ -28,7 +28,7 @@
       <a href="/admin-v2" class="<%= tab === 'products' ? 'active' : '' %>">Products</a>
       <a href="/admin-v2?tab=batches" class="<%= tab === 'batches' ? 'active' : '' %>">Batches</a>
       <a href="/admin-v2?tab=sgtins" class="<%= tab === 'sgtins' ? 'active' : '' %>">SGTINs</a>
-      <a href="/admin-v2?tab=fields" class="<%= tab === 'fields' ? 'active' : '' %>">DPP Fields</a>
+      <a href="/admin-v2?tab=fields" class="<%= tab === 'fields' ? 'active' : '' %>">Field Config</a>
       <a href="/admin-v2?tab=operators" class="<%= tab === 'operators' ? 'active' : '' %>">Economic Operators</a>
       <a href="/admin-v2?tab=analytics" class="<%= tab === 'analytics' ? 'active' : '' %>">Scan Analytics</a>
     </div>
@@ -255,10 +255,10 @@
         <% } %>
       <% } %>
 
-      <!-- FIELDS TAB (DPP Field Definitions) -->
+      <!-- FIELDS TAB (Field Config - field_definitions) -->
       <% if (tab === 'fields') { %>
         <div class="section-head">
-          <h2>DPP Field Definitions</h2>
+          <h2>Field Config</h2>
           <button onclick="document.getElementById('addFieldForm').classList.toggle('hidden')" class="btn btn-primary">
             + Add Field
           </button>
@@ -266,7 +266,7 @@
 
         <!-- Add Field Form -->
         <div id="addFieldForm" class="form-panel hidden">
-          <h3 style="margin-bottom:16px; font-size:16px;">Add New DPP Field</h3>
+          <h3 style="margin-bottom:16px; font-size:16px;">Add New Field</h3>
           <form id="fieldForm">
             <div class="field-grid">
               <div>
