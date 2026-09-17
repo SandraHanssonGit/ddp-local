@@ -91,6 +91,52 @@ Values"):**
    free — the new Save routes don't log audit entries, only overrides
    does).
 
+## Freeze-at-production for master data changes (not built - design only, 2026-09-17)
+
+**Problem**: Nudie will produce the same Style across many Batches
+over time (sometimes years apart). Style/Variant-level `dpp_values`
+never lock (only Batch/SGTIN do - see Phase 1 below), so editing a
+Style's value today - say, a supplier or `country_of_origin` change -
+immediately changes the *resolved* passport for every already-produced
+Batch that doesn't have its own override too, since resolution is
+always computed live against current data, not "as it was when that
+Batch was made." User: "Om man tillåter ändringar av masterdatan efter
+en produktion så måste det som redan producerats få ha kvar det gamla
+värdet ... Vi måste ju bevisa att informationen är låst."
+
+**Design landed on** (not yet built): **freeze-at-production**,
+extending the existing "Mark as Produced" action rather than adding a
+new mechanism:
+- Rejected first: a time-versioned `dpp_values` (multiple rows per
+  field with `valid_from`/`valid_until`) - same class of change
+  already rejected once this session (see Phase 1's history below -
+  `UNIQUE(field_definition_id, entity_type, entity_id, locale)` makes
+  multi-row-per-field genuinely hard, which is exactly why
+  `field_change_log` exists as the history mechanism instead of a
+  supersede-chain in `dpp_values` itself).
+- Instead: when a Batch is marked as produced, for every Style/Variant
+  combination actually present in it (already known via
+  `batch_gtins`), and for every field with `editable_at_batch = 1`,
+  resolve **today's** effective value (Variant/Style, ignoring Batch)
+  and - only where no Batch/Batch×Style value is already explicitly
+  set - write it explicitly at the Batch×Style level (reusing
+  `batch_style_scopes`, see above), stamped `locked_at` immediately.
+- Why this proves lock: after freezing, that Batch's units resolve
+  against an explicit, locked `dpp_values` row at `Batch×Style` -
+  which already outranks plain `Style` in the resolution precedence
+  (`SGTIN > GTIN > Batch×Variant > Batch×Style > Batch > Variant >
+  Style`) - so a later Style edit cannot affect it. Any subsequent
+  write to the frozen value is still logged in `field_change_log`
+  (old value, new value, timestamp) - that log entry is the audit
+  proof if someone did override the frozen record anyway.
+- No new tables or schema needed - reuses `batch_style_scopes` and
+  `dpp_values` exactly as they already work; only "Mark as Produced"
+  needs new logic to perform the snapshot instead of just flipping
+  `produced_at`.
+
+User asked to pause here to focus on Batch work directly before
+building this - captured so the decision isn't re-litigated later.
+
 ## Batch × Style/Variant scoped overrides ✅ Done (2026-09-16)
 
 **Problem**: a Batch can span multiple Styles (CLAUDE.md's PO45001234
