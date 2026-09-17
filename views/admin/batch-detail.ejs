@@ -45,38 +45,13 @@
         <div class="stat-value" style="color:var(--accent);"><%= gtin_count %></div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Total Planned</div>
+        <div class="stat-label">QR Codes Needed</div>
         <div class="stat-value"><%= typeof planned_total !== 'undefined' ? planned_total : 0 %></div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">SGTINs Created</div>
+        <div class="stat-label">Individual Units Created</div>
         <div class="stat-value" style="color:var(--success);"><%= sgtin_count %></div>
       </div>
-    </div>
-
-    <!-- Economic Operator Override Card (ROADMAP.md Phase 4) -->
-    <div class="card">
-      <h2 style="margin-bottom:8px;">Legal Responsibility Override</h2>
-      <p class="small muted" style="margin-bottom:16px;">
-        Optional - a batch can span multiple styles, each with their
-        own economic operator. Only set this if this specific
-        production run used a different manufacturer/importer than
-        its GTINs' styles.
-      </p>
-      <form id="operatorAssignForm" style="display:flex; gap:12px; align-items:flex-end;">
-        <div style="flex:1;">
-          <label class="label-sm">Economic Operator</label>
-          <select name="operator_id">
-            <option value="">-- No override (use each GTIN's Style) --</option>
-            <% (typeof operators !== 'undefined' ? operators : []).forEach(op => { %>
-              <option value="<%= op.id %>" <%= batch.operator_id == op.id ? 'selected' : '' %>>
-                <%= op.legal_name %> (<%= op.role.replace(/_/g, ' ') %>)
-              </option>
-            <% }); %>
-          </select>
-        </div>
-        <button type="submit" class="btn btn-primary">Save</button>
-      </form>
     </div>
 
     <!-- Add GTINs Card -->
@@ -106,7 +81,7 @@
         </div>
 
         <div class="field-row">
-          <label>Planned Quantity</label>
+          <label>QR Codes Needed</label>
           <input type="number" id="quantityInput" min="1" value="100" required>
         </div>
 
@@ -116,7 +91,11 @@
 
     <!-- Batch Planning Card -->
     <div class="card">
-      <h2 style="margin-bottom:20px;">Batch Planning &amp; Production Progress</h2>
+      <h2 style="margin-bottom:4px;">QR Codes per GTIN</h2>
+      <p class="small muted" style="margin-bottom:16px;">
+        Number of QR codes needed per GTIN in this batch. Once production
+        is complete this can be updated to match what was actually produced.
+      </p>
 
       <% if (typeof batchGtins !== 'undefined' && batchGtins && batchGtins.length > 0) { %>
         <div class="table-wrap">
@@ -127,7 +106,7 @@
                 <th>Variant</th>
                 <th>Item #</th>
                 <th>GTIN</th>
-                <th class="center">Planned Qty</th>
+                <th class="center">QR Codes Needed</th>
                 <th class="center">Created</th>
                 <th class="center">Progress</th>
                 <th>Action</th>
@@ -175,7 +154,7 @@
 
     <!-- SGTINs Detail Card -->
     <div class="card">
-      <h2 style="margin-bottom:20px;">Created Garments (SGTINs)</h2>
+      <h2 style="margin-bottom:20px;">Individual Units Created</h2>
 
       <% if (sgtins && sgtins.length > 0) { %>
         <div class="table-wrap">
@@ -187,7 +166,6 @@
                 <th>Style</th>
                 <th>Variant</th>
                 <th>Size</th>
-                <th>QC Status</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -202,15 +180,6 @@
                     <% const size = [sg.size_value_1, sg.size_value_2, sg.size_value_3].filter(s => s).join('-') %>
                     <%= size %>
                   </td>
-                  <td>
-                    <% if (sg.qc_status === 'passed') { %>
-                      <span class="badge badge-success small">✓ Passed</span>
-                    <% } else if (sg.qc_status === 'failed') { %>
-                      <span class="badge badge-danger small">✗ Failed</span>
-                    <% } else { %>
-                      <span class="badge badge-muted small">—</span>
-                    <% } %>
-                  </td>
                   <td><a href="/admin-v2/sgtin/<%= sg.id %>" class="link-action">→</a></td>
                 </tr>
               <% }); %>
@@ -218,8 +187,33 @@
           </table>
         </div>
       <% } else { %>
-        <div class="empty-state">No SGTINs created yet for this batch</div>
+        <div class="empty-state">No individual units created yet for this batch</div>
       <% } %>
+    </div>
+
+    <!-- Economic Operator Override Card (ROADMAP.md Phase 4) -->
+    <div class="card">
+      <h2 style="margin-bottom:8px;">Legal Responsibility Override</h2>
+      <p class="small muted" style="margin-bottom:16px;">
+        Optional - a batch can span multiple styles, each with their
+        own economic operator. Only set this if this specific
+        production run used a different manufacturer/importer than
+        its GTINs' styles.
+      </p>
+      <form id="operatorAssignForm" style="display:flex; gap:12px; align-items:flex-end;">
+        <div style="flex:1;">
+          <label class="label-sm">Economic Operator</label>
+          <select name="operator_id">
+            <option value="">-- No override (use each GTIN's Style) --</option>
+            <% (typeof operators !== 'undefined' ? operators : []).forEach(op => { %>
+              <option value="<%= op.id %>" <%= batch.operator_id == op.id ? 'selected' : '' %>>
+                <%= op.legal_name %> (<%= op.role.replace(/_/g, ' ') %>)
+              </option>
+            <% }); %>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </form>
     </div>
 
     <!-- DPP Fields Card -->
