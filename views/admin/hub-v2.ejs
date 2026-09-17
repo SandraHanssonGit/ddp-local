@@ -161,7 +161,7 @@
                       <% } %>
                       <strong><%= p.style_number %></strong>
                     </td>
-                    <td><strong><%= p.product_name %></strong></td>
+                    <td><%= p.product_name %></td>
                     <td class="small muted"><%= p.product_type %></td>
                     <% if (p.variants.length === 0) { %>
                       <td class="center"><span class="badge badge-accent"><%= p.gtin_count || 0 %></span></td>
