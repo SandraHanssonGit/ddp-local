@@ -4,6 +4,24 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-17 (etapp 30) — Rename "DPP Hub" to "Product Data Hub" (display only)
+
+User feedback: "DPP" is tightly coupled to what EU regulation requires
+on a Digital Product Passport specifically, but the admin tool is
+broader than that - it manages product masterdata, Economic Operators,
+Transparency/supply chain, and scan analytics, not just DPP content.
+Considered "Digital Transparency Administration" but rejected it -
+"Transparency" is already the name of one specific feature (etapp 13),
+so naming the whole app that would create confusion between "the tool"
+and "that one section." Settled on "Product Data Hub" instead.
+
+Renamed only user-visible text (page titles, h1 headings, the startup
+console log line) in the v2 views (`hub-v2.ejs`, `hub-v2-error.ejs`,
+`login-v2.ejs`, `server.js`'s startup log) - left the v1 legacy pages
+(`admin-edit.ejs`, `login.ejs`, not part of the v2 flow) and every
+internal identifier (`/admin-v2` route, `hub-v2.ejs` filename, etc.)
+unchanged, same "display only" pattern as the Transparency rename.
+
 ## 2026-09-16 (etapp 29) — Add search to Batches tab
 
 Follow-up to etapp 28: user clarified the Batches tab should be

@@ -122,7 +122,7 @@ app.listen(PORT, () => {
   const hubUrl = dbVersion === 'v2' ? `/admin-v2` : `/admin-edit`;
   console.log(`\n✓ DPP ${dbVersion.toUpperCase()} Server running at http://localhost:${PORT}`);
   console.log(`✓ Database: ${process.env.DB_PATH || 'database.db'}`);
-  console.log(`✓ DPP Hub: http://localhost:${PORT}${hubUrl}`);
+  console.log(`✓ Product Data Hub: http://localhost:${PORT}${hubUrl}`);
   console.log(`✓ Public passport: http://localhost:${PORT}/dpp/ABC001\n`);
 });
 
