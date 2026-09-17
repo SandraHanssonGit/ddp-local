@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= sgtin.serial_number %> - SGTIN Detail</title>
+  <title><%= sgtin.serial_number %> - Individual Unit</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/admin.css">
@@ -13,11 +13,11 @@
   <div class="wrap">
     <div class="detail-header">
       <div>
-        <h1>SGTIN: <span class="mono"><%= sgtin.serial_number %></span></h1>
+        <h1>Individual Unit: <span class="mono"><%= sgtin.serial_number %></span></h1>
         <p class="subtitle"><%= style.product_name %> (Style <%= style.style_number %>)</p>
       </div>
       <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
-        <a href="/admin-v2?tab=sgtins" class="btn">← Back to SGTINs</a>
+        <a href="/admin-v2?tab=sgtins" class="btn">← Back to Individual Units</a>
         <a href="/01/<%= toGtin14(gtin.gtin) %>/21/<%= sgtin.serial_number %>" target="_blank" class="btn btn-primary">→ Produktpass</a>
       </div>
     </div>

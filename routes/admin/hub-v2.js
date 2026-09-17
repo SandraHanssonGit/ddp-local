@@ -244,7 +244,7 @@ router.get('/', async (req, res) => {
           g.size_value_2,
           g.size_value_3,
           s.style_number,
-          s.product_name,
+          COALESCE(v.product_name, s.product_name) AS product_name,
           b.batch_id,
           v.variant_name,
           COUNT(DISTINCT le.id) as event_count

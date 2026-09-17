@@ -214,10 +214,10 @@
                 <tr>
                   <th>Serial</th>
                   <th>GTIN</th>
-                  <th>Style</th>
+                  <th>SKU / Name</th>
                   <th>Batch</th>
                   <th>QC Status</th>
-                  <th>Produktpass URL</th>
+                  <th>Produktpass</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -228,7 +228,10 @@
                   <tr>
                     <td class="mono"><strong><%= sg.serial_number %></strong></td>
                     <td class="mono small"><%= sg.gtin %></td>
-                    <td class="small"><%= sg.style_number %></td>
+                    <td class="small">
+                      <%= sg.item_number || '—' %>
+                      <span class="muted" style="display:block;"><%= sg.product_name %></span>
+                    </td>
                     <td class="mono small"><%= sg.batch_id %></td>
                     <td>
                       <% if (sg.qc_status === 'passed') { %>
@@ -239,12 +242,8 @@
                         <span class="badge badge-muted small">—</span>
                       <% } %>
                     </td>
-                    <td>
-                      <a href="<%= dppUrl %>" target="_blank" class="link-action mono small">
-                        Öppna →
-                      </a>
-                    </td>
-                    <td><a href="/admin-v2/sgtin/<%= sg.id %>" class="link-action">Edit</a></td>
+                    <td><a href="<%= dppUrl %>" target="_blank" class="link-action">→</a></td>
+                    <td><a href="/admin-v2/sgtin/<%= sg.id %>" class="link-action">→</a></td>
                   </tr>
                 <% }); %>
               </tbody>

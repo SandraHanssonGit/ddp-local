@@ -4,6 +4,21 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-17 (etapp 40) — Individual Units: SKU/Name column, arrows, detail page rename
+
+Follow-up refinements to etapp 39's rename:
+- Replaced the "Style" column (raw `style_number`) with "SKU / Name" -
+  shows `item_number` with the effective product name (variant's own
+  name, falling back to the Style's) underneath, matching the pattern
+  already used elsewhere. More useful at a glance than a bare style
+  number.
+- Simplified the "Produktpass" and "Action" columns to bare arrows
+  (was "Öppna →" / "Edit"), matching the arrow convention used
+  everywhere else in the hub.
+- `sgtin-detail.ejs`: renamed the page `<title>`, `<h1>` ("SGTIN:
+  0001" → "Individual Unit: 0001"), and its "Back to SGTINs" link
+  ("Back to Individual Units") for consistency with the tab rename.
+
 ## 2026-09-17 (etapp 39) — Rename "SGTINs" tab to "Individual Units"
 
 Same reasoning as the earlier "DPP Hub"/"DPP Fields" renames: "SGTIN"
