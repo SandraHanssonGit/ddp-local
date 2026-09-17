@@ -4,6 +4,21 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-17 (etapp 33) — Products tab: collapse variant groups by default
+
+User liked the new Products tab and asked for variant groups to be
+collapsed by default (a Style row with variants was always fully
+expanded). Made each Style row with variants clickable (a rotating ▸
+chevron, reusing the `.hidden` utility class already in `admin.css`)
+to toggle its nested variant rows. Detail links inside the row call
+`event.stopPropagation()` so clicking them navigates instead of
+toggling the group.
+
+Also handled the obvious edge case: if a search matches a variant, its
+Style group now renders already expanded (not collapsed with the match
+hidden inside it) - collapsing is only the *default* resting state,
+never something that hides an active search result.
+
 ## 2026-09-17 (etapp 32) — Add new "Products" tab (Style/Variant unified, additive)
 
 User: Styles and Variants are really both just "the unique product
