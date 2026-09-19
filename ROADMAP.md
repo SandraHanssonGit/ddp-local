@@ -781,6 +781,21 @@ phase. Each item below is a decision/plan, not yet implemented.
   (b) keep it purely as a single global Settings-level default with no
   per-product assignment at all (closer to the `is_default`-flag plan
   originally sketched here). Needs a decision before either is built.
+- **Simplify language/locale handling** (idea only, not designed,
+  2026-09-19). User: "vi behöver förenkla språkhanteringen" - current
+  Phase 2 design (`fields.js`) scopes every `dpp_values` row by
+  `(field_definition_id, entity_type, entity_id, locale)` independently
+  at every level (Style, Batch, Batch×Style, GTIN, SGTIN), each with
+  its own "Language: Default | + add locale" tab bar in the admin UI.
+  Flagged as needing simplification but the specific pain point hasn't
+  been pinned down yet - candidates to clarify with the user before
+  designing anything: too many separate language-tab bars to manage
+  (one per entity per level) instead of one place per product; unclear
+  interaction between locale and hierarchy inheritance (does a Style's
+  Swedish translation apply to a GTIN with no Swedish override of its
+  own, or does GTIN's *default*-locale value win instead?); or the
+  data-entry flow itself (translating field-by-field with no bulk
+  view). Needs a clarifying conversation before any redesign.
 - **Database cleanup.** Untracked stale files sitting in the repo
   (`data/dpp-v2.db.stale-backup`, `data/dpp.db.stale-backup`) should be
   deleted once confirmed unneeded. Also folds in the hardcoded-columns
