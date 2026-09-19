@@ -265,6 +265,41 @@ current design, not yet built)**:
   `Batch×GTIN` already outranks plain `GTIN` for any SGTIN under that
   GTIN+batch. No extra logic required for this case.
 
+## Batch detail page: unified Style→Variant→GTIN→SGTIN tree (design confirmed, not built, 2026-09-19)
+
+**Problem**: the "QR Codes per GTIN" table (flat rows: Style, Variant,
+Item #, GTIN, Code Needed, Units Shipped, Code Activated) gets
+cluttered once a batch spans several Styles - user: "Denna blir ju
+lite krånglig. Borde den inte likna Products tabben men bara visa det
+som finns i Batchen?"
+
+**Design confirmed**:
+1. **Batch Info block** replaces today's header + lock-banner + 4 stat
+   cards with a simpler two-line summary: Batch ID + Production Order
+   (already shown), "Sent for production: `<created_at>`" and
+   "Production date: `<produced_at or "not yet produced">`" (the two
+   milestones from the freeze-at-production discussion above), plus a
+   one-line Status (Under development / Completed).
+2. **One unified collapsible tree**, same expand/collapse pattern as
+   the Products tab (`hub-v2.ejs`'s `productGroupState`/
+   `renderProductVisibility()` JS), going one level deeper:
+   **Style → Variant → GTIN → SGTIN** - filtered to only what's
+   actually in this batch (via `batch_gtins` + `sgtins.batch_id`).
+   Style/Variant rows are pure grouping (no data of their own), GTIN
+   rows carry Code Needed/Units Shipped/Code Activated exactly as
+   today, SGTIN rows are the leaf level (serial number + → link to the
+   unit's detail page).
+3. **Replaces two separate cards**: this tree absorbs both the
+   "QR Codes per GTIN" table AND the "Individual Units Created" table
+   below it - only one card needed instead of two.
+4. **Remove the "Add GTIN to Batch" form entirely.** User: "Man kommer
+   aldrig lägga in GTIN [manuellt] så det skall vi dölja." The
+   `/admin-v2/batch-gtins` POST API stays untouched in the background -
+   only the manual-entry UI goes away.
+
+Not yet built - queued after freeze-at-production per the agreed
+step-by-step order (see "Priority order" discussion in chat).
+
 ## Soft/lazy SGTIN creation on first scan (idea only, not designed, 2026-09-19)
 
 Raised alongside the question above: rather than requiring every
