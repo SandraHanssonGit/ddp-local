@@ -247,6 +247,13 @@ loop. Replaced by the Batch×GTIN design directly below.
   production time exactly like a manually-entered one. Not a separate
   mechanism, just confirms the freeze reads *resolved* values
   regardless of `source_system`.
+- **Gap found during EU-compliance analysis (2026-09-19)**: the freeze
+  operation itself must write a `field_change_log` entry per field it
+  locks (`action` = `'created'` or a new `'locked'` value, timestamped
+  to the batch's `produced_at`), not just log *later* edits to the
+  frozen value. Without that, there's no record proving *when* a given
+  field was actually locked - only that it currently is. Needed for
+  the audit trail to hold up as real evidence, not just an assumption.
 - **Real gap found**: `field_change_log.reason` already exists in the
   schema (CLAUDE.md §13), and `audit-service.js` already records it
   when passed - but no edit form in the admin UI actually has a reason
@@ -357,6 +364,36 @@ creation pattern)" via `consumerService.getConsumerPassportByGtinOnly()`
 `db/init.js` (v1), not `db/init-v2.js`. Worth reviewing as a starting
 point rather than designing from scratch, once this is picked up -
 not scoped or designed for v2 yet.
+
+**"Test scan a passport" admin tool (design confirmed, not built,
+2026-09-19)** - a concrete testing use of the pattern above, requested
+directly: an admin page to simulate a real-world scan without a
+physical code.
+- Input: the identifier a real scan would decode to (GTIN + serial -
+  what the URL would contain).
+- **If that serial doesn't exist yet for the GTIN**: create a new
+  Individual Unit (SGTIN) on the spot (the lazy-creation pattern
+  above, finally given a concrete first use).
+- **If it already exists**: add the submitted data to that existing
+  unit instead of creating a duplicate.
+- Optional lifecycle event data can be submitted alongside (event type
+  + payload); if omitted, it's logged as a plain scan only.
+- **Geographic location - legal check done (2026-09-19), not formal
+  legal advice, needs real sign-off before shipping**: recommended
+  approach is coarse, IP-derived location (city/country), not the
+  browser Geolocation API. Reasoning: `scan_events.ip_address` is
+  already captured on every real scan today
+  (`passport-page-service.js`'s `renderPassportPage`), so deriving a
+  coarse location from it adds no new category of personal data and
+  can reasonably rely on legitimate interest (GDPR art. 6.1.f) for
+  low-precision, aggregate analytics. The Geolocation API would need
+  an explicit, separate consent flow for GPS-precise data, which is
+  disproportionate for "read your product's passport" and would hurt
+  the experience for genuine consumers. **For the test tool
+  specifically, no real geolocation lookup is needed at all** - the
+  admin using it isn't a real visitor, so a free-text "location"
+  field the admin types in themselves (e.g. "Stockholm, SE") is
+  sufficient and sidesteps the question entirely for testing purposes.
 
 ## Style/Variant "recipe" flexibility - confirmed no change needed (2026-09-19)
 
