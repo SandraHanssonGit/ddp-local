@@ -6,9 +6,17 @@ class FieldRepository {
     const sql = `
       INSERT INTO field_definitions
       (field_key, label, description, data_type, category, required, consumer_visible,
-       editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_sgtin, sort_order)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_sgtin,
+       locks_at_production, sort_order)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
+    // No explicit locks_at_production given - default from category,
+    // same rule the startup backfill uses (migrateLocksAtProduction in
+    // db/init-v2.js) so a brand-new field behaves the same as an
+    // existing one that's never been touched.
+    const locksAtProduction = options.locks_at_production !== undefined
+      ? (options.locks_at_production ? 1 : 0)
+      : (category === 'eu_required' ? 1 : 0);
     const result = await db.run(sql, [
       fieldKey,
       label,
@@ -22,6 +30,7 @@ class FieldRepository {
       options.editable_at_batch !== false ? 1 : 0,
       options.editable_at_gtin !== false ? 1 : 0,
       options.editable_at_sgtin !== false ? 1 : 0,
+      locksAtProduction,
       options.sort_order || 0
     ]);
     return result.lastID;
@@ -52,7 +61,8 @@ class FieldRepository {
 
   async updateFieldDefinition(fieldId, updates) {
     const allowedFields = ['label', 'description', 'required', 'consumer_visible', 'sort_order', 'category',
-                          'editable_at_style', 'editable_at_variant', 'editable_at_batch', 'editable_at_gtin', 'editable_at_sgtin'];
+                          'editable_at_style', 'editable_at_variant', 'editable_at_batch', 'editable_at_gtin', 'editable_at_sgtin',
+                          'locks_at_production'];
     const setClauses = [];
     const values = [];
 

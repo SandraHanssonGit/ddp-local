@@ -312,7 +312,9 @@
             <div class="field-row" style="display:flex; gap:20px;">
               <label class="checkbox-row"><input type="checkbox" name="required" /> Required</label>
               <label class="checkbox-row"><input type="checkbox" name="consumer_visible" checked /> Consumer Visible</label>
+              <label class="checkbox-row"><input type="checkbox" name="locks_at_production" /> Locks at Production</label>
             </div>
+            <p class="small muted" style="margin:-8px 0 14px;">EU-required fields normally lock when a batch is marked produced (proving the compliance data is fixed); Nudie fields normally stay editable. Check/uncheck to override that default for this field.</p>
             <div class="hint-panel">
               <label style="display:block; margin-bottom:10px;">Which levels can set this field?</label>
               <div style="display:flex; gap:18px;">
@@ -353,6 +355,7 @@
                   <th>Levels</th>
                   <th class="center">Required</th>
                   <th class="center">Consumer</th>
+                  <th class="center" title="Whether this field's value freezes when a batch is marked produced">Locks</th>
                   <th>Description</th>
                   <th>Actions</th>
                 </tr>
@@ -389,6 +392,7 @@
                     </td>
                     <td class="center"><%= f.required ? '✓' : '—' %></td>
                     <td class="center"><%= f.consumer_visible ? '✓' : '—' %></td>
+                    <td class="center"><%= f.locks_at_production ? '🔒' : '—' %></td>
                     <td class="small muted"><%= f.description || '—' %></td>
                     <td style="white-space:nowrap;">
                       <a href="#" onclick="toggleFieldEdit(<%= f.id %>); return false;" class="link-action" style="margin-right:12px;">Edit</a>
@@ -396,7 +400,7 @@
                     </td>
                   </tr>
                   <tr id="field-edit-row-<%= f.id %>" class="hidden">
-                    <td colspan="9" style="background:var(--surface-2); padding:20px;">
+                    <td colspan="10" style="background:var(--surface-2); padding:20px;">
                       <form onsubmit="saveFieldEdit(event, <%= f.id %>)">
                         <div class="field-grid-3" style="margin-bottom:14px;">
                           <div>
@@ -418,6 +422,7 @@
                         <div style="display:flex; gap:20px; margin-bottom:14px;">
                           <label class="checkbox-row"><input type="checkbox" name="required" <%= f.required ? 'checked' : '' %> /> Required</label>
                           <label class="checkbox-row"><input type="checkbox" name="consumer_visible" <%= f.consumer_visible ? 'checked' : '' %> /> Consumer Visible</label>
+                          <label class="checkbox-row"><input type="checkbox" name="locks_at_production" <%= f.locks_at_production ? 'checked' : '' %> /> Locks at Production</label>
                         </div>
                         <div style="margin-bottom:14px;">
                           <label class="label-sm" style="display:block; margin-bottom:8px;">Levels</label>
@@ -458,6 +463,7 @@
               description: formData.get('description'),
               required: formData.has('required'),
               consumer_visible: formData.has('consumer_visible'),
+              locks_at_production: formData.has('locks_at_production'),
               editable_at_style: formData.has('editable_at_style'),
               editable_at_variant: formData.has('editable_at_variant'),
               editable_at_batch: formData.has('editable_at_batch'),
@@ -509,6 +515,7 @@
               description: formData.get('description'),
               required: formData.has('required'),
               consumer_visible: formData.has('consumer_visible'),
+              locks_at_production: formData.has('locks_at_production'),
               editable_at_style: formData.has('editable_at_style'),
               editable_at_variant: formData.has('editable_at_variant'),
               editable_at_batch: formData.has('editable_at_batch'),
