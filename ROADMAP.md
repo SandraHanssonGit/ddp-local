@@ -759,6 +759,12 @@ phase. Each item below is a decision/plan, not yet implemented.
   real "produce SGTINs for this batch" feature needs to look up the
   highest existing serial for that GTIN across ALL batches and continue
   from there, never restart at `0001` per batch.
+  **Format (user, 2026-09-19)**: 4 digits (`0001`-`9999`) is too short
+  a ceiling for real production volumes - use at least 5-6 digits
+  (`00001`-`99999` or `000001`-`999999`), zero-padded. Demo data
+  seeded this session still uses 4-digit serials (`0001` etc.) - fine
+  for now since it's just placeholder data, but the real generator
+  should not inherit that width.
 - **Economic operator: default with rare override, instead of
   per-Style assignment.** User: "we're responsible for all our
   products" - in reality there's one operator (Nudie Jeans AB) that
