@@ -4,6 +4,37 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-19 (etapp 47) — Freeze-at-production groundwork + Lucide icons
+
+Three small, separately-verified steps toward freeze-at-production
+(design confirmed earlier, see ROADMAP.md), plus an icon-standard
+request that came up along the way:
+
+1. `field_definitions.locks_at_production` column + startup backfill
+   from `category` (true for eu_required, false for nudie).
+2. `entity_type='batch_gtin'` wired into resolution precedence (new
+   `repositories/batch-gtins.js`, updated `passport-resolver.js`,
+   `field-service.js`, `override-service.js`, `repositories/fields.js`)
+   - new precedence: SGTIN > Batch×GTIN > GTIN > Batch×Variant >
+   Batch×Style > Batch > Variant > Style. Verified live by inserting
+   a test Batch×GTIN value and confirming it outranked the underlying
+   GTIN value, then removing it and confirming the passport returned
+   to its exact prior state.
+3. `locks_at_production` exposed in Field Config's UI (checkbox +
+   table column).
+4. User: icons should follow a real standard (Lucide) across the
+   whole admin UI, not just the new lock indicator. Added
+   `utils/icons.js` (inline SVG from `lucide-static`, no runtime JS
+   dependency) and replaced every emoji/arrow/checkmark symbol across
+   all 8 admin views.
+
+Also fixed, found during today's EU-compliance discussion: enforced
+`consumer_visible` on the live public passport page (previously only
+the JSON export filtered correctly) - see COMPLIANCE.md gap #7.
+
+Still to build: the actual "Mark as Produced" snapshot logic itself,
+and a reason-input field for post-lock edits.
+
 ## 2026-09-19 (etapp 46) — Remove Economic Operators tab from Settings entirely
 
 Follow-up to etapp 45: user still didn't understand the concept even
