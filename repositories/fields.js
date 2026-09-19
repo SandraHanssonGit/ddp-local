@@ -96,24 +96,39 @@ class FieldRepository {
   // ROADMAP.md Phase 2: dpp_values is now unique per
   // (field_definition_id, entity_type, entity_id, locale), not just the
   // first three - a field can have one row per language plus a default.
+  // Bug found 2026-09-19: `dpp_values` is UNIQUE(field_definition_id,
+  // entity_type, entity_id, locale), but SQLite treats every NULL
+  // `locale` as distinct from every other NULL for uniqueness purposes
+  // - the default (non-localized) value is by far the most common case.
+  // The old `INSERT ... ON CONFLICT(...) DO UPDATE` therefore never
+  // matched an existing default-locale row and silently inserted a new
+  // duplicate on every edit past the first. Fixed with an explicit
+  // SELECT-then-UPDATE-or-INSERT instead - the same pattern already
+  // used in repositories/batch-style-scopes.js for the identical
+  // NULL-uniqueness quirk on `variant_id`.
   async setDppValue(fieldDefinitionId, entityType, entityId, value, sourceSystem = 'manual', userId = null, locale = null) {
-    const sql = `
-      INSERT INTO dpp_values
-      (field_definition_id, entity_type, entity_id, value, locale, source_system, created_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(field_definition_id, entity_type, entity_id, locale)
-      DO UPDATE SET value = ?, updated_at = CURRENT_TIMESTAMP
-    `;
-    const result = await db.run(sql, [
-      fieldDefinitionId,
-      entityType,
-      entityId,
-      value,
-      locale,
-      sourceSystem,
-      userId,
-      value
-    ]);
+    const existing = await db.get(
+      `SELECT id FROM dpp_values WHERE field_definition_id = ? AND entity_type = ? AND entity_id = ? AND locale IS ?`,
+      [fieldDefinitionId, entityType, entityId, locale]
+    );
+
+    if (existing) {
+      // Matches the original ON CONFLICT clause's intent - only value
+      // and updated_at change on an edit; source_system/created_by
+      // stay as whoever/whatever first created this row.
+      await db.run(
+        `UPDATE dpp_values SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        [value, existing.id]
+      );
+      return existing.id;
+    }
+
+    const result = await db.run(
+      `INSERT INTO dpp_values
+       (field_definition_id, entity_type, entity_id, value, locale, source_system, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [fieldDefinitionId, entityType, entityId, value, locale, sourceSystem, userId]
+    );
     return result.lastID;
   }
 

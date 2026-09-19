@@ -630,11 +630,45 @@ const migrateProductTypes = async () => {
   console.log('[DPP v2] product_types backfill complete');
 };
 
+// Bug found 2026-09-19: dpp_values.setDppValue() used to rely on
+// `ON CONFLICT(field_definition_id, entity_type, entity_id, locale)
+// DO UPDATE` - but SQLite treats every NULL `locale` as distinct from
+// every other NULL for uniqueness purposes, so that ON CONFLICT never
+// matched an existing default-locale row and silently inserted a
+// duplicate on every edit past the first. Fixed in
+// repositories/fields.js (explicit SELECT-then-UPDATE-or-INSERT, same
+// pattern as batch-style-scopes.js's identical NULL-uniqueness quirk).
+// This cleans up any duplicates the bug already created - for each
+// (field_definition_id, entity_type, entity_id, locale) group with
+// more than one row, keeps the most recently updated one and deletes
+// the rest. Safe to run on every server start once no duplicates
+// remain (no-op).
+const migrateDeduplicateDppValues = async () => {
+  const groups = await all(`
+    SELECT field_definition_id, entity_type, entity_id, locale
+    FROM dpp_values GROUP BY field_definition_id, entity_type, entity_id, locale HAVING COUNT(*) > 1
+  `);
+  if (groups.length === 0) return;
+
+  console.log(`[DPP v2] Deduplicating ${groups.length} dpp_values group(s) affected by the ON CONFLICT/NULL bug...`);
+  for (const g of groups) {
+    const rows = await all(
+      `SELECT id FROM dpp_values WHERE field_definition_id = ? AND entity_type = ? AND entity_id = ? AND locale IS ? ORDER BY updated_at DESC`,
+      [g.field_definition_id, g.entity_type, g.entity_id, g.locale]
+    );
+    for (const row of rows.slice(1)) {
+      await run(`DELETE FROM dpp_values WHERE id = ?`, [row.id]);
+    }
+  }
+  console.log('[DPP v2] dpp_values deduplication complete');
+};
+
 // Initialize on module load
 init();
 migrateDppValuesLocale().catch(err => console.error('[dpp_values locale migration]', err));
 migrateProductTypes().catch(err => console.error('[product_types migration]', err));
 migrateLocksAtProduction().catch(err => console.error('[locks_at_production migration]', err));
+migrateDeduplicateDppValues().catch(err => console.error('[dpp_values deduplication]', err));
 
 module.exports = {
   db,
