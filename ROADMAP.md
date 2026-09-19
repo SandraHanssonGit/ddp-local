@@ -913,36 +913,32 @@ phase. Each item below is a decision/plan, not yet implemented.
   for now since it's just placeholder data, but the real generator
   should not inherit that width.
 - **Economic operator / "Legal Responsibility" - direction not
-  decided, UI removed for now (2026-09-19).** User: "we're responsible
-  for all our products" - in reality there's one operator (Nudie Jeans
-  AB) that applies to virtually the whole catalog, confirmed by the
-  data (only one row exists). The per-Style/per-Batch "Legal
-  Responsibility" assignment card was confusing as its own concept for
-  what's really just one value, so it was removed from `style-detail.ejs`
-  and `batch-detail.ejs` (see CHANGELOG.md) - the `economic_operators`
-  table, repository, Settings > Economic Operators page, and the
-  assignment API routes are untouched, just not surfaced on
-  Style/Batch anymore. Two directions floated, not decided:
+  decided, UI fully removed for now (2026-09-19).** User: "we're
+  responsible for all our products" - in reality there's one operator
+  (Nudie Jeans AB) that applies to virtually the whole catalog,
+  confirmed by the data (only one row exists). First the per-Style/
+  per-Batch "Legal Responsibility" assignment card was removed
+  (confusing as its own concept for what's really just one value), then
+  - "jag förstår inte fältet" - the Settings > Economic Operators
+  management page itself was removed too (sub-nav link + content
+  block). The `economic_operators` table, repository, and the
+  GET/POST/PUT/DELETE `/operators` API routes are untouched - no UI
+  surface references the concept anywhere in admin right now, but
+  nothing is deleted. Two directions floated, not decided:
   (a) turn it into a plain custom field (`field_definitions`/
   `dpp_values`, editable like any other field, no separate table), or
   (b) keep it purely as a single global Settings-level default with no
   per-product assignment at all (closer to the `is_default`-flag plan
   originally sketched here). Needs a decision before either is built.
-- **Simplify language/locale handling** (idea only, not designed,
-  2026-09-19). User: "vi behöver förenkla språkhanteringen" - current
-  Phase 2 design (`fields.js`) scopes every `dpp_values` row by
-  `(field_definition_id, entity_type, entity_id, locale)` independently
-  at every level (Style, Batch, Batch×Style, GTIN, SGTIN), each with
-  its own "Language: Default | + add locale" tab bar in the admin UI.
-  Flagged as needing simplification but the specific pain point hasn't
-  been pinned down yet - candidates to clarify with the user before
-  designing anything: too many separate language-tab bars to manage
-  (one per entity per level) instead of one place per product; unclear
-  interaction between locale and hierarchy inheritance (does a Style's
-  Swedish translation apply to a GTIN with no Swedish override of its
-  own, or does GTIN's *default*-locale value win instead?); or the
-  data-entry flow itself (translating field-by-field with no bulk
-  view). Needs a clarifying conversation before any redesign.
+
+- **Simplify language/locale handling - closed, no change needed
+  (2026-09-19).** User initially flagged this needed simplifying
+  ("vi behöver förenkla språkhanteringen"); asked what specifically
+  felt complex about the current per-level `(field_definition_id,
+  entity_type, entity_id, locale)` scoping (`fields.js`) and its
+  per-entity "Language: Default | + add locale" tab bars. Answer:
+  "Språkhanteringen kan vara kvar" - leave it exactly as it is. Not a
+  follow-up item.
 - **Database cleanup.** Untracked stale files sitting in the repo
   (`data/dpp-v2.db.stale-backup`, `data/dpp.db.stale-backup`) should be
   deleted once confirmed unneeded. Also folds in the hardcoded-columns

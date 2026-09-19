@@ -4,6 +4,19 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-19 (etapp 46) — Remove Economic Operators tab from Settings entirely
+
+Follow-up to etapp 45: user still didn't understand the concept even
+as a Settings-only management page ("jag förstår inte fältet"), so
+removed the last remaining UI surface for it - the sub-nav link and
+its whole content block in `hub-v2.ejs`. `economic_operators` table,
+repository, and the `/operators` API routes are untouched; nothing is
+deleted. Direction (custom field vs. a single global default) is still
+undecided - see ROADMAP.md.
+
+Verified: `?tab=settings` renders 200 with only Field Config, Product
+Types, and Access in the sub-nav.
+
 ## 2026-09-19 (etapp 45) — Remove Legal Responsibility (Economic Operator) cards from Style/Batch
 
 User: confusing as its own concept, and since it's really just one
