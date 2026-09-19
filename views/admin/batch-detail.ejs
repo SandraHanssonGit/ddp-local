@@ -41,7 +41,15 @@
         </div>
         <div class="info-item">
           <label class="label-sm">Production Date</label>
-          <p class="value"><%= batch.produced_at ? new Date(batch.produced_at).toLocaleDateString('en-US') : 'Not yet produced' %></p>
+          <% if (batch.produced_at) { %>
+            <p class="value"><%= new Date(batch.produced_at).toLocaleDateString('en-US') %></p>
+            <p class="small muted" style="margin-top:4px; display:flex; align-items:center; gap:4px;">
+              <%- icon('lock', { size: 13 }) %> Locked - field changes from here on are kept in the change log, not silently overwritten.
+            </p>
+          <% } else { %>
+            <p class="value muted">Not yet produced</p>
+            <button onclick="markProduced()" class="btn btn-primary" style="margin-top:8px;">Mark as Produced</button>
+          <% } %>
         </div>
         <div class="info-item">
           <label class="label-sm">Status</label>
@@ -49,21 +57,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Production lock status -->
-    <% if (batch.produced_at) { %>
-      <div class="lock-banner" style="display:flex; justify-content:space-between; align-items:center;">
-        <div>
-          <%- icon('lock') %> <strong>Production-locked</strong> since <%= new Date(batch.produced_at).toLocaleString('en-US') %>.
-          Field changes from here on are kept in the change log, not silently overwritten.
-        </div>
-      </div>
-    <% } else { %>
-      <div class="card" style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; margin-bottom:20px;">
-        <div class="small muted">This batch is not yet marked as produced — field values can be freely edited.</div>
-        <button onclick="markProduced()" class="btn btn-primary">Mark as Produced</button>
-      </div>
-    <% } %>
 
     <!-- Statistics Cards -->
     <div class="stat-grid">
