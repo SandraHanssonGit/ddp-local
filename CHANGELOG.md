@@ -4,6 +4,34 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-19 (etapp 49) — Batch detail: Batch Information card + unified tree
+
+Several small consistency fixes plus the planned tree redesign, all
+prompted by direct screenshots:
+
+1. **Batch Information card**: dates ("Sent for Production",
+   "Production Date") shown in the same info-grid card pattern as
+   Style/GTIN/SGTIN detail pages, not a one-off layout. Status moved
+   into it from the stat-grid.
+2. **Lock banner folded into the Production Date field**: removed the
+   separate colored banner and "not yet produced" action card - the
+   lock explanation (or the "Mark as Produced" button) now sits
+   directly under Production Date as part of the same field.
+3. **Filled out the grid**: reordered fields, added Factory
+   (`batches.factory`, not shown anywhere before) so the card doesn't
+   look sparse.
+4. **Unified Style -> Variant -> GTIN -> SGTIN tree**: replaces the
+   "QR Codes per GTIN" and "Individual Units Created" tables with one
+   collapsible tree scoped to the batch, same pattern as the Products
+   tab one level deeper. Removed the "Add GTIN to Batch" form (GTINs
+   will be fed from other systems, never added manually here) - the
+   API stays, just unlinked from the UI.
+
+Found while verifying #4, not a regression: one `batch_gtins` row for
+this batch references a deleted GTIN (orphaned foreign key) - already
+silently dropped by the old table's identical JOIN, so behavior is
+unchanged, just now understood rather than unnoticed.
+
 ## 2026-09-19 (etapp 48) — Freeze-at-production complete, critical bugfix found
 
 Finished freeze-at-production and found a serious pre-existing bug

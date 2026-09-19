@@ -313,7 +313,7 @@ and fixed along the way: `dpp_values` writes were silently duplicating
 rows instead of updating in place for any default-locale value (see
 CHANGELOG.md etapp 48 / git commit `310a963`).
 
-## Batch detail page: unified Style→Variant→GTIN→SGTIN tree (design confirmed, not built, 2026-09-19)
+## Batch detail page: unified Style→Variant→GTIN→SGTIN tree ✅ Done (2026-09-19)
 
 **Problem**: the "QR Codes per GTIN" table (flat rows: Style, Variant,
 Item #, GTIN, Code Needed, Units Shipped, Code Activated) gets
@@ -1183,3 +1183,10 @@ separate task, not yet scheduled.**
   created via direct SQL in this session's test-data scripts, not
   through this repository method), so it's latent, not yet triggered
   in production use.
+- **Orphaned `batch_gtins` row** (found 2026-09-19 while building the
+  Batch tree): batch 1 has a `batch_gtins` row whose `gtin_id` (1)
+  no longer exists in `gtins` - a dangling foreign key, likely left
+  over from earlier demo-data cleanup in this session. Not currently
+  causing visible problems (every query joins `gtins` and silently
+  drops rows that don't match), but worth a real cleanup pass rather
+  than relying on the JOIN masking it forever.
