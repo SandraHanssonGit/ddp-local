@@ -227,6 +227,15 @@ class ImportService {
   }
 
   /**
+   * Validate variant exists
+   * @param {number} variantId - Variant ID
+   * @returns {Promise<Object>} Variant record or null
+   */
+  static async validateVariantExists(variantId) {
+    return getOne('SELECT * FROM variants WHERE id = ?', [variantId]);
+  }
+
+  /**
    * Import GTIN data from CSV
    *
    * @param {string} csvContent - Raw CSV content
@@ -322,6 +331,29 @@ class ImportService {
               rowIndex: validation.rowIndex,
               gtin: row.gtin,
               reason: 'GTIN already exists'
+            });
+            continue;
+          }
+        }
+
+        // A GTIN's style must never disagree with its variant's style -
+        // a row giving both needs to actually agree, otherwise the two
+        // FKs on the gtins row would silently drift apart.
+        if (row.variant_id) {
+          const variant = await this.validateVariantExists(parseInt(row.variant_id));
+          if (!variant) {
+            summary.errors.push({
+              rowIndex: validation.rowIndex,
+              gtin: row.gtin,
+              errors: [`Variant ID ${row.variant_id} not found`]
+            });
+            continue;
+          }
+          if (variant.style_id !== parseInt(row.style_id)) {
+            summary.errors.push({
+              rowIndex: validation.rowIndex,
+              gtin: row.gtin,
+              errors: [`Variant ${row.variant_id} belongs to Style ${variant.style_id}, not Style ${row.style_id}`]
             });
             continue;
           }

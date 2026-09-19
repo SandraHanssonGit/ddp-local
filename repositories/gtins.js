@@ -2,6 +2,20 @@ const db = require('../db/init-v2');
 
 class GtinRepository {
   async create(styleId, gtin, options = {}) {
+    // A GTIN's style_id must never disagree with its variant's style -
+    // when a variant is given, its style is the source of truth, not
+    // whatever styleId the caller happened to pass in. Prevents the two
+    // FKs drifting apart (e.g. a GTIN pointing at a variant that
+    // actually belongs to a different style).
+    let effectiveStyleId = styleId;
+    if (options.variant_id) {
+      const variant = await db.get('SELECT style_id FROM variants WHERE id = ?', [options.variant_id]);
+      if (!variant) {
+        throw new Error(`Variant ${options.variant_id} not found`);
+      }
+      effectiveStyleId = variant.style_id;
+    }
+
     const sql = `
       INSERT INTO gtins (
         style_id, variant_id, gtin, ean, size, color, variant, weight,
@@ -10,7 +24,7 @@ class GtinRepository {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const result = await db.run(sql, [
-      styleId,
+      effectiveStyleId,
       options.variant_id || null,
       gtin,
       options.ean || null,
