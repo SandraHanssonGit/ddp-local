@@ -69,6 +69,18 @@ async function getAvailableLocalesForPassport(passport) {
   return Array.from(locales).sort();
 }
 
+// COMPLIANCE.md gap #7: consumer_visible was only enforced on the JSON
+// export, not the live HTML page - any resolved field rendered
+// regardless of the flag. Shared here so both consumers filter
+// identically and can't drift apart again.
+async function filterToConsumerVisible(resolvedFields) {
+  const fieldDefs = await fieldRepository.listFieldDefinitions();
+  const consumerVisibleByKey = Object.fromEntries(
+    fieldDefs.map(f => [f.field_key, !!f.consumer_visible])
+  );
+  return resolvedFields.filter(f => consumerVisibleByKey[f.fieldKey]);
+}
+
 function getEventsForSgtin(sgtinId) {
   return new Promise((resolve, reject) => {
     db.all(
@@ -91,6 +103,7 @@ async function renderPassportPage(req, res, sgtinRecord, basePath) {
 
   const locale = req.query.lang || null;
   const passport = await passportResolver.resolveSgtinPassport(sgtinRecord.id, locale);
+  passport.resolvedFields = await filterToConsumerVisible(passport.resolvedFields);
   const scanStats = await scanService.getScanStats(sgtinRecord.id);
   const events = await getEventsForSgtin(sgtinRecord.id);
   const availableLocales = await getAvailableLocalesForPassport(passport);
@@ -113,14 +126,10 @@ async function renderPassportPage(req, res, sgtinRecord, basePath) {
 async function renderPassportJson(req, res, sgtinRecord) {
   const locale = req.query.lang || null;
   const passport = await passportResolver.resolveSgtinPassport(sgtinRecord.id, locale);
+  const visibleFields = await filterToConsumerVisible(passport.resolvedFields);
 
-  const fieldDefs = await fieldRepository.listFieldDefinitions();
-  const consumerVisibleByKey = Object.fromEntries(
-    fieldDefs.map(f => [f.field_key, !!f.consumer_visible])
-  );
-
-  const fields = passport.resolvedFields
-    .filter(f => f.value && consumerVisibleByKey[f.fieldKey])
+  const fields = visibleFields
+    .filter(f => f.value)
     .map(f => ({
       key: f.fieldKey,
       label: f.label,
