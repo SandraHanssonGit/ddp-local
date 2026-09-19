@@ -729,8 +729,10 @@ router.get('/batch/:batchId', async (req, res) => {
         g.size_value_1,
         g.size_value_2,
         g.size_value_3,
+        s.id as style_id,
         s.style_number,
         s.product_name,
+        v.id as variant_id,
         v.variant_name,
         COUNT(DISTINCT sg.id) as created_quantity,
         COUNT(DISTINCT le.sgtin_id) as activated_quantity
@@ -766,37 +768,43 @@ router.get('/batch/:batchId', async (req, res) => {
       ORDER BY s.style_number, COALESCE(v.variant_name, ''), sg.serial_number
     `, [batch.id]);
 
-    // Get all styles for form dropdown
-    const styles = await getAll(`
-      SELECT
-        s.id,
-        s.style_number,
-        s.product_name,
-        s.product_type
-      FROM styles s
-      ORDER BY s.style_number
-    `);
+    // Unified Style -> Variant -> GTIN -> SGTIN tree (design confirmed
+    // 2026-09-19), scoped to only what's actually in this batch -
+    // same grouping approach as the Products tab above, one level
+    // deeper. Replaces the old separate "QR Codes per GTIN" and
+    // "Individual Units Created" tables.
+    const sgtinsByGtin = {};
+    sgtins.forEach(sg => {
+      (sgtinsByGtin[sg.gtin_id] = sgtinsByGtin[sg.gtin_id] || []).push(sg);
+    });
 
-    // Get all GTINs with variants for form population
-    const gtins = await getAll(`
-      SELECT
-        g.id,
-        g.style_id,
-        g.variant_id,
-        g.gtin,
-        g.item_number,
-        g.product_type,
-        g.size_value_1,
-        g.size_value_2,
-        g.size_value_3,
-        s.style_number,
-        s.product_name,
-        v.variant_name
-      FROM gtins g
-      JOIN styles s ON s.id = g.style_id
-      LEFT JOIN variants v ON v.id = g.variant_id
-      ORDER BY s.style_number, COALESCE(v.variant_name, ''), g.item_number
-    `);
+    const stylesInBatch = {};
+    batchGtins.forEach(bg => {
+      if (!stylesInBatch[bg.style_id]) {
+        stylesInBatch[bg.style_id] = {
+          id: bg.style_id,
+          style_number: bg.style_number,
+          product_name: bg.product_name,
+          gtins: [],
+          variantsById: {}
+        };
+      }
+      const styleEntry = stylesInBatch[bg.style_id];
+      const gtinEntry = { ...bg, sgtins: sgtinsByGtin[bg.gtin_id] || [] };
+
+      if (bg.variant_id) {
+        if (!styleEntry.variantsById[bg.variant_id]) {
+          styleEntry.variantsById[bg.variant_id] = { id: bg.variant_id, variant_name: bg.variant_name, gtins: [] };
+        }
+        styleEntry.variantsById[bg.variant_id].gtins.push(gtinEntry);
+      } else {
+        styleEntry.gtins.push(gtinEntry);
+      }
+    });
+
+    const batchTree = Object.values(stylesInBatch)
+      .map(s => ({ ...s, variants: Object.values(s.variantsById) }))
+      .sort((a, b) => a.style_number.localeCompare(b.style_number));
 
     const gtin_count = batchGtins.length;
     const style_count = new Set(batchGtins.map(bg => bg.style_number)).size;
@@ -841,8 +849,7 @@ router.get('/batch/:batchId', async (req, res) => {
       availableLocales,
       batchGtins,
       sgtins,
-      styles,
-      gtins,
+      batchTree,
       gtin_count,
       style_count,
       sgtin_count,

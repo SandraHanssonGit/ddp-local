@@ -82,132 +82,128 @@
       </div>
     </div>
 
-    <!-- Add GTINs Card -->
+    <!-- Batch Contents Tree (Style -> Variant -> GTIN -> SGTIN),
+         design confirmed 2026-09-19 - replaces the old separate
+         "QR Codes per GTIN" and "Individual Units Created" tables.
+         GTINs will never be added here manually (fed from other
+         systems), so there's no "Add GTIN" form either. -->
     <div class="card">
-      <h2 style="margin-bottom:20px;">Add GTINs to Batch</h2>
-
-      <form id="addGtinForm">
-        <div class="field-grid-3" style="margin-bottom:16px;">
-          <div>
-            <label>Select Style</label>
-            <select id="styleSelect" required>
-              <option value="">Choose a Style...</option>
-            </select>
-          </div>
-          <div id="variantDiv" class="hidden">
-            <label>Select Variant</label>
-            <select id="variantSelect">
-              <option value="">All Variants</option>
-            </select>
-          </div>
-          <div>
-            <label>Select GTIN</label>
-            <select id="gtinSelect" required disabled>
-              <option value="">Choose Style first...</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="field-row">
-          <label>Code Needed</label>
-          <input type="number" id="quantityInput" min="1" value="100" required>
-        </div>
-
-        <button type="submit" class="btn btn-primary">Add GTIN to Batch</button>
-      </form>
-    </div>
-
-    <!-- Batch Planning Card -->
-    <div class="card">
-      <h2 style="margin-bottom:4px;">QR Codes per GTIN</h2>
+      <h2 style="margin-bottom:4px;">Batch Contents</h2>
       <p class="small muted" style="margin-bottom:16px;">
-        Number of QR codes needed per GTIN in this batch. Once production
-        is complete this can be updated to match what was actually produced.
+        Everything in this batch - Code Needed/Units Shipped/Code
+        Activated are per GTIN. Click a row to expand it.
       </p>
 
-      <% if (typeof batchGtins !== 'undefined' && batchGtins && batchGtins.length > 0) { %>
+      <% if (typeof batchTree !== 'undefined' && batchTree && batchTree.length > 0) { %>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Style</th>
-                <th>Variant</th>
-                <th>Item #</th>
-                <th>GTIN</th>
+                <th>Name</th>
                 <th class="center">Code Needed</th>
                 <th class="center" title="Units received from the factory, each with a code attached">Units Shipped</th>
                 <th class="center" title="First time the Viewed event was triggered for that unit">Code Activated</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% batchGtins.forEach(bg => {
-                const used = bg.created_quantity || 0;
-                const needed = bg.planned_quantity || 0;
-                const activated = bg.activated_quantity || 0;
-              %>
-                <tr>
-                  <td class="mono small"><strong><%= bg.style_number %></strong></td>
-                  <td class="small"><%= bg.variant_name || '—' %></td>
-                  <td class="small"><%= bg.item_number %></td>
-                  <td class="mono small"><strong><%= bg.gtin %></strong></td>
-                  <td class="center" style="font-weight:600;"><%= needed %></td>
-                  <td class="center"><span class="badge badge-success small"><%= used %></span></td>
-                  <td class="center"><span class="badge small"><%= activated %></span></td>
-                </tr>
-              <% }); %>
-              <tr class="totals-row">
-                <td colspan="4" style="text-align:right;">TOTALS:</td>
-                <td class="center"><%= planned_total %></td>
-                <td class="center"><span class="badge badge-success small"><%= sgtin_count %></span></td>
-                <td class="center"><span class="badge small"><%= typeof activated_total !== 'undefined' ? activated_total : 0 %></span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      <% } else { %>
-        <p class="muted" style="font-style:italic;">No GTINs planned for this batch yet</p>
-      <% } %>
-    </div>
-
-    <!-- SGTINs Detail Card -->
-    <div class="card">
-      <h2 style="margin-bottom:20px;">Individual Units Created</h2>
-
-      <% if (sgtins && sgtins.length > 0) { %>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Serial #</th>
-                <th>GTIN</th>
-                <th>Style</th>
-                <th>Variant</th>
-                <th>Size</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              <% sgtins.forEach(sg => { %>
-                <tr>
-                  <td class="mono"><strong><%= sg.serial_number %></strong></td>
-                  <td class="mono small"><%= sg.gtin %></td>
-                  <td class="mono"><%= sg.style_number %></td>
-                  <td><%= sg.variant_name || '—' %></td>
-                  <td class="small">
-                    <% const size = [sg.size_value_1, sg.size_value_2, sg.size_value_3].filter(s => s).join('-') %>
-                    <%= size %>
+              <% batchTree.forEach(s => {
+                const styleKey = 'style-' + s.id;
+                const styleHasChildren = s.gtins.length > 0 || s.variants.length > 0;
+              %>
+                <tr
+                  style="background:var(--surface-2); <%= styleHasChildren ? 'cursor:pointer;' : '' %>"
+                  <% if (styleHasChildren) { %>onclick="toggleTreeGroup('<%= styleKey %>')"<% } %>
+                >
+                  <td class="mono">
+                    <% if (styleHasChildren) { %>
+                      <span data-chevron="<%= styleKey %>" style="display:inline-flex; margin-right:6px; transition:transform 0.15s ease; color:var(--muted);"><%- icon('chevron-right', { size: 14 }) %></span>
+                    <% } %>
+                    <strong><%= s.style_number %></strong> <span class="small muted"><%= s.product_name %></span>
                   </td>
-                  <td><a href="/admin-v2/sgtin/<%= sg.id %>" class="link-action"><%- icon('arrow-right') %></a></td>
+                  <td></td><td></td><td></td><td></td>
                 </tr>
+
+                <!-- GTINs directly under the Style (no Variant) -->
+                <% s.gtins.forEach(g => { %>
+                  <tr data-parent="<%= styleKey %>" class="hidden">
+                    <td class="mono small" style="padding-left:28px;"><%= g.item_number %> <span class="muted"><%= g.gtin %></span></td>
+                    <td class="center" style="font-weight:600;"><%= g.planned_quantity || 0 %></td>
+                    <td class="center"><span class="badge badge-success small"><%= g.created_quantity || 0 %></span></td>
+                    <td class="center"><span class="badge small"><%= g.activated_quantity || 0 %></span></td>
+                    <td><a href="/admin-v2/gtin/<%= g.gtin_id %>" class="link-action"><%- icon('arrow-right') %></a></td>
+                  </tr>
+                  <% if (g.sgtins.length > 0) { %>
+                    <% const gtinKey = 'gtin-' + g.gtin_id; %>
+                    <tr data-parent="<%= styleKey %>" class="hidden" style="cursor:pointer;" onclick="toggleTreeGroup('<%= gtinKey %>')">
+                      <td class="small muted" style="padding-left:44px;">
+                        <span data-chevron="<%= gtinKey %>" style="display:inline-flex; margin-right:4px; transition:transform 0.15s ease;"><%- icon('chevron-right', { size: 12 }) %></span>
+                        Show <%= g.sgtins.length %> unit<%= g.sgtins.length === 1 ? '' : 's' %>
+                      </td>
+                      <td></td><td></td><td></td><td></td>
+                    </tr>
+                    <% g.sgtins.forEach(sg => { %>
+                      <tr data-parent="<%= gtinKey %>" data-grandparent="<%= styleKey %>" class="hidden">
+                        <td class="mono small" style="padding-left:60px;"><%- icon('corner-down-right', { size: 12 }) %> <%= sg.serial_number %></td>
+                        <td></td><td></td><td></td>
+                        <td><a href="/admin-v2/sgtin/<%= sg.id %>" class="link-action"><%- icon('arrow-right') %></a></td>
+                      </tr>
+                    <% }); %>
+                  <% } %>
+                <% }); %>
+
+                <!-- Variants, each with their own GTINs -->
+                <% s.variants.forEach(v => { %>
+                  <% const variantKey = 'variant-' + v.id; %>
+                  <tr data-parent="<%= styleKey %>" class="hidden" style="cursor:pointer;" onclick="toggleTreeGroup('<%= variantKey %>')">
+                    <td class="mono small" style="padding-left:28px;">
+                      <span data-chevron="<%= variantKey %>" style="display:inline-flex; margin-right:4px; transition:transform 0.15s ease; color:var(--muted);"><%- icon('chevron-right', { size: 13 }) %></span>
+                      <%- icon('corner-down-right', { size: 13 }) %> <%= v.variant_name %>
+                    </td>
+                    <td></td><td></td><td></td><td></td>
+                  </tr>
+                  <% v.gtins.forEach(g => { %>
+                    <tr data-parent="<%= variantKey %>" data-grandparent="<%= styleKey %>" class="hidden">
+                      <td class="mono small" style="padding-left:52px;"><%= g.item_number %> <span class="muted"><%= g.gtin %></span></td>
+                      <td class="center" style="font-weight:600;"><%= g.planned_quantity || 0 %></td>
+                      <td class="center"><span class="badge badge-success small"><%= g.created_quantity || 0 %></span></td>
+                      <td class="center"><span class="badge small"><%= g.activated_quantity || 0 %></span></td>
+                      <td><a href="/admin-v2/gtin/<%= g.gtin_id %>" class="link-action"><%- icon('arrow-right') %></a></td>
+                    </tr>
+                    <% if (g.sgtins.length > 0) { %>
+                      <% const gtinKey = 'gtin-' + g.gtin_id; %>
+                      <tr data-parent="<%= variantKey %>" data-grandparent="<%= styleKey %>" class="hidden" style="cursor:pointer;" onclick="toggleTreeGroup('<%= gtinKey %>')">
+                        <td class="small muted" style="padding-left:68px;">
+                          <span data-chevron="<%= gtinKey %>" style="display:inline-flex; margin-right:4px; transition:transform 0.15s ease;"><%- icon('chevron-right', { size: 12 }) %></span>
+                          Show <%= g.sgtins.length %> unit<%= g.sgtins.length === 1 ? '' : 's' %>
+                        </td>
+                        <td></td><td></td><td></td><td></td>
+                      </tr>
+                      <% g.sgtins.forEach(sg => { %>
+                        <tr data-parent="<%= gtinKey %>" data-grandparent="<%= variantKey %>" data-greatgrandparent="<%= styleKey %>" class="hidden">
+                          <td class="mono small" style="padding-left:84px;"><%- icon('corner-down-right', { size: 12 }) %> <%= sg.serial_number %></td>
+                          <td></td><td></td><td></td>
+                          <td><a href="/admin-v2/sgtin/<%= sg.id %>" class="link-action"><%- icon('arrow-right') %></a></td>
+                        </tr>
+                      <% }); %>
+                    <% } %>
+                  <% }); %>
+                <% }); %>
               <% }); %>
+              <tr class="totals-row">
+                <td style="text-align:right;">TOTALS:</td>
+                <td class="center"><%= planned_total %></td>
+                <td class="center"><span class="badge badge-success small"><%= sgtin_count %></span></td>
+                <td class="center"><span class="badge small"><%= typeof activated_total !== 'undefined' ? activated_total : 0 %></span></td>
+                <td></td>
+              </tr>
             </tbody>
           </table>
         </div>
       <% } else { %>
-        <div class="empty-state">No individual units created yet for this batch</div>
+        <p class="muted" style="font-style:italic;">Nothing planned for this batch yet</p>
       <% } %>
     </div>
-
 
     <!-- DPP Fields Card -->
     <div class="card">
@@ -386,108 +382,29 @@
       } catch (err) { await dppAlert('Error: ' + err.message); }
     }
 
-    // Inject data from server
-    const allStyles = <%- JSON.stringify(styles || []) %>;
-    const allGtinsData = <%- JSON.stringify(gtins || []) %>;
-
-    // Initialize style dropdown
-    const styleSelect = document.getElementById('styleSelect');
-    styleSelect.innerHTML = '<option value="">Choose a Style...</option>' +
-      allStyles.map(s => `<option value="${s.id}">${s.style_number} - ${s.product_name} (${s.product_type})</option>`).join('');
-
-    function updateFormByStyle() {
-      const styleId = parseInt(styleSelect.value);
-      const variantDiv = document.getElementById('variantDiv');
-      const variantSelect = document.getElementById('variantSelect');
-      const gtinSelect = document.getElementById('gtinSelect');
-
-      if (!styleId) {
-        variantDiv.classList.add('hidden');
-        gtinSelect.disabled = true;
-        gtinSelect.innerHTML = '<option value="">Choose Style first...</option>';
-        return;
-      }
-
-      // Get GTINs for selected style
-      const styleGtins = allGtinsData.filter(g => g.style_id === styleId);
-
-      // Get unique variants for this style
-      const variantsSet = new Set();
-      const variantMap = {};
-      styleGtins.forEach(g => {
-        if (g.variant_id && g.variant_name) {
-          variantsSet.add(g.variant_id);
-          variantMap[g.variant_id] = g.variant_name;
-        }
+    // Batch Contents tree expand/collapse - same pattern as the
+    // Products tab (hub-v2.ejs), extended one level for SGTIN
+    // (data-greatgrandparent) since this tree goes Style -> Variant ->
+    // GTIN -> SGTIN, one level deeper than Products' Style -> Variant
+    // -> GTIN.
+    const treeGroupState = {};
+    function toggleTreeGroup(key) {
+      treeGroupState[key] = !treeGroupState[key];
+      renderTreeVisibility();
+    }
+    function renderTreeVisibility() {
+      document.querySelectorAll('[data-parent]').forEach(row => {
+        let visible = !!treeGroupState[row.getAttribute('data-parent')];
+        const grandparent = row.getAttribute('data-grandparent');
+        if (visible && grandparent) visible = !!treeGroupState[grandparent];
+        const greatgrandparent = row.getAttribute('data-greatgrandparent');
+        if (visible && greatgrandparent) visible = !!treeGroupState[greatgrandparent];
+        row.classList.toggle('hidden', !visible);
       });
-
-      // Show/hide variant dropdown
-      if (variantsSet.size > 0) {
-        variantDiv.classList.remove('hidden');
-        variantSelect.innerHTML = '<option value="">All Variants</option>' +
-          Array.from(variantsSet).map(vid =>
-            `<option value="${vid}">${variantMap[vid]}</option>`
-          ).join('');
-      } else {
-        variantDiv.classList.add('hidden');
-        variantSelect.value = '';
-      }
-
-      updateGtinsDropdown(styleGtins);
+      document.querySelectorAll('[data-chevron]').forEach(chevron => {
+        chevron.style.transform = treeGroupState[chevron.getAttribute('data-chevron')] ? 'rotate(90deg)' : '';
+      });
     }
-
-    function updateGtinsDropdown(styleGtins) {
-      const variantId = document.getElementById('variantSelect').value;
-      const gtinSelect = document.getElementById('gtinSelect');
-
-      let filtered = styleGtins;
-      if (variantId) {
-        filtered = styleGtins.filter(g => g.variant_id === parseInt(variantId));
-      }
-
-      gtinSelect.disabled = filtered.length === 0;
-      gtinSelect.innerHTML = '<option value="">Choose GTIN...</option>' +
-        filtered.map(g => `<option value="${g.id}">${g.gtin} (${g.item_number})</option>`).join('');
-    }
-
-    styleSelect.addEventListener('change', updateFormByStyle);
-    document.getElementById('variantSelect').addEventListener('change', function() {
-      const styleId = parseInt(styleSelect.value);
-      const styleGtins = allGtinsData.filter(g => g.style_id === styleId);
-      updateGtinsDropdown(styleGtins);
-    });
-
-    document.getElementById('addGtinForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const batchId = <%= batch.id %>;
-      const gtinId = document.getElementById('gtinSelect').value;
-      const quantity = document.getElementById('quantityInput').value;
-
-      try {
-        const res = await fetch('/admin-v2/batch-gtins', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            batch_id: batchId,
-            gtin_id: gtinId,
-            planned_quantity: parseInt(quantity)
-          })
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-          await dppAlert('GTIN added successfully');
-          location.reload();
-        } else {
-          await dppAlert('Error: ' + (data.error || 'Failed to add GTIN'));
-        }
-      } catch (err) {
-        await dppAlert('Error: ' + err.message);
-      }
-    });
-
   </script>
 </body>
 </html>
