@@ -85,17 +85,17 @@ identifiers will eventually need to register against. No
 the registry's technical interface isn't published yet; building
 against it now would mean guessing.
 
-### 7. No role-based data access beyond a single (and currently
-unenforced) flag
-`consumer_visible` is the only visibility control, and — found during
-this review — it **is not actually applied on the live public route**.
-`routes/dpp.js` renders every resolved field via `dpp-passport.ejs`
-regardless of the flag; the only code that does filter on it
-(`services/consumer-service.js`, `routes/public/consumer.js`) is not
-mounted in `server.js` and is dead code. The new JSON export endpoint
-(`GET /dpp/:batch/:gtin/:sgtin/json`, added in this session) does
-apply the filter correctly and can serve as the reference
-implementation when the HTML page is fixed.
+### 7. No role-based data access beyond a single flag ✅ enforcement fixed (2026-09-19)
+`consumer_visible` is the only visibility control. **Fixed**: it now
+applies to the live HTML passport page too (both `/01/:gtin/21/:serial`
+and the legacy `/dpp/:batch/:gtin/:sgtin` route, which share rendering
+code) via a shared `filterToConsumerVisible()` helper in
+`services/passport-page-service.js` - previously only the JSON export
+filtered correctly.
+
+Still open: there is no mechanism today for a market-surveillance
+authority or a recycler to see an expanded view beyond the single
+consumer_visible flag.
 
 There is also no mechanism today for a market-surveillance authority
 or a recycler to see an expanded view — and there deliberately
@@ -114,9 +114,10 @@ to be built if it were missing. What's missing is:
 2. A `locale` column
 3. A route (GS1 Digital Link)
 4. Content (more `field_definitions` rows)
-5. Two UI fixes: enforcing `consumer_visible` on the live page, and
-   making it possible to actually administer a field at Batch/GTIN/
-   SGTIN level at all (see ROADMAP.md — "Field administration gap")
+5. ~~Enforcing `consumer_visible` on the live page~~ ✅ done
+   (2026-09-19) - and making it possible to actually administer a
+   field at Batch/GTIN/SGTIN level at all (see ROADMAP.md — "Field
+   administration gap")
 
 See ROADMAP.md for scope and ordering.
 
