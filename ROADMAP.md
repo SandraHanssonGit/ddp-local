@@ -283,6 +283,31 @@ entered, nor a "pending from M3" placeholder state.
   value exists yet. Not designed in detail - needs its own design pass,
   not bundled into freeze-at-production.
 
+**Extended (2026-09-19, still idea only)**: two follow-on questions the
+user wants to think through, not yet designed:
+- **What metadata does an efficient external fetch need per field?**
+  Beyond just naming *which* system a field comes from
+  (`expected_source_system`), an actual automated fetch would need
+  something like the external system's own key/field identifier for
+  that value (e.g. an M3 item attribute code), possibly a mapping/
+  transform, and a sense of freshness (fetch-on-demand vs. cached).
+  None of this exists yet - `source_system` today is just a flat label
+  recorded after the fact, not a fetch specification. Real
+  integrations aren't being built yet per CLAUDE.md §14/§26, so this
+  is about designing the *shape* of that future config, not building a
+  fetcher.
+- **Freeze-at-production must cover externally-sourced values too, not
+  just manual ones**: "När batch i production så måste all data sparas
+  i Batch och dess tabeller" - whatever value was showing on a
+  passport when a Batch is marked produced (whether it was typed in
+  manually or fetched from M3/PIM) needs to be part of the same
+  Batch×Style snapshot described above. This isn't a separate
+  mechanism - it's confirmation that freeze-at-production, once built,
+  must snapshot the *resolved* value regardless of where it came from,
+  not just style/variant text fields. Worth keeping in mind so
+  Phase 2's external-source config doesn't end up needing its own,
+  separate locking logic later.
+
 ## GTIN style_id/variant_id consistency ✅ Done (2026-09-19)
 
 **Problem found while discussing the Style/Variant question above**:
