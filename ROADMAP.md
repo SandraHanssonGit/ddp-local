@@ -335,6 +335,25 @@ som finns i Batchen?"
    aldrig lägga in GTIN [manuellt] så det skall vi dölja." The
    `/admin-v2/batch-gtins` POST API stays untouched in the background -
    only the manual-entry UI goes away.
+5. **Check the sub-pages reached from inside the tree, not just the
+   tree itself (user, 2026-09-19)**: "När trädet byggs om för Batch så
+   behöver även undersiderna ses över så de också håller på
+   batchnivå." When this is built, explicitly review each linked
+   detail page for correct behavior when navigated to *from within a
+   specific batch's tree*, not just in isolation:
+   - `gtin-detail.ejs` - does it need to reflect which batch you
+     arrived from (e.g. showing that GTIN's Batch×GTIN frozen values
+     once freeze-at-production exists), or does it stay purely
+     Style-scoped masterdata regardless of entry point?
+   - `sgtin-detail.ejs` - back-link should probably return to the
+     batch's tree (with that Style/GTIN branch still expanded) rather
+     than the generic Individual Units list.
+   - `variant-detail.ejs` / `style-detail.ejs` - likely unaffected
+     (pure masterdata, not batch-scoped) but confirm nothing on them
+     assumes a single-batch context that breaks when reached from a
+     multi-style batch's tree.
+   Not designed in detail yet - a checklist to work through once the
+   tree itself is being built, not before.
 
 Not yet built - queued after freeze-at-production per the agreed
 step-by-step order (see "Priority order" discussion in chat).
