@@ -16,14 +16,14 @@
         <h1>Batch <%= batch.batch_id %></h1>
         <p class="subtitle">Production Order: <%= batch.production_order || '—' %></p>
       </div>
-      <a href="/admin-v2?tab=batches" class="back-link">← Back to Batches</a>
+      <a href="/admin-v2?tab=batches" class="back-link"><%- icon('arrow-left') %> Back to Batches</a>
     </div>
 
     <!-- Production lock status -->
     <% if (batch.produced_at) { %>
       <div class="lock-banner" style="display:flex; justify-content:space-between; align-items:center;">
         <div>
-          🔒 <strong>Production-locked</strong> since <%= new Date(batch.produced_at).toLocaleString('en-US') %>.
+          <%- icon('lock') %> <strong>Production-locked</strong> since <%= new Date(batch.produced_at).toLocaleString('en-US') %>.
           Field changes from here on are kept in the change log, not silently overwritten.
         </div>
       </div>
@@ -173,7 +173,7 @@
                     <% const size = [sg.size_value_1, sg.size_value_2, sg.size_value_3].filter(s => s).join('-') %>
                     <%= size %>
                   </td>
-                  <td><a href="/admin-v2/sgtin/<%= sg.id %>" class="link-action">→</a></td>
+                  <td><a href="/admin-v2/sgtin/<%= sg.id %>" class="link-action"><%- icon('arrow-right') %></a></td>
                 </tr>
               <% }); %>
             </tbody>

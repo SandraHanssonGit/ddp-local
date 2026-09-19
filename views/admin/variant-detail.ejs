@@ -16,7 +16,7 @@
         <h1><%= variant.product_name %></h1>
         <p class="subtitle">Variant <strong><%= variant.variant_name %></strong></p>
       </div>
-      <a href="/admin-v2?tab=products" class="back-link">← Back to Products</a>
+      <a href="/admin-v2?tab=products" class="back-link"><%- icon('arrow-left') %> Back to Products</a>
     </div>
 
     <div class="detail-grid">
@@ -128,7 +128,7 @@
                   <% if (val.inheritedValue) { %>
                     <p class="field-card-note">Inherited from <%= val.inheritedFrom %>: <span class="mono"><%= val.inheritedValue %></span></p>
                   <% } %>
-                  <p style="margin-top:8px;"><a href="#" onclick="clearOverride('<%= val.field_key %>'); return false;" class="link-action danger">Clear override → inherit</a></p>
+                  <p style="margin-top:8px;"><a href="#" onclick="clearOverride('<%= val.field_key %>'); return false;" class="link-action danger">Clear override <span style="display:inline-flex;vertical-align:middle;"><%- icon('arrow-right', { size: 13 }) %></span> inherit</a></p>
                 </div>
               <% } else if (val.inheritedValue) { %>
                 <div class="field-card inherited">
@@ -202,7 +202,7 @@
                       <td class="small"><%= g.item_number || '—' %></td>
                       <td class="small"><%= sizeDisplay || '—' %></td>
                       <td class="center"><span class="badge badge-success small"><%= g.sgtin_count || 0 %></span></td>
-                      <td><a href="/admin-v2/gtin/<%= g.id %>" class="link-action">→</a></td>
+                      <td><a href="/admin-v2/gtin/<%= g.id %>" class="link-action"><%- icon('arrow-right') %></a></td>
                     </tr>
                   <% }); %>
                 </tbody>

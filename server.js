@@ -43,6 +43,7 @@ app.set('views', path.join(__dirname, 'views'));
 // GTIN-13 (EAN) -> GTIN-14 padding, available in every EJS template
 // without each view needing its own require() - see utils/gtin.js
 app.locals.toGtin14 = require('./utils/gtin').toGtin14;
+app.locals.icon = require('./utils/icons').icon;
 app.use(cookieParser());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));

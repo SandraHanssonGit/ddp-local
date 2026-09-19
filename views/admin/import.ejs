@@ -19,7 +19,7 @@
         <p class="text-gray-600 mt-2">Bulk import product data from CSV</p>
       </div>
       <a href="/admin-v2" class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800">
-        ← Back to Hub
+        <%- icon('arrow-left') %> Back to Hub
       </a>
     </div>
 
@@ -329,7 +329,7 @@
       if (results.created && results.created.length > 0) {
         const section = document.createElement('div');
         section.className = 'bg-green-50 rounded-lg p-4 border border-green-200';
-        section.innerHTML = '<h3 class="font-bold text-green-700 mb-2">✓ Created GTINs</h3>';
+        section.innerHTML = '<h3 class="font-bold text-green-700 mb-2" style="display:flex;align-items:center;gap:6px;"><%- icon('check', { size: 16 }).replace(/\n\s*/g, ' ') %> Created GTINs</h3>';
         const list = document.createElement('ul');
         list.className = 'space-y-1 text-sm';
         results.created.forEach(item => {
@@ -351,7 +351,7 @@
       if (results.errors && results.errors.length > 0) {
         const section = document.createElement('div');
         section.className = 'bg-red-50 rounded-lg p-4 border border-red-200';
-        section.innerHTML = '<h3 class="font-bold text-red-700 mb-2">✗ Errors</h3>';
+        section.innerHTML = '<h3 class="font-bold text-red-700 mb-2" style="display:flex;align-items:center;gap:6px;"><%- icon('x', { size: 16 }).replace(/\n\s*/g, ' ') %> Errors</h3>';
         const list = document.createElement('ul');
         list.className = 'space-y-1 text-sm';
         results.errors.forEach(err => {

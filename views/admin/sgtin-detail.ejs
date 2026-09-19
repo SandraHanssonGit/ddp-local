@@ -17,14 +17,14 @@
         <p class="subtitle"><%= style.product_name %> (Style <%= style.style_number %>)</p>
       </div>
       <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
-        <a href="/admin-v2?tab=sgtins" class="btn">← Back to Individual Units</a>
-        <a href="/01/<%= toGtin14(gtin.gtin) %>/21/<%= sgtin.serial_number %>" target="_blank" class="btn btn-primary">→ Produktpass</a>
+        <a href="/admin-v2?tab=sgtins" class="btn"><%- icon('arrow-left') %> Back to Individual Units</a>
+        <a href="/01/<%= toGtin14(gtin.gtin) %>/21/<%= sgtin.serial_number %>" target="_blank" class="btn btn-primary"><%- icon('arrow-right') %> Produktpass</a>
       </div>
     </div>
 
     <% if (batch.produced_at) { %>
       <div class="lock-banner">
-        🔒 <strong>Production-locked</strong> — batch <%= batch.batch_id %> was marked produced on
+        <%- icon('lock') %> <strong>Production-locked</strong> — batch <%= batch.batch_id %> was marked produced on
         <%= new Date(batch.produced_at).toLocaleString('en-US') %>. Field changes here are kept in the
         change log, not silently overwritten.
       </div>
@@ -208,7 +208,7 @@
                   <% if (val.inheritedValue) { %>
                     <p class="field-card-note">Inherited from <%= val.inheritedFrom %>: <span class="mono"><%= val.inheritedValue %></span></p>
                   <% } %>
-                  <p style="margin-top:8px;"><a href="#" onclick="clearOverride('<%= val.field_key %>'); return false;" class="link-action danger">Clear override → inherit</a></p>
+                  <p style="margin-top:8px;"><a href="#" onclick="clearOverride('<%= val.field_key %>'); return false;" class="link-action danger">Clear override <span style="display:inline-flex;vertical-align:middle;"><%- icon('arrow-right', { size: 13 }) %></span> inherit</a></p>
                 </div>
               <% } else if (val.inheritedValue) { %>
                 <div class="field-card inherited">
@@ -316,9 +316,9 @@
         <div class="card">
           <h3 style="margin-bottom:16px;">Quick Links</h3>
           <div class="link-list">
-            <a href="/admin-v2/gtin/<%= gtin.id %>">↓ View GTIN</a>
-            <a href="/admin-v2/batch/<%= batch.id %>">↓ View Batch</a>
-            <a href="/admin-v2/style/<%= style.id %>">↓ View Style</a>
+            <a href="/admin-v2/gtin/<%= gtin.id %>"><%- icon('arrow-right', { size: 14 }) %> View GTIN</a>
+            <a href="/admin-v2/batch/<%= batch.id %>"><%- icon('arrow-right', { size: 14 }) %> View Batch</a>
+            <a href="/admin-v2/style/<%= style.id %>"><%- icon('arrow-right', { size: 14 }) %> View Style</a>
           </div>
         </div>
 
@@ -326,7 +326,7 @@
         <div class="callout">
           <p class="callout-title">Produktpass URL (GS1 Digital Link)</p>
           <p class="mono small" style="word-break:break-all;">/01/<%= toGtin14(gtin.gtin) %>/21/<%= sgtin.serial_number %></p>
-          <p style="margin-top:10px;"><a href="/01/<%= toGtin14(gtin.gtin) %>/21/<%= sgtin.serial_number %>" target="_blank" class="link-action">Öppna produktpass →</a></p>
+          <p style="margin-top:10px;"><a href="/01/<%= toGtin14(gtin.gtin) %>/21/<%= sgtin.serial_number %>" target="_blank" class="link-action">Öppna produktpass <%- icon('arrow-right', { size: 14 }) %></a></p>
           <p class="small muted" style="margin-top:14px; padding-top:12px; border-top:1px solid var(--hairline);">
             Legacy-länk (fungerar fortfarande internt):<br>
             <a href="/dpp/<%= batch.batch_id %>/<%= gtin.gtin %>/<%= sgtin.serial_number %>" target="_blank" class="mono" style="word-break:break-all;">
