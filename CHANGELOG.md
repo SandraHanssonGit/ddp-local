@@ -4,6 +4,25 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-19 (etapp 45) — Remove Legal Responsibility (Economic Operator) cards from Style/Batch
+
+User: confusing as its own concept, and since it's really just one
+field, better as a custom field or a Settings-only default rather than
+a per-Style/per-Batch assignment UI - direction not decided yet.
+
+Removed the "Legal Responsibility" card and its save form from both
+`style-detail.ejs` and `batch-detail.ejs` (and the now-dead
+`operatorAssignForm` JS/`operators` data passed by both routes in
+`hub-v2.js`). Left the `economic_operators` table, repository,
+Settings > Economic Operators management page, and the
+`/style/:id/operator` and `/batch/:id/operator` API routes untouched -
+only the confusing per-product assignment UI is gone, nothing is
+deleted, so either direction (plain custom field, or a single global
+default) can still be built without having lost data. See ROADMAP.md.
+
+Verified: both Style and Batch detail pages render 200 with zero
+references to "Legal Responsibility" left.
+
 ## 2026-09-19 (etapp 44) — GTIN: guarantee style_id always agrees with its variant's style
 
 Found while discussing whether Style should even exist once a Style

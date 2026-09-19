@@ -765,17 +765,22 @@ phase. Each item below is a decision/plan, not yet implemented.
   seeded this session still uses 4-digit serials (`0001` etc.) - fine
   for now since it's just placeholder data, but the real generator
   should not inherit that width.
-- **Economic operator: default with rare override, instead of
-  per-Style assignment.** User: "we're responsible for all our
-  products" - in reality there's one operator (Nudie Jeans AB) that
-  applies to virtually the whole catalog, confirmed by the data (only
-  one row exists). Plan: add an `is_default` flag to
-  `economic_operators`; `passport-resolver.js` falls back to the
-  default operator when neither Batch nor Style has one explicitly
-  assigned, so assigning one per Style stops being the expected normal
-  workflow and becomes the rare exception (e.g. a licensed line with a
-  different importer). Style/Batch-level assignment (already built)
-  stays as the override mechanism, just de-emphasized.
+- **Economic operator / "Legal Responsibility" - direction not
+  decided, UI removed for now (2026-09-19).** User: "we're responsible
+  for all our products" - in reality there's one operator (Nudie Jeans
+  AB) that applies to virtually the whole catalog, confirmed by the
+  data (only one row exists). The per-Style/per-Batch "Legal
+  Responsibility" assignment card was confusing as its own concept for
+  what's really just one value, so it was removed from `style-detail.ejs`
+  and `batch-detail.ejs` (see CHANGELOG.md) - the `economic_operators`
+  table, repository, Settings > Economic Operators page, and the
+  assignment API routes are untouched, just not surfaced on
+  Style/Batch anymore. Two directions floated, not decided:
+  (a) turn it into a plain custom field (`field_definitions`/
+  `dpp_values`, editable like any other field, no separate table), or
+  (b) keep it purely as a single global Settings-level default with no
+  per-product assignment at all (closer to the `is_default`-flag plan
+  originally sketched here). Needs a decision before either is built.
 - **Database cleanup.** Untracked stale files sitting in the repo
   (`data/dpp-v2.db.stale-backup`, `data/dpp.db.stale-backup`) should be
   deleted once confirmed unneeded. Also folds in the hardcoded-columns
