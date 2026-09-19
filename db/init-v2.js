@@ -340,6 +340,18 @@ const init = () => {
     // Variant > Style) - see passport-resolver.js.
     db.run(`ALTER TABLE field_definitions ADD COLUMN editable_at_variant BOOLEAN DEFAULT 1`, () => {});
 
+    // Freeze-at-production design (2026-09-19): not every field should
+    // lock when a batch is marked produced - EU-required fields must
+    // (that's the whole point, proving the compliance data is fixed),
+    // but Nudie-specific fields are the brand's own discretion and may
+    // legitimately need continued editing after production. No SQLite
+    // DEFAULT can vary by another column's value, so this is added
+    // nullable and backfilled from `category` below (see
+    // migrateLocksAtProduction) rather than given a single hardcoded
+    // DEFAULT. Editable per field in Field Config, overriding the
+    // category default in either direction.
+    db.run(`ALTER TABLE field_definitions ADD COLUMN locks_at_production BOOLEAN`, () => {});
+
     // Supply chain (ROADMAP.md): a repeating list of named process steps
     // (Raw Material, Spinning, Weaving Mill, Thread Supplier, ...), each
     // with a supplier - not a single scalar value, so this doesn't fit
@@ -571,6 +583,22 @@ const migrateDppValuesLocale = async () => {
   console.log('[DPP v2] dpp_values locale migration complete');
 };
 
+// Freeze-at-production design (2026-09-19): backfill
+// locks_at_production from category for any field that doesn't have
+// it set yet - true for eu_required, false for everything else
+// (nudie). Only touches NULL rows, so per-field overrides made later
+// in Field Config are never clobbered by this running again.
+const migrateLocksAtProduction = async () => {
+  const result = await run(
+    `UPDATE field_definitions
+     SET locks_at_production = CASE WHEN category = 'eu_required' THEN 1 ELSE 0 END
+     WHERE locks_at_production IS NULL`
+  );
+  if (result.changes > 0) {
+    console.log(`[DPP v2] Backfilled locks_at_production for ${result.changes} field(s)`);
+  }
+};
+
 // GS1 hierarchy design (2026-09-19): backfill product_types from
 // whatever distinct styles.product_type text values already exist,
 // defaulting each to the 'batch_gtin_sgtin' scheme (today's actual
@@ -606,6 +634,7 @@ const migrateProductTypes = async () => {
 init();
 migrateDppValuesLocale().catch(err => console.error('[dpp_values locale migration]', err));
 migrateProductTypes().catch(err => console.error('[product_types migration]', err));
+migrateLocksAtProduction().catch(err => console.error('[locks_at_production migration]', err));
 
 module.exports = {
   db,
