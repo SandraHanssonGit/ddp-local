@@ -862,17 +862,21 @@ router.get('/batch/:batchId', async (req, res) => {
   }
 });
 
-// Mark a batch as produced - locks it (ROADMAP.md Phase 1). From this
-// point, further dpp_values writes on this batch or its SGTINs are kept
-// in field_change_log rather than silently overwritten.
+// Mark a batch as produced - locks it (ROADMAP.md Phase 1) AND freezes
+// every locking field's current resolved value onto Batch×GTIN
+// (freeze-at-production, design confirmed 2026-09-19 - see
+// field-service.js's freezeBatchAtProduction). From this point, further
+// dpp_values writes on this batch or its SGTINs are kept in
+// field_change_log rather than silently overwritten.
 router.post('/batch/:batchId/mark-produced', async (req, res) => {
   try {
     const batch = await getOne('SELECT * FROM batches WHERE id = ?', [req.params.batchId]);
     if (!batch) return res.status(404).json({ success: false, error: 'Batch not found' });
     if (batch.produced_at) return res.status(409).json({ success: false, error: 'Batch is already marked as produced' });
 
+    const { frozen } = await fieldService.freezeBatchAtProduction(batch.id, { reason: req.body.reason });
     await run('UPDATE batches SET produced_at = CURRENT_TIMESTAMP WHERE id = ?', [batch.id]);
-    res.json({ success: true });
+    res.json({ success: true, frozen });
   } catch (err) {
     console.error('[mark-produced]', err);
     res.status(500).json({ success: false, error: err.message });

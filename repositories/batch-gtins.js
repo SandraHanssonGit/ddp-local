@@ -17,6 +17,10 @@ class BatchGtinRepository {
   async getById(id) {
     return db.get(`SELECT * FROM batch_gtins WHERE id = ?`, [id]);
   }
+
+  async listForBatch(batchId) {
+    return db.all(`SELECT * FROM batch_gtins WHERE batch_id = ?`, [batchId]);
+  }
 }
 
 module.exports = new BatchGtinRepository();

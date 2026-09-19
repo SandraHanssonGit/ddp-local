@@ -3,8 +3,13 @@ const batchRepository = require('../repositories/batches');
 const sgtinRepository = require('../repositories/sgtins');
 const batchStyleScopeRepository = require('../repositories/batch-style-scopes');
 const batchGtinRepository = require('../repositories/batch-gtins');
+const gtinRepository = require('../repositories/gtins');
+const variantRepository = require('../repositories/variants');
+const styleRepository = require('../repositories/styles');
 const auditService = require('./audit-service');
 const passportVersionRepository = require('../repositories/passport-versions');
+
+const buildValueMap = (rows) => Object.fromEntries(rows.map(r => [r.field_key, r.value]));
 
 class FieldService {
   // Create a new field definition
@@ -232,6 +237,70 @@ class FieldService {
       currentValue: valueMap.get(field.field_key)?.value || null,
       hasValue: valueMap.has(field.field_key)
     }));
+  }
+
+  // Freeze-at-production (ROADMAP.md, design confirmed 2026-09-19):
+  // called when a Batch is marked produced. For every GTIN actually in
+  // the batch, and every field with locks_at_production = 1, resolve
+  // TODAY's effective value the way a live GTIN passport would (GTIN's
+  // own explicit value, else Variant, else Style - "Gtin hämtar vid
+  // låsning in data från Master GTIN om något finns där") and write it
+  // explicitly at Batch×GTIN (entity_type='batch_gtin', entity_id =
+  // the batch_gtins row), stamped locked_at. Batch×GTIN already
+  // outranks plain GTIN in passport-resolver.js's precedence, so a
+  // later edit to the GTIN's own master data can no longer leak into
+  // this batch's passport.
+  //
+  // Never overwrites a batch_gtin value that's already explicitly set
+  // (e.g. from a manual pre-production override) - freezing only fills
+  // in what would otherwise still be resolved live from GTIN/Variant/
+  // Style. Fields with nothing to resolve (no value anywhere in the
+  // chain) are silently skipped, not written as empty.
+  async freezeBatchAtProduction(batchId, options = {}) {
+    const batchGtins = await batchGtinRepository.listForBatch(batchId);
+    const allFields = await fieldRepository.listFieldDefinitions();
+    const lockingFields = allFields.filter(f => f.locks_at_production);
+    if (lockingFields.length === 0 || batchGtins.length === 0) return { frozen: 0 };
+
+    const reason = options.reason || 'Batch marked as produced';
+    const userId = options.userId || null;
+    let frozen = 0;
+
+    for (const batchGtin of batchGtins) {
+      const gtin = await gtinRepository.getById(batchGtin.gtin_id);
+      if (!gtin) continue;
+      const variant = gtin.variant_id ? await variantRepository.getById(gtin.variant_id) : null;
+      const style = await styleRepository.getById(gtin.style_id);
+
+      const gtinValues = buildValueMap(await fieldRepository.getEntityValues('gtin', gtin.id));
+      const variantValues = variant ? buildValueMap(await fieldRepository.getEntityValues('variant', variant.id)) : {};
+      const styleValues = style ? buildValueMap(await fieldRepository.getEntityValues('style', style.id)) : {};
+      const existingBatchGtinValues = buildValueMap(await fieldRepository.getEntityValues('batch_gtin', batchGtin.id));
+
+      for (const fieldDef of lockingFields) {
+        // Already has its own explicit value at this scope (e.g. a
+        // pre-production override) - freezing must not clobber it.
+        if (existingBatchGtinValues[fieldDef.field_key] !== undefined) continue;
+
+        const resolvedValue = gtinValues[fieldDef.field_key] || variantValues[fieldDef.field_key] || styleValues[fieldDef.field_key];
+        if (!resolvedValue) continue;
+
+        await fieldRepository.setDppValue(fieldDef.id, 'batch_gtin', batchGtin.id, resolvedValue, 'manual', userId, null);
+        await fieldRepository.markValueLocked(fieldDef.id, 'batch_gtin', batchGtin.id, null);
+        await auditService.logFieldChange(
+          fieldDef.field_key,
+          'batch_gtin',
+          batchGtin.id,
+          'locked',
+          null,
+          resolvedValue,
+          { userId, reason }
+        );
+        frozen++;
+      }
+    }
+
+    return { frozen };
   }
 }
 
