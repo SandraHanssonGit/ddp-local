@@ -19,6 +19,37 @@
       <a href="/admin-v2?tab=batches" class="back-link"><%- icon('arrow-left') %> Back to Batches</a>
     </div>
 
+    <!-- Batch Information Card - same info-grid pattern as Style/GTIN/
+         SGTIN detail pages' master-field cards, so batch dates aren't
+         shown differently from everywhere else. -->
+    <div class="card">
+      <div class="card-head">
+        <h2>Batch Information</h2>
+      </div>
+      <div class="info-grid">
+        <div class="info-item">
+          <label class="label-sm">Batch ID</label>
+          <p class="value mono"><%= batch.batch_id %></p>
+        </div>
+        <div class="info-item">
+          <label class="label-sm">Production Order</label>
+          <p class="value"><%= batch.production_order || '—' %></p>
+        </div>
+        <div class="info-item">
+          <label class="label-sm">Sent for Production</label>
+          <p class="value"><%= new Date(batch.created_at).toLocaleDateString('en-US') %></p>
+        </div>
+        <div class="info-item">
+          <label class="label-sm">Production Date</label>
+          <p class="value"><%= batch.produced_at ? new Date(batch.produced_at).toLocaleDateString('en-US') : 'Not yet produced' %></p>
+        </div>
+        <div class="info-item">
+          <label class="label-sm">Status</label>
+          <p class="value" style="<%= batchStatus === 'Completed' ? 'color:var(--success);' : '' %>"><%= batchStatus %></p>
+        </div>
+      </div>
+    </div>
+
     <!-- Production lock status -->
     <% if (batch.produced_at) { %>
       <div class="lock-banner" style="display:flex; justify-content:space-between; align-items:center;">
@@ -36,10 +67,6 @@
 
     <!-- Statistics Cards -->
     <div class="stat-grid">
-      <div class="stat-card">
-        <div class="stat-label">Status</div>
-        <div class="stat-value" style="<%= batchStatus === 'Completed' ? 'color:var(--success);' : '' %> font-size:20px;"><%= batchStatus %></div>
-      </div>
       <div class="stat-card">
         <div class="stat-label">Styles</div>
         <div class="stat-value" style="color:var(--accent);"><%= style_count %></div>
