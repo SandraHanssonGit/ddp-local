@@ -95,7 +95,7 @@
       </p>
 
       <div class="field-row">
-        <input type="text" id="batchTreeSearch" placeholder="Search Style #, Product Name, Variant, GTIN, SKU..." style="width:340px;" value="<%= treeSearch || '' %>">
+        <input type="text" id="batchTreeSearch" placeholder="Search Style #, Product Name, Variant, GTIN, SKU..." style="width:100%; max-width:480px;" value="<%= treeSearch || '' %>">
       </div>
 
       <% if (typeof batchTree !== 'undefined' && batchTree && batchTree.length > 0) { %>
