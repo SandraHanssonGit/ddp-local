@@ -110,11 +110,13 @@ per-Style/Batch override, confirmed):
   confirmed explicitly because the same GTIN can be produced across
   multiple batches with different override values, so a GTIN-only code
   couldn't say which batch's data to show.
-- `gtin_sgtin` — individual units still exist and are still
-  serialized, but Batch doesn't participate in that product's
-  inheritance/identity at all (assumption, not yet re-confirmed: this
-  affects resolution precedence, not just the printed code — worth a
-  quick check with the user before Phase 2 locks it in).
+- `gtin_sgtin` — individual units still exist and are still serialized,
+  resolved exactly like `batch_gtin_sgtin` today (Batch still fully
+  participates in field inheritance/freeze-at-production, nothing
+  changes there) - **confirmed (2026-09-19): the only difference is
+  presentational**, the printed code/QR just doesn't encode a
+  batch/lot segment. No resolver change needed for this scheme at all;
+  it only affects Phase 3 (identifier/URL construction).
 
 Lifecycle events/scan tracking: confirmed to only matter for schemes
 that have SGTIN (`batch_gtin_sgtin`, `gtin_sgtin`) — no new
@@ -137,13 +139,23 @@ nothing to track per-garment.
 **Not built yet — Phases 2-5**:
 - **Phase 2 — Resolver**: new `resolveBatchGtinPassport(batchId,
   gtinId)` in `passport-resolver.js` (Batch → GTIN → Variant → Style,
-  no SGTIN layer); a "skip Batch layer" branch in `resolveSgtinPassport`
-  for the `gtin_sgtin` scheme.
+  no SGTIN layer), needed only for the `batch_gtin` scheme.
+  `gtin_sgtin` needs no resolver work at all - it resolves exactly like
+  `batch_gtin_sgtin` (confirmed above), just renders a different URL in
+  Phase 3.
 - **Phase 3 — Public routes**: new `GET /01/:gtin/10/:lot` in
   `routes/gs1.js` for the `batch_gtin` scheme (lot = the existing
   `batches.batch_id`, confirmed — no new lot field needed), wired to a
-  new render path in `passport-page-service.js`. Existing
-  `/01/:gtin/21/:serial` stays as-is for the other two schemes.
+  new render path in `passport-page-service.js`. `gtin_sgtin` reuses
+  the existing `/01/:gtin/21/:serial` route unchanged - per the
+  Explore agent's research (2026-09-19), today's Digital Link URL
+  never encodes a batch/lot segment for *any* scheme, so the
+  "presentational-only" difference confirmed above needs a closer look
+  at implementation time: it may mean the two schemes render
+  genuinely identically at the URL/QR level, with the distinction only
+  mattering for how a physical barcode label (not just the web link)
+  is specified - worth re-checking with the user once this phase is
+  actually reached rather than assuming a concrete difference now.
 - **Phase 4 — Admin UI ripple**: GTIN detail page needs to show its own
   QR/link when its style's scheme is `batch_gtin` (no SGTIN to link
   from). The Batch detail page's "QR Codes per GTIN" table (see etapp
