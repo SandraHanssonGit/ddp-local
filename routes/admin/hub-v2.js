@@ -420,7 +420,6 @@ router.get('/style/:styleId', async (req, res) => {
     const dppValues = await fieldRepository.getFieldsForLevel('style', style.id, locale);
     const availableLocales = await fieldRepository.getAvailableLocales('style', style.id);
     const supplyChainGroups = await supplyChainRepository.getGroupedForEntity('style', style.id);
-    const operators = await economicOperatorRepository.list();
     const productTypes = await productTypeRepository.list();
 
     res.render('admin/style-detail', {
@@ -434,7 +433,6 @@ router.get('/style/:styleId', async (req, res) => {
       locale,
       availableLocales,
       supplyChainGroups,
-      operators,
       productTypes,
       user: { username: 'demo', role: 'admin' }
     });
@@ -835,7 +833,6 @@ router.get('/batch/:batchId', async (req, res) => {
       ? (scope ? await fieldRepository.getAvailableLocales('batch_style', scope.id) : [])
       : await fieldRepository.getAvailableLocales('batch', batch.id);
     const scopeCombos = await batchStyleScopeRepository.listCombosForBatch(batch.id);
-    const operators = await economicOperatorRepository.list();
 
     res.render('admin/batch-detail', {
       batch,
@@ -852,7 +849,6 @@ router.get('/batch/:batchId', async (req, res) => {
       activated_total,
       batchStatus,
       dppValues,
-      operators,
       scopeCombos,
       scopeStyleId,
       scopeVariantId,

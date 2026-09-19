@@ -184,30 +184,6 @@
       <% } %>
     </div>
 
-    <!-- Economic Operator Override Card (ROADMAP.md Phase 4) -->
-    <div class="card">
-      <h2 style="margin-bottom:8px;">Legal Responsibility Override</h2>
-      <p class="small muted" style="margin-bottom:16px;">
-        Optional - a batch can span multiple styles, each with their
-        own economic operator. Only set this if this specific
-        production run used a different manufacturer/importer than
-        its GTINs' styles.
-      </p>
-      <form id="operatorAssignForm" style="display:flex; gap:12px; align-items:flex-end;">
-        <div style="flex:1;">
-          <label class="label-sm">Economic Operator</label>
-          <select name="operator_id">
-            <option value="">-- No override (use each GTIN's Style) --</option>
-            <% (typeof operators !== 'undefined' ? operators : []).forEach(op => { %>
-              <option value="<%= op.id %>" <%= batch.operator_id == op.id ? 'selected' : '' %>>
-                <%= op.legal_name %> (<%= op.role.replace(/_/g, ' ') %>)
-              </option>
-            <% }); %>
-          </select>
-        </div>
-        <button type="submit" class="btn btn-primary">Save</button>
-      </form>
-    </div>
 
     <!-- DPP Fields Card -->
     <div class="card">
@@ -350,26 +326,6 @@
         await dppAlert('Error: ' + err.message);
       }
     }
-
-    document.getElementById('operatorAssignForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData(e.target);
-      try {
-        const res = await fetch('/admin-v2/batch/<%= batch.id %>/operator', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ operator_id: formData.get('operator_id') || null })
-        });
-        const result = await res.json();
-        if (result.success) {
-          location.reload();
-        } else {
-          await dppAlert('Error: ' + (result.error || 'Unknown error'));
-        }
-      } catch (err) {
-        await dppAlert('Error: ' + err.message);
-      }
-    });
 
     async function markProduced() {
       if (!(await dppConfirm('Mark this batch as produced? Field edits after this point will be kept in the change log instead of overwritten.'))) return;
