@@ -179,28 +179,21 @@ new mechanism:
   multi-row-per-field genuinely hard, which is exactly why
   `field_change_log` exists as the history mechanism instead of a
   supersede-chain in `dpp_values` itself).
-- Instead: when a Batch is marked as produced, for every Style/Variant
-  combination actually present in it (already known via
-  `batch_gtins`), and for every field with `editable_at_batch = 1`,
-  resolve **today's** effective value (Variant/Style, ignoring Batch)
-  and - only where no Batch/Batch×Style value is already explicitly
-  set - write it explicitly at the Batch×Style level (reusing
-  `batch_style_scopes`, see above), stamped `locked_at` immediately.
-- Why this proves lock: after freezing, that Batch's units resolve
-  against an explicit, locked `dpp_values` row at `Batch×Style` -
-  which already outranks plain `Style` in the resolution precedence
-  (`SGTIN > GTIN > Batch×Variant > Batch×Style > Batch > Variant >
-  Style`) - so a later Style edit cannot affect it. Any subsequent
-  write to the frozen value is still logged in `field_change_log`
-  (old value, new value, timestamp) - that log entry is the audit
-  proof if someone did override the frozen record anyway.
-- No new tables or schema needed - reuses `batch_style_scopes` and
-  `dpp_values` exactly as they already work; only "Mark as Produced"
-  needs new logic to perform the snapshot instead of just flipping
-  `produced_at`.
+- No new tables or schema needed - reuses `dpp_values` exactly as it
+  already works, with one new `entity_type` value; only "Mark as
+  Produced" needs new logic to perform the snapshot instead of just
+  flipping `produced_at`.
 
 User asked to pause here to focus on Batch work directly before
 building this - captured so the decision isn't re-litigated later.
+
+**Superseded (2026-09-19) - see below**: the original plan snapshotted
+only Style/Variant values onto `Batch×Style` (`batch_style_scopes`).
+Walking through it with the user surfaced a real gap: GTIN already
+outranks `Batch×Style` in resolution precedence, so a live (unfrozen)
+GTIN master-data edit after production would still leak through
+untouched - freezing Style/Variant alone doesn't actually close the
+loop. Replaced by the Batch×GTIN design directly below.
 
 **Reconfirmed and refined (2026-09-19), still not built**:
 - **Two milestones, one already existing, one just a relabeling**:
@@ -212,9 +205,10 @@ building this - captured so the decision isn't re-litigated later.
   both instead of/alongside the Under development/Completed badge).
 - **SGTIN-level locking already correct as-is**: "SGTIN only lock the
   SGTIN field" - confirmed this already matches Phase 1's behavior
-  (`dpp_values.locked_at` is scoped per entity level already); no
-  change needed here, freeze-at-production only adds the Batch×Style
-  snapshot step above it.
+  (`dpp_values.locked_at` is scoped per entity level already); an
+  individual SGTIN can still carry its own rare explicit override
+  (e.g. a defect note) above everything else, unaffected by the
+  Batch×GTIN freeze below.
 - **Lifecycle data intentionally excluded from the freeze**: downstream
   lifecycle events (Viewed/Sold/Repaired/...) are Nudie-specific,
   expected to keep evolving after production - confirmed they should
@@ -229,6 +223,50 @@ building this - captured so the decision isn't re-litigated later.
   text input to the field-edit UI wherever a locked value can still be
   overridden (`batch-detail.ejs`'s DPP Field Values edit mode, and
   wherever GTIN/SGTIN-level fields are edited).
+
+**Batch×GTIN freeze - the corrected snapshot target (2026-09-19,
+current design, not yet built)**:
+- **Freeze happens per GTIN, not per SGTIN.** User: "Tanken är att bara
+  hålla Lifecycle data på SGTIN nivå. Efterproduktionsdata... vid
+  låsning så låses allt till GTIN nivå." One frozen snapshot covers
+  every physical unit of that GTIN in that batch - it does NOT touch
+  each individual SGTIN row (which could be thousands), keeping the
+  lock operation cheap regardless of batch size.
+- **No new table needed** - `batch_gtins` (batch_id + gtin_id) already
+  uniquely represents "this GTIN within this Batch," so the snapshot
+  is just a new `entity_type='batch_gtin'` in `dpp_values` pointing at
+  `batch_gtins.id`, the same pattern `batch_style` already uses for
+  `batch_style_scopes`.
+- **What gets resolved and frozen**: for every `batch_gtins` row in the
+  batch, and every field with `editable_at_batch = 1`, resolve
+  **today's** effective value the same way a live GTIN passport would
+  - GTIN's own explicit master-data value if one exists there,
+  otherwise falling through to Variant then Style ("Gtin hämtar vid
+  låsning in data från Master GTIN om något finns där" - confirmed by
+  the user) - and write it explicitly at `Batch×GTIN`, stamped
+  `locked_at` immediately.
+- **New resolution precedence**: `SGTIN > Batch×GTIN > GTIN >
+  Batch×Variant > Batch×Style > Batch > Variant > Style` - `Batch×GTIN`
+  slots in directly above plain `GTIN`. This closes the gap the
+  original Style/Variant-only design missed: a later edit to the
+  GTIN's own master-data value can no longer leak into an
+  already-produced batch, because the frozen `Batch×GTIN` row now
+  outranks it. A rare individual SGTIN override still wins over
+  everything, as it already does today.
+- **`batch_style_scopes` is unaffected and keeps its original purpose**:
+  manually overriding a value for a whole Style/Variant *before*
+  production, useful in a multi-style batch. The freeze doesn't write
+  there anymore - it computes the final per-GTIN resolved value
+  (which already accounts for any `Batch×Style` override in effect)
+  and snapshots that one level higher, at `Batch×GTIN`.
+- **Open question, not yet answered**: what happens to a new SGTIN
+  created *after* a batch is already locked (if production wasn't
+  fully complete when "Mark as Produced" was clicked)? Does it
+  automatically inherit the frozen `Batch×GTIN` snapshot correctly
+  (yes, by construction, since `Batch×GTIN` already outranks `GTIN` for
+  any SGTIN under that GTIN+batch) - or should creating new units in an
+  already-locked batch be disallowed entirely? Needs a decision before
+  building the "Mark as Produced" snapshot logic.
 
 ## Style/Variant "recipe" flexibility - confirmed no change needed (2026-09-19)
 
