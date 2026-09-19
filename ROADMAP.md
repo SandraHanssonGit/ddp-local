@@ -313,6 +313,26 @@ and fixed along the way: `dpp_values` writes were silently duplicating
 rows instead of updating in place for any default-locale value (see
 CHANGELOG.md etapp 48 / git commit `310a963`).
 
+**Gap found and resolved for the existing batch (2026-09-19)**: user
+noticed batch 1 was marked produced (2026-09-16) *before*
+`freezeBatchAtProduction()` existed (2026-09-19), so it never actually
+ran for it - confirmed directly (0 rows at `entity_type='batch_gtin'`
+in the whole database). No general "re-freeze an already-locked batch"
+UI was built - user only wanted the one existing batch fixed, not a
+recurring capability - so `freezeBatchAtProduction(1, {reason: ...})`
+was called directly once via a script. Froze 3 fields (2 on GTIN 3, 1
+on GTIN 6) correctly; verified live on the public passport (`source`
+now `batch_gtin` for those fields). If more batches are ever
+discovered in this situation, the same one-off approach applies - no
+standing feature needed for a one-time POC data gap.
+
+**Decision (2026-09-19): frozen values stay off the Batch Contents
+tree.** Considered showing an expandable "DPP Fields" per GTIN row in
+the tree so freezing is visible/verifiable there too - declined, the
+public passport and SGTIN detail page's "Inherited from" chain are
+enough; the tree stays focused on production counts (Code Needed/
+Units Shipped/Code Activated).
+
 ## Batch detail page: unified Style→Variant→GTIN→SGTIN tree ✅ Done (2026-09-19)
 
 **Problem**: the "QR Codes per GTIN" table (flat rows: Style, Variant,
