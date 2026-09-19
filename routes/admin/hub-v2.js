@@ -18,6 +18,7 @@ const fieldRepository = require('../../repositories/fields');
 const variantRepository = require('../../repositories/variants');
 const supplyChainRepository = require('../../repositories/supply-chain');
 const economicOperatorRepository = require('../../repositories/economic-operators');
+const productTypeRepository = require('../../repositories/product-types');
 const batchStyleScopeRepository = require('../../repositories/batch-style-scopes');
 
 // Image upload config for variants - mirrors routes/admin/styles.js's
@@ -300,6 +301,13 @@ router.get('/', async (req, res) => {
           FROM economic_operators eo
           ORDER BY eo.legal_name ASC
         `);
+      } else if (sub === 'product_types') {
+        data.productTypes = await getAll(`
+          SELECT pt.*,
+            (SELECT COUNT(*) FROM styles WHERE product_type_id = pt.id) as style_count
+          FROM product_types pt
+          ORDER BY pt.label ASC
+        `);
       }
     }
 
@@ -413,6 +421,7 @@ router.get('/style/:styleId', async (req, res) => {
     const availableLocales = await fieldRepository.getAvailableLocales('style', style.id);
     const supplyChainGroups = await supplyChainRepository.getGroupedForEntity('style', style.id);
     const operators = await economicOperatorRepository.list();
+    const productTypes = await productTypeRepository.list();
 
     res.render('admin/style-detail', {
       style,
@@ -426,6 +435,7 @@ router.get('/style/:styleId', async (req, res) => {
       availableLocales,
       supplyChainGroups,
       operators,
+      productTypes,
       user: { username: 'demo', role: 'admin' }
     });
   } catch (err) {
@@ -511,6 +521,33 @@ router.delete('/operators/:operatorId', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('[operator-delete]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Product types (GS1 hierarchy design, 2026-09-19): CRUD for the
+// per-product-type GS1 scheme, kept alongside the other Settings CRUD
+// routes above the same way Economic Operators is.
+router.post('/product-types', async (req, res) => {
+  try {
+    const { key, label, gs1_scheme } = req.body;
+    if (!key || !label) {
+      return res.status(400).json({ success: false, error: 'key and label are required' });
+    }
+    const id = await productTypeRepository.create(key, label, gs1_scheme || 'batch_gtin_sgtin');
+    res.json({ success: true, id });
+  } catch (err) {
+    console.error('[product-type-create]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.put('/product-types/:productTypeId', async (req, res) => {
+  try {
+    await productTypeRepository.updateScheme(req.params.productTypeId, req.body.gs1_scheme);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[product-type-update]', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

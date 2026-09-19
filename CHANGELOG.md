@@ -4,6 +4,84 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-19 (etapp 43) — Product Types: configurable GS1 hierarchy per product type (Phase 1)
+
+Large design discussion (2026-09-17/19): not every product needs the
+full Style→Batch→GTIN→SGTIN chain serialized down to an individual
+garment. Landed on three schemes, configurable per product type:
+- `batch_gtin_sgtin` - full hierarchy, individual serialized units
+  (today's only actual behavior, kept as the default for everything
+  that already exists)
+- `batch_gtin` - no individual units at all; one shared code per
+  Batch+GTIN combination (confirmed: not just per-GTIN, since the same
+  GTIN can be produced across multiple batches with different values)
+- `gtin_sgtin` - individual units still exist, but Batch doesn't
+  participate in the passport's inheritance/identity for that type
+
+This etapp is Phase 1 only (data model + admin config UI) - the
+resolver/route/QR changes that actually use the scheme are follow-up
+work, tracked in ROADMAP.md.
+
+Built:
+- New `product_types` table (key, label, gs1_scheme) - kept deliberately
+  separate from the existing `styles.product_type` free-text column
+  (still used by the unrelated `product-type-config.js` size-format
+  logic), to avoid conflating two different concepts under one name.
+- `styles.product_type_id` FK column + a startup backfill
+  (`migrateProductTypes` in `db/init-v2.js`) that creates one
+  `product_types` row per distinct existing `product_type` text value,
+  defaulting every one to `batch_gtin_sgtin` (matches current real
+  behavior for all existing data), then points every style at its
+  matching row.
+- Settings > Product Types: new sub-tab (`repositories/product-types.js`,
+  new routes in `hub-v2.js`) to list product types, add new ones, and
+  change a type's GS1 scheme inline - same CRUD pattern as Economic
+  Operators.
+- Style detail page's Product Type field changed from free text to a
+  dropdown of Product Types (`styleRepository.update()` now accepts
+  `product_type_id`).
+
+Verified: server starts clean, `product_types` backfilled correctly
+from the 4 existing product_type values (Jeans/T-Shirt/Kids
+Jeans/Accessories), scheme update via Settings persists, Style
+detail's dropdown shows/saves the right product type end-to-end.
+
+## 2026-09-17 (etapp 42) — Batch detail: QR-code framing, lifecycle event cleanup
+
+Several small corrections after review of the "QR Codes per GTIN"
+table (built in etapp 40's Batch focus):
+- Reframed the whole card around "how many QR codes are needed",
+  since the batch detail page will never be where production is
+  actually planned (that will come from another system) - renamed
+  Planned Qty/Quantity → Code Needed throughout, "Created" → Units
+  Shipped (what it actually tracks: units received from the factory),
+  added a "Code Activated" column/stat (count of units with a Viewed
+  lifecycle event), and dropped the Progress bar column (redundant
+  next to the two counts).
+- Added a Status stat card ("Under development" / "Completed"),
+  derived from `batch.produced_at` - the point where field changes
+  start being tracked in the change log instead of silently
+  overwritten.
+- Removed the per-row "Remove" action from that table (and its
+  now-dead `removeBatchGtin` JS) - GTIN assignment on a batch will
+  eventually be fed from other systems via API, not edited row by row
+  here. The "Add GTIN to Batch" form stays for now since it's still
+  the only way to seed batch data in this local POC.
+- Renamed "Created Garments (SGTINs)" → "Individual Units Created"
+  (missed in the earlier SGTIN rename) and dropped its QC Status
+  column (not relevant to this table).
+- Trimmed `lifecycle-service.js`'s event types from 12
+  (manufactured/quality_checked/packaged/shipped/delivered/sold/worn/
+  repaired/resold/returned/recycled/other - several of which the admin
+  UI never even exposed) down to 6 meaningful ones: Viewed, Sold,
+  Repaired, Reuse, Recycled, Returned. "Viewed" is manual-entry only
+  for now - not yet triggered automatically by a scan on the public
+  passport page.
+
+Verified via curl against real batch/SGTIN data at each step; cleaned
+up test lifecycle events and test SGTINs created during verification
+before moving on.
+
 ## 2026-09-17 (etapp 41) — Merge Economic Operators + Field Config into "Settings"
 
 Discussion starting from "isn't Economic Operator just a field?" led

@@ -373,6 +373,33 @@ const init = () => {
       if (err) console.error('[index supply_chain_steps_entity]', err);
     });
 
+    // GS1 hierarchy design (2026-09-17/19): which levels make up a
+    // product's identifier/QR code is configurable per product type,
+    // not hardcoded to the full Style>Batch>GTIN>SGTIN chain:
+    //   batch_gtin_sgtin - full hierarchy (today's only behavior)
+    //   batch_gtin       - no individual units; one code per Batch+GTIN
+    //   gtin_sgtin       - individual units, but Batch doesn't
+    //                      participate in inheritance/identity
+    // Global per product type only (confirmed - no per-Style/Batch
+    // override). Kept separate from the legacy styles.product_type
+    // TEXT column (still used by product-type-config.js's size-format
+    // logic) - styles.product_type_id is the new FK driving GS1 scheme.
+    db.run(`
+      CREATE TABLE IF NOT EXISTS product_types (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        key TEXT NOT NULL UNIQUE,
+        label TEXT NOT NULL,
+        gs1_scheme TEXT NOT NULL DEFAULT 'batch_gtin_sgtin',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `, (err) => {
+      if (err) console.error('[product_types]', err);
+      else console.log('✓ product_types table');
+    });
+
+    db.run(`ALTER TABLE styles ADD COLUMN product_type_id INTEGER REFERENCES product_types(id)`, () => {});
+
     // ROADMAP.md Phase 4: ESPR requires the passport to name who is
     // legally responsible for the product (manufacturer, importer, or
     // authorized representative - name and address). Assigned at Style
@@ -544,9 +571,41 @@ const migrateDppValuesLocale = async () => {
   console.log('[DPP v2] dpp_values locale migration complete');
 };
 
+// GS1 hierarchy design (2026-09-19): backfill product_types from
+// whatever distinct styles.product_type text values already exist,
+// defaulting each to the 'batch_gtin_sgtin' scheme (today's actual
+// behavior for every existing style), then point styles.product_type_id
+// at the matching row. Only touches styles that don't have a
+// product_type_id yet, so it's safe to run on every server start.
+const migrateProductTypes = async () => {
+  const styles = await all(`SELECT id, product_type FROM styles WHERE product_type_id IS NULL AND product_type IS NOT NULL AND TRIM(product_type) != ''`);
+  if (styles.length === 0) return;
+
+  console.log('[DPP v2] Backfilling product_types from styles.product_type...');
+
+  for (const style of styles) {
+    const label = style.product_type.trim();
+    const key = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+
+    let productType = await get(`SELECT * FROM product_types WHERE key = ?`, [key]);
+    if (!productType) {
+      const result = await run(
+        `INSERT INTO product_types (key, label, gs1_scheme) VALUES (?, ?, 'batch_gtin_sgtin')`,
+        [key, label]
+      );
+      productType = { id: result.lastID };
+    }
+
+    await run(`UPDATE styles SET product_type_id = ? WHERE id = ?`, [productType.id, style.id]);
+  }
+
+  console.log('[DPP v2] product_types backfill complete');
+};
+
 // Initialize on module load
 init();
 migrateDppValuesLocale().catch(err => console.error('[dpp_values locale migration]', err));
+migrateProductTypes().catch(err => console.error('[product_types migration]', err));
 
 module.exports = {
   db,

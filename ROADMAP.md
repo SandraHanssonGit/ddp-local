@@ -91,6 +91,71 @@ Values"):**
    free — the new Save routes don't log audit entries, only overrides
    does).
 
+## Configurable GS1 hierarchy per product type — Phase 1 ✅ Done, Phases 2-5 not built (design 2026-09-17/19)
+
+**Problem**: not every product needs the full serialized
+Style→Batch→GTIN→SGTIN chain. Some product types will never have
+individual garment tracking (e.g. simple accessories produced in bulk)
+and shouldn't be forced through SGTIN creation; others may not need
+Batch-level overrides to matter for their passport at all.
+
+**Design, confirmed with the user across several rounds of questions**:
+three GS1 schemes, configurable per product type (global only — no
+per-Style/Batch override, confirmed):
+- `batch_gtin_sgtin` — full hierarchy, individual serialized units.
+  Today's only actual behavior; the default for every existing
+  product type.
+- `batch_gtin` — no individual units exist at all for that product
+  type. One code per **Batch+GTIN combination**, not just per GTIN —
+  confirmed explicitly because the same GTIN can be produced across
+  multiple batches with different override values, so a GTIN-only code
+  couldn't say which batch's data to show.
+- `gtin_sgtin` — individual units still exist and are still
+  serialized, but Batch doesn't participate in that product's
+  inheritance/identity at all (assumption, not yet re-confirmed: this
+  affects resolution precedence, not just the printed code — worth a
+  quick check with the user before Phase 2 locks it in).
+
+Lifecycle events/scan tracking: confirmed to only matter for schemes
+that have SGTIN (`batch_gtin_sgtin`, `gtin_sgtin`) — no new
+event model needed for `batch_gtin`, since without a unit there's
+nothing to track per-garment.
+
+**Phase 1 (done, 2026-09-19)** — data model + admin config UI:
+- `product_types` table (`key`, `label`, `gs1_scheme`), kept separate
+  from the pre-existing `styles.product_type` free-text column (still
+  used by the unrelated `product-type-config.js` size-format logic).
+- `styles.product_type_id` FK, backfilled from existing `product_type`
+  text values via `migrateProductTypes()` in `db/init-v2.js` — every
+  existing style defaults to `batch_gtin_sgtin` (today's real
+  behavior).
+- Settings > Product Types sub-tab: list/add product types, change a
+  type's scheme inline. `repositories/product-types.js`.
+- Style detail page's Product Type field is now a dropdown of Product
+  Types instead of free text.
+
+**Not built yet — Phases 2-5**:
+- **Phase 2 — Resolver**: new `resolveBatchGtinPassport(batchId,
+  gtinId)` in `passport-resolver.js` (Batch → GTIN → Variant → Style,
+  no SGTIN layer); a "skip Batch layer" branch in `resolveSgtinPassport`
+  for the `gtin_sgtin` scheme.
+- **Phase 3 — Public routes**: new `GET /01/:gtin/10/:lot` in
+  `routes/gs1.js` for the `batch_gtin` scheme (lot = the existing
+  `batches.batch_id`, confirmed — no new lot field needed), wired to a
+  new render path in `passport-page-service.js`. Existing
+  `/01/:gtin/21/:serial` stays as-is for the other two schemes.
+- **Phase 4 — Admin UI ripple**: GTIN detail page needs to show its own
+  QR/link when its style's scheme is `batch_gtin` (no SGTIN to link
+  from). The Batch detail page's "QR Codes per GTIN" table (see etapp
+  42/43 in CHANGELOG.md) needs a `batch_gtin`-scheme branch — "Units
+  Shipped"/"Code Activated" as built are per-individual-unit counts,
+  which don't apply when no units exist; that scheme needs a single
+  activated/not-activated status per Batch+GTIN row instead.
+- **Phase 5 — Scan tracking for `batch_gtin`**: nullable
+  `batch_gtin_id` column on `scan_events` so page-view scans can be
+  logged/aggregated per Batch+GTIN pair when there's no SGTIN to
+  attach to.
+
 ## Freeze-at-production for master data changes (not built - design only, 2026-09-17)
 
 **Problem**: Nudie will produce the same Style across many Batches

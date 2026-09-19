@@ -43,7 +43,10 @@
               </div>
               <div class="info-item">
                 <label class="label-sm">Product Type</label>
-                <p class="value"><%= style.product_type %></p>
+                <p class="value">
+                  <% const currentProductType = (typeof productTypes !== 'undefined' ? productTypes : []).find(pt => pt.id === style.product_type_id); %>
+                  <%= currentProductType ? currentProductType.label : (style.product_type || '—') %>
+                </p>
               </div>
               <div class="info-item">
                 <label class="label-sm">Created</label>
@@ -65,7 +68,12 @@
               </div>
               <div>
                 <label>Product Type</label>
-                <input type="text" id="edit-product-type" value="<%= style.product_type %>">
+                <select id="edit-product-type-id">
+                  <option value="">-- None --</option>
+                  <% (typeof productTypes !== 'undefined' ? productTypes : []).forEach(pt => { %>
+                    <option value="<%= pt.id %>" <%= style.product_type_id === pt.id ? 'selected' : '' %>><%= pt.label %></option>
+                  <% }); %>
+                </select>
               </div>
             </div>
             <div style="display:flex; gap:10px;">
@@ -369,9 +377,10 @@
     async function saveStyleInfo(e) {
       e.preventDefault();
 
+      const productTypeIdValue = document.getElementById('edit-product-type-id').value;
       const data = {
         product_name: document.getElementById('edit-product-name').value,
-        product_type: document.getElementById('edit-product-type').value
+        product_type_id: productTypeIdValue ? parseInt(productTypeIdValue) : null
       };
 
       try {

@@ -261,6 +261,7 @@
         <div class="admin-nav" style="margin-bottom:24px; border-bottom:1px solid var(--hairline); padding-bottom:0;">
           <a href="/admin-v2?tab=settings&sub=fields" class="<%= settingsSub === 'fields' ? 'active' : '' %>">Field Config</a>
           <a href="/admin-v2?tab=settings&sub=operators" class="<%= settingsSub === 'operators' ? 'active' : '' %>">Economic Operators</a>
+          <a href="/admin-v2?tab=settings&sub=product_types" class="<%= settingsSub === 'product_types' ? 'active' : '' %>">Product Types</a>
           <a href="/admin-v2?tab=settings&sub=access" class="<%= settingsSub === 'access' ? 'active' : '' %>">Access</a>
         </div>
       <% } %>
@@ -710,6 +711,132 @@
             const data = Object.fromEntries(formData.entries());
             try {
               const response = await fetch('/admin-v2/operators', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+              });
+              const result = await response.json();
+              if (result.success) {
+                location.reload();
+              } else {
+                await dppAlert('Error: ' + (result.error || 'Unknown error'));
+              }
+            } catch (err) {
+              await dppAlert('Error: ' + err.message);
+            }
+          });
+        </script>
+      <% } %>
+
+      <!-- PRODUCT TYPES TAB (GS1 hierarchy design, 2026-09-19) - which
+           levels make up a product's identifier/QR code, configured
+           per product type. See CHANGELOG.md for the three schemes. -->
+      <% if (tab === 'settings' && settingsSub === 'product_types') { %>
+        <div class="section-head">
+          <h2>Product Types</h2>
+          <button onclick="document.getElementById('addProductTypeForm').classList.toggle('hidden')" class="btn btn-primary">
+            + Add Product Type
+          </button>
+        </div>
+
+        <p class="small muted" style="margin-bottom:20px;">
+          Controls which levels make up a product's identifier/QR code.
+          "Full hierarchy" is a serialized individual unit per garment
+          (today's default). "Batch + GTIN, no individual units" shares
+          one code across a whole production run - no per-garment
+          tracking. "Individual units, no Batch" serializes each unit
+          but doesn't let Batch-level overrides affect its passport.
+        </p>
+
+        <!-- Add Product Type Form -->
+        <div id="addProductTypeForm" class="form-panel hidden">
+          <h3 style="margin-bottom:16px; font-size:16px;">Add Product Type</h3>
+          <form id="productTypeForm">
+            <div class="field-grid">
+              <div>
+                <label>Key *</label>
+                <input type="text" name="key" placeholder="denim" required />
+              </div>
+              <div>
+                <label>Label *</label>
+                <input type="text" name="label" placeholder="Denim" required />
+              </div>
+              <div>
+                <label>GS1 Scheme</label>
+                <select name="gs1_scheme">
+                  <option value="batch_gtin_sgtin">Full hierarchy (Batch + GTIN + SGTIN)</option>
+                  <option value="batch_gtin">Batch + GTIN, no individual units</option>
+                  <option value="gtin_sgtin">Individual units, no Batch (GTIN + SGTIN)</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Product Type</button>
+          </form>
+        </div>
+
+        <% if (productTypes && productTypes.length > 0) { %>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Label</th>
+                  <th>Key</th>
+                  <th>GS1 Scheme</th>
+                  <th class="center">Styles</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% const schemeLabels = {
+                  batch_gtin_sgtin: 'Full hierarchy',
+                  batch_gtin: 'Batch + GTIN only',
+                  gtin_sgtin: 'GTIN + SGTIN only'
+                }; %>
+                <% productTypes.forEach(pt => { %>
+                  <tr>
+                    <td><strong><%= pt.label %></strong></td>
+                    <td class="mono small"><%= pt.key %></td>
+                    <td>
+                      <select onchange="updateProductTypeScheme(<%= pt.id %>, this.value)">
+                        <option value="batch_gtin_sgtin" <%= pt.gs1_scheme === 'batch_gtin_sgtin' ? 'selected' : '' %>>Full hierarchy (Batch + GTIN + SGTIN)</option>
+                        <option value="batch_gtin" <%= pt.gs1_scheme === 'batch_gtin' ? 'selected' : '' %>>Batch + GTIN, no individual units</option>
+                        <option value="gtin_sgtin" <%= pt.gs1_scheme === 'gtin_sgtin' ? 'selected' : '' %>>Individual units, no Batch (GTIN + SGTIN)</option>
+                      </select>
+                    </td>
+                    <td class="center"><%= pt.style_count || 0 %></td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } else { %>
+          <div class="empty-state">No product types configured yet</div>
+        <% } %>
+
+        <script>
+          async function updateProductTypeScheme(id, gs1Scheme) {
+            try {
+              const response = await fetch('/admin-v2/product-types/' + id, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gs1_scheme: gs1Scheme })
+              });
+              const result = await response.json();
+              if (!result.success) {
+                await dppAlert('Error: ' + (result.error || 'Unknown error'));
+                location.reload();
+              }
+            } catch (err) {
+              await dppAlert('Error: ' + err.message);
+              location.reload();
+            }
+          }
+
+          document.getElementById('productTypeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            try {
+              const response = await fetch('/admin-v2/product-types', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
