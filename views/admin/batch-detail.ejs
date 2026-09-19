@@ -94,6 +94,10 @@
         Activated are per GTIN. Click a row to expand it.
       </p>
 
+      <div class="field-row">
+        <input type="text" id="batchTreeSearch" placeholder="Search Style #, Product Name, Variant, GTIN, SKU..." style="width:340px;" value="<%= treeSearch || '' %>">
+      </div>
+
       <% if (typeof batchTree !== 'undefined' && batchTree && batchTree.length > 0) { %>
         <div class="table-wrap">
           <table>
@@ -121,7 +125,8 @@
                     <% } %>
                     <strong><%= s.style_number %></strong> <span class="small muted"><%= s.product_name %></span>
                   </td>
-                  <td></td><td></td><td></td><td></td>
+                  <td></td><td></td><td></td>
+                  <td><a href="/admin-v2/style/<%= s.id %>" onclick="event.stopPropagation();" class="link-action"><%- icon('arrow-right') %></a></td>
                 </tr>
 
                 <!-- GTINs directly under the Style (no Variant) -->
@@ -160,7 +165,8 @@
                       <span data-chevron="<%= variantKey %>" style="display:inline-flex; margin-right:4px; transition:transform 0.15s ease; color:var(--muted);"><%- icon('chevron-right', { size: 13 }) %></span>
                       <%- icon('corner-down-right', { size: 13 }) %> <%= v.variant_name %>
                     </td>
-                    <td></td><td></td><td></td><td></td>
+                    <td></td><td></td><td></td>
+                    <td><a href="/admin-v2/variant/<%= v.id %>" onclick="event.stopPropagation();" class="link-action"><%- icon('arrow-right') %></a></td>
                   </tr>
                   <% v.gtins.forEach(g => { %>
                     <tr data-parent="<%= variantKey %>" data-grandparent="<%= styleKey %>" class="hidden">
@@ -388,6 +394,7 @@
     // GTIN -> SGTIN, one level deeper than Products' Style -> Variant
     // -> GTIN.
     const treeGroupState = {};
+    function initTreeGroup(key, isExpanded) { treeGroupState[key] = isExpanded; }
     function toggleTreeGroup(key) {
       treeGroupState[key] = !treeGroupState[key];
       renderTreeVisibility();
@@ -405,6 +412,43 @@
         chevron.style.transform = treeGroupState[chevron.getAttribute('data-chevron')] ? 'rotate(90deg)' : '';
       });
     }
+
+    document.getElementById('batchTreeSearch')?.addEventListener('change', function() {
+      window.location = '/admin-v2/batch/<%= batch.id %>?search=' + encodeURIComponent(this.value);
+    });
+
+    // A search reloads the page with every matching Style's tree
+    // already expanded (same pattern as the Products tab), so results
+    // are visible immediately instead of needing every row clicked
+    // open by hand.
+    (function() {
+      const expanded = <%- JSON.stringify(!!treeSearch) %>;
+      const keys = [];
+      <% batchTree.forEach(s => {
+        const styleKey = 'style-' + s.id;
+      %>
+        <% if (s.gtins.length > 0 || s.variants.length > 0) { %>
+          keys.push(<%- JSON.stringify(styleKey) %>);
+        <% } %>
+        <% s.gtins.forEach(g => { %>
+          <% if (g.sgtins.length > 0) { %>
+            keys.push(<%- JSON.stringify('gtin-' + g.gtin_id) %>);
+          <% } %>
+        <% }); %>
+        <% s.variants.forEach(v => { %>
+          <% if (v.gtins.length > 0) { %>
+            keys.push(<%- JSON.stringify('variant-' + v.id) %>);
+          <% } %>
+          <% v.gtins.forEach(g => { %>
+            <% if (g.sgtins.length > 0) { %>
+              keys.push(<%- JSON.stringify('gtin-' + g.gtin_id) %>);
+            <% } %>
+          <% }); %>
+        <% }); %>
+      <% }); %>
+      keys.forEach(k => initTreeGroup(k, expanded));
+      renderTreeVisibility();
+    })();
   </script>
 </body>
 </html>

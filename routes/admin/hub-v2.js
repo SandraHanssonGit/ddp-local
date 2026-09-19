@@ -802,9 +802,28 @@ router.get('/batch/:batchId', async (req, res) => {
       }
     });
 
-    const batchTree = Object.values(stylesInBatch)
+    let batchTree = Object.values(stylesInBatch)
       .map(s => ({ ...s, variants: Object.values(s.variantsById) }))
       .sort((a, b) => a.style_number.localeCompare(b.style_number));
+
+    // Search (same approach as the Products tab above): keep a whole
+    // Style entry if anything under it matches, don't prune its
+    // children - simpler and clearer for a small dataset than a SQL
+    // query matching against a style, any of its variants, or any
+    // GTIN nested under either.
+    const treeSearch = (req.query.search || '').toLowerCase();
+    if (treeSearch) {
+      const gtinMatches = g => (g.gtin || '').toLowerCase().includes(treeSearch) || (g.item_number || '').toLowerCase().includes(treeSearch);
+      batchTree = batchTree.filter(s =>
+        s.style_number.toLowerCase().includes(treeSearch) ||
+        (s.product_name || '').toLowerCase().includes(treeSearch) ||
+        s.gtins.some(gtinMatches) ||
+        s.variants.some(v =>
+          (v.variant_name || '').toLowerCase().includes(treeSearch) ||
+          v.gtins.some(gtinMatches)
+        )
+      );
+    }
 
     const gtin_count = batchGtins.length;
     const style_count = new Set(batchGtins.map(bg => bg.style_number)).size;
@@ -850,6 +869,7 @@ router.get('/batch/:batchId', async (req, res) => {
       batchGtins,
       sgtins,
       batchTree,
+      treeSearch,
       gtin_count,
       style_count,
       sgtin_count,
