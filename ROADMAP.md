@@ -227,6 +227,26 @@ loop. Replaced by the Batch×GTIN design directly below.
   NOT be touched by the lock. Already true structurally (`lifecycle_events`
   is a separate, always-appendable table `dpp_values`/the freeze never
   touches) - no change needed.
+- **Not every field should lock, even among regular DPP fields
+  (2026-09-19)**: user: "För NJ fält kanske man skall kunna låta dem
+  ligga olåsta efter att produktpasset EU fält låsts... De är ju upp
+  till oss vad vi vill ha i de fälten." EU-required fields must lock at
+  production (that's the whole point - proving the compliance data is
+  fixed); Nudie-specific fields are the brand's own discretion and may
+  legitimately need continued editing after production (storytelling,
+  marketing copy) without that being a compliance problem. **Confirmed
+  design**: new `field_definitions.locks_at_production` boolean,
+  defaulting to `true` when `category = 'eu_required'` and `false` when
+  `category = 'nudie'` - editable per field in Field Config so a
+  specific field can override its category's default in either
+  direction. The Batch×GTIN freeze snapshot only writes fields where
+  this resolves to `true`.
+- **Externally-sourced fields must freeze too**: ties together with
+  the field source/provenance idea below - a field whose value comes
+  from M3/PIM still gets captured into the Batch×GTIN snapshot at
+  production time exactly like a manually-entered one. Not a separate
+  mechanism, just confirms the freeze reads *resolved* values
+  regardless of `source_system`.
 - **Real gap found**: `field_change_log.reason` already exists in the
   schema (CLAUDE.md §13), and `audit-service.js` already records it
   when passed - but no edit form in the admin UI actually has a reason
@@ -362,6 +382,25 @@ whatever genuinely is shared.
 No "bundled recipe" entity (a named preset distinct from individual
 `dpp_values` rows) was pursued - decided the flexible per-field system
 is preferable to a more rigid structured concept here.
+
+## Field Sections (headings) for Field Config (design confirmed, not built, 2026-09-19)
+
+**Problem**: fields are only grouped today by the `category` column
+(`eu_required` / `nudie`) - user wants a second, more granular grouping
+so information lands under the right heading (e.g. "Material", "Care",
+"Sustainability", "Origin") when displayed.
+
+**Design confirmed**:
+- New `field_sections` table (`id`, `label`, `sort_order`), managed
+  under Settings - same pattern as Product Types/Economic Operators:
+  add a new section any time, and pick its display order.
+- `field_definitions` gets a `section_id` FK. Field Config's per-field
+  form picks a section from a dropdown rather than free text, avoiding
+  typo'd/duplicate heading names.
+- Orthogonal to `category` (eu_required/nudie) and to the new
+  `locks_at_production` flag above - a field's category still governs
+  EU/Nudie badging and the lock default, while its section governs
+  where it's grouped for display.
 
 ## Field source/provenance + pre-production preview (idea only, not designed, 2026-09-19)
 
