@@ -168,7 +168,7 @@ nothing to track per-garment.
   logged/aggregated per Batch+GTIN pair when there's no SGTIN to
   attach to.
 
-## Freeze-at-production for master data changes (not built - design only, 2026-09-17)
+## Freeze-at-production for master data changes ✅ Done (2026-09-19, design 2026-09-17)
 
 **Problem**: Nudie will produce the same Style across many Batches
 over time (sometimes years apart). Style/Variant-level `dpp_values`
@@ -303,6 +303,15 @@ current design, not yet built)**:
   snapshot - no blocking needed, works by construction since
   `Batch×GTIN` already outranks plain `GTIN` for any SGTIN under that
   GTIN+batch. No extra logic required for this case.
+
+**Built (2026-09-19)**: `field-service.js`'s `freezeBatchAtProduction()`
+implements exactly the design above, called from `/batch/:id/mark-produced`
+before `produced_at` is set. Reason-capture on post-lock edits also
+built (`dppPrompt()` in `admin-modal.js`). See CHANGELOG.md etapp 48
+for verification details - including a serious pre-existing bug found
+and fixed along the way: `dpp_values` writes were silently duplicating
+rows instead of updating in place for any default-locale value (see
+CHANGELOG.md etapp 48 / git commit `310a963`).
 
 ## Batch detail page: unified Style→Variant→GTIN→SGTIN tree (design confirmed, not built, 2026-09-19)
 

@@ -4,6 +4,40 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-19 (etapp 48) — Freeze-at-production complete, critical bugfix found
+
+Finished freeze-at-production and found a serious pre-existing bug
+while testing it:
+
+1. **Snapshot logic built**: `fieldService.freezeBatchAtProduction()`
+   runs on "Mark as Produced" - for every GTIN in the batch, resolves
+   today's value for every `locks_at_production` field (GTIN's own
+   value, else Variant, else Style) and writes it to Batch×GTIN,
+   stamped `locked_at`, with a `field_change_log` entry
+   (`action='locked'`). Never overwrites an existing batch_gtin value,
+   silently skips fields with nothing to resolve.
+2. **Reason capture on post-lock edits**: new `dppPrompt()` modal;
+   editing a value on a locked batch/SGTIN now asks for an optional
+   reason, flowing through to `field_change_log`.
+3. **Critical bug found and fixed**: `dpp_values`'s
+   `INSERT ... ON CONFLICT DO UPDATE` never actually updated an
+   existing default-locale value - SQLite treats every NULL as
+   distinct in a UNIQUE constraint, so every edit past the first
+   silently created a duplicate row instead. This has been broken
+   since the locale column was added (etapp/Phase 2, 2026-09-16).
+   Fixed with an explicit SELECT-then-UPDATE-or-INSERT (same pattern
+   as `batch-style-scopes.js`'s identical NULL quirk), plus a startup
+   migration that collapsed the 3 real duplicate groups already
+   present in this database down to their correct/most recent value.
+
+Verified extensively against two isolated, fully-cleaned-up test
+batches (freeze correctness, pre-existing-override preservation) and
+directly against the live batch/field data (duplicate bug reproduced,
+fixed, and re-verified with two consecutive edits landing in one row).
+Full regression sweep green throughout. See git log for the detailed
+per-commit verification notes (`310a963`, `42f7a45`, and the freeze
+logic itself in an earlier commit this etapp).
+
 ## 2026-09-19 (etapp 47) — Freeze-at-production groundwork + Lucide icons
 
 Three small, separately-verified steps toward freeze-at-production
