@@ -202,6 +202,102 @@ new mechanism:
 User asked to pause here to focus on Batch work directly before
 building this - captured so the decision isn't re-litigated later.
 
+**Reconfirmed and refined (2026-09-19), still not built**:
+- **Two milestones, one already existing, one just a relabeling**:
+  "Batch sent for production" = the moment the Batch is created
+  (`batches.created_at` already captures this - no new column).
+  "Production date" = today's `produced_at` / "Mark as Produced" - the
+  actual lock trigger. No schema change, just make both dates visible
+  together in the UI (the Status stat card added in etapp 42 could show
+  both instead of/alongside the Under development/Completed badge).
+- **SGTIN-level locking already correct as-is**: "SGTIN only lock the
+  SGTIN field" - confirmed this already matches Phase 1's behavior
+  (`dpp_values.locked_at` is scoped per entity level already); no
+  change needed here, freeze-at-production only adds the Batch×Style
+  snapshot step above it.
+- **Lifecycle data intentionally excluded from the freeze**: downstream
+  lifecycle events (Viewed/Sold/Repaired/...) are Nudie-specific,
+  expected to keep evolving after production - confirmed they should
+  NOT be touched by the lock. Already true structurally (`lifecycle_events`
+  is a separate, always-appendable table `dpp_values`/the freeze never
+  touches) - no change needed.
+- **Real gap found**: `field_change_log.reason` already exists in the
+  schema (CLAUDE.md §13), and `audit-service.js` already records it
+  when passed - but no edit form in the admin UI actually has a reason
+  input. Editing a field after lock captures old/new value + who/when
+  automatically, but never asks why. Worth adding a "reason (optional)"
+  text input to the field-edit UI wherever a locked value can still be
+  overridden (`batch-detail.ejs`'s DPP Field Values edit mode, and
+  wherever GTIN/SGTIN-level fields are edited).
+
+## Style/Variant "recipe" flexibility - confirmed no change needed (2026-09-19)
+
+Discussion: does a Style even matter once a Style has Variants, or
+should all data move to Variant level? Resolved: Style must always
+exist regardless of Variants - GTINs always reference a Style
+directly (`gtins.style_id`, kept even when `variant_id` is also set,
+for referential integrity/simple joins), and genuinely shared fields
+(base fiber composition, sustainability program) would otherwise have
+to be duplicated across every variant, which Rule 5 explicitly forbids.
+
+Separately: user noted a Variant may in practice hold "the whole
+recipe" (e.g. a wash/treatment formula) as many explicit fields, with
+little or no inheritance from Style actually happening for that field
+category. Confirmed this needs no schema change - the existing
+`dpp_values` per-field system already allows any level to hold as many
+or as few explicit values as reality requires. A Style ending up with
+few or no explicit values of its own (because a particular product's
+variants all fully specify their own recipe) is not a modeling flaw;
+Style still anchors the hierarchy and remains the fallback for
+whatever genuinely is shared.
+
+No "bundled recipe" entity (a named preset distinct from individual
+`dpp_values` rows) was pursued - decided the flexible per-field system
+is preferable to a more rigid structured concept here.
+
+## Field source/provenance + pre-production preview (idea only, not designed, 2026-09-19)
+
+Raised alongside the freeze-at-production discussion but is a
+different concern - not part of that work:
+
+**Idea**: much of a product's master data may eventually come from
+other systems (M3/PIM) rather than being entered manually here. User
+wants to be able to *declare*, per field, which system a value is
+expected to come from - even before any Batch (or any value at all)
+exists - and to preview what an unproduced product's passport would
+look like, showing exactly which field comes from which source.
+
+**Why this doesn't fit today's model**: `dpp_values.source_system`
+(manual/m3/pim/plm/qc/api/import, CLAUDE.md §14) only records where a
+value *actually came from*, once one exists. There's no way today to
+declare an *expected* source on a `field_definition` before a value is
+entered, nor a "pending from M3" placeholder state.
+
+**What's easy vs. what's new**:
+- A pre-production preview page is low-risk - `resolveStylePassport()`
+  and `resolveGtinPassport()` already work without any Batch, so a
+  preview view is mostly a UI wrapper around what already exists.
+- Declaring an *expected* source system per field is new modeling -
+  likely a new column on `field_definitions` (e.g.
+  `expected_source_system`) plus UI to show "pending from M3" when no
+  value exists yet. Not designed in detail - needs its own design pass,
+  not bundled into freeze-at-production.
+
+## GTIN style_id/variant_id consistency ✅ Done (2026-09-19)
+
+**Problem found while discussing the Style/Variant question above**:
+`gtins.style_id` and `gtins.variant_id` were both accepted as
+independent input with no check that they agreed - a GTIN could end up
+pointing at a variant belonging to a *different* style, silently
+breaking the GTIN → Variant → Style inheritance chain.
+
+**Built**: `repositories/gtins.js`'s `create()` now derives `style_id`
+from the variant when one is given (ignores/overrides whatever
+`styleId` the caller passed). `services/import-service.js`'s CSV
+import (the one live path that accepts both independently per row) now
+validates the two agree and rejects the row with a clear error
+otherwise. See CHANGELOG.md etapp 44.
+
 ## Batch × Style/Variant scoped overrides ✅ Done (2026-09-16)
 
 **Problem**: a Batch can span multiple Styles (CLAUDE.md's PO45001234

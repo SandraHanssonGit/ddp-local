@@ -4,6 +4,27 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-19 (etapp 44) — GTIN: guarantee style_id always agrees with its variant's style
+
+Found while discussing whether Style should even exist once a Style
+has Variants: `gtins.style_id` and `gtins.variant_id` were both
+accepted as independent input with no check that they actually agreed
+- a GTIN could end up pointing at a variant that belongs to a
+*different* style, silently breaking the GTIN → Variant → Style
+inheritance chain.
+
+`repositories/gtins.js`'s `create()` now derives `style_id` from the
+variant when one is given, ignoring/overriding whatever `styleId` the
+caller passed - not just used yet by any live admin route (no GTIN
+creation UI exists), but the one currently-live path that accepts both
+independently, `services/import-service.js`'s CSV import, now
+validates the two agree per row and rejects the row with a clear error
+otherwise, rather than silently storing a mismatch.
+
+Verified directly: creating a GTIN with a deliberately wrong `styleId`
+alongside a valid `variant_id` correctly stored the variant's real
+`style_id`, not the wrong one passed in.
+
 ## 2026-09-19 (etapp 43) — Product Types: configurable GS1 hierarchy per product type (Phase 1)
 
 Large design discussion (2026-09-17/19): not every product needs the
