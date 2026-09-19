@@ -259,14 +259,37 @@ current design, not yet built)**:
   there anymore - it computes the final per-GTIN resolved value
   (which already accounts for any `Batch×Style` override in effect)
   and snapshots that one level higher, at `Batch×GTIN`.
-- **Open question, not yet answered**: what happens to a new SGTIN
-  created *after* a batch is already locked (if production wasn't
-  fully complete when "Mark as Produced" was clicked)? Does it
-  automatically inherit the frozen `Batch×GTIN` snapshot correctly
-  (yes, by construction, since `Batch×GTIN` already outranks `GTIN` for
-  any SGTIN under that GTIN+batch) - or should creating new units in an
-  already-locked batch be disallowed entirely? Needs a decision before
-  building the "Mark as Produced" snapshot logic.
+- **Resolved (2026-09-19)**: a new SGTIN created after a batch is
+  already locked just automatically inherits the frozen `Batch×GTIN`
+  snapshot - no blocking needed, works by construction since
+  `Batch×GTIN` already outranks plain `GTIN` for any SGTIN under that
+  GTIN+batch. No extra logic required for this case.
+
+## Soft/lazy SGTIN creation on first scan (idea only, not designed, 2026-09-19)
+
+Raised alongside the question above: rather than requiring every
+physical unit to be pre-registered as an SGTIN row before it ships,
+user is considering **creating the SGTIN on first scan** instead - the
+scanned code (encoded per the GS1 standard) carries enough information
+(GTIN + serial, and from there the Batch it belongs to) to look up or
+create the SGTIN row lazily at scan time, rather than requiring the
+"produce SGTINs for this batch" admin flow (still not built - see the
+serial number generator item above) to run first.
+
+This is exactly why "does a new SGTIN inherit the lock correctly"
+mattered above - if units are only created reactively as they're
+scanned, most of a batch's SGTIN rows may not exist yet at the moment
+it's locked, making the automatic-inheritance answer (not a block)
+the right one regardless.
+
+**Precedent already in the codebase (not wired into v2)**:
+`routes/public/consumer.js`'s `GET /:gtin` route already implements
+this exact pattern - "Render GTIN-only passport page (lazy SGTIN
+creation pattern)" via `consumerService.getConsumerPassportByGtinOnly()`
+- but that route isn't required by `server.js` and uses the old
+`db/init.js` (v1), not `db/init-v2.js`. Worth reviewing as a starting
+point rather than designing from scratch, once this is picked up -
+not scoped or designed for v2 yet.
 
 ## Style/Variant "recipe" flexibility - confirmed no change needed (2026-09-19)
 
