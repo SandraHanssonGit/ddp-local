@@ -20,6 +20,7 @@ const supplyChainRepository = require('../../repositories/supply-chain');
 const economicOperatorRepository = require('../../repositories/economic-operators');
 const productTypeRepository = require('../../repositories/product-types');
 const batchStyleScopeRepository = require('../../repositories/batch-style-scopes');
+const batchGtinRepository = require('../../repositories/batch-gtins');
 
 // Image upload config for variants - mirrors routes/admin/styles.js's
 // style image upload (found missing entirely for variants alongside
@@ -995,11 +996,15 @@ router.get('/sgtin/:sgtinId', async (req, res) => {
     const events = await getAll('SELECT * FROM lifecycle_events WHERE sgtin_id = ? ORDER BY created_at DESC', [sgtin.id]);
 
     // An SGTIN has a fixed GTIN and Batch, so the full inheritance
-    // chain (GTIN > Batch×Variant > Batch×Style > Batch > Variant >
-    // Style) is well-defined here - same precedence passport-resolver.js
-    // uses for the public passport
+    // chain (Batch×GTIN > GTIN > Batch×Variant > Batch×Style > Batch >
+    // Variant > Style) is well-defined here - same precedence
+    // passport-resolver.js uses for the public passport. Batch×GTIN
+    // (2026-09-19, freeze-at-production) outranks plain GTIN since
+    // it's the snapshot locked in when the batch was marked produced.
     const locale = req.query.lang || null;
     const sgtinFields = await fieldRepository.getFieldsForLevel('sgtin', sgtin.id, locale);
+    const batchGtinScope = await batchGtinRepository.find(batch.id, gtin.id);
+    const batchGtinValueMap = batchGtinScope ? await buildLocaleAwareValueMap('batch_gtin', batchGtinScope.id, locale) : {};
     const gtinValueMap = await buildLocaleAwareValueMap('gtin', gtin.id, locale);
     const batchVariantScope = variant ? await batchStyleScopeRepository.find(batch.id, style.id, variant.id) : null;
     const batchStyleScope = await batchStyleScopeRepository.find(batch.id, style.id, null);
@@ -1009,8 +1014,9 @@ router.get('/sgtin/:sgtinId', async (req, res) => {
     const variantValueMap = variant ? await buildLocaleAwareValueMap('variant', variant.id, locale) : {};
     const styleValueMap = await buildLocaleAwareValueMap('style', style.id, locale);
     const dppValues = sgtinFields.map(f => {
-      const inheritedValue = gtinValueMap[f.field_key] || batchVariantValueMap[f.field_key] || batchStyleValueMap[f.field_key] || batchValueMap[f.field_key] || variantValueMap[f.field_key] || styleValueMap[f.field_key] || null;
-      const inheritedFrom = gtinValueMap[f.field_key] ? 'GTIN'
+      const inheritedValue = batchGtinValueMap[f.field_key] || gtinValueMap[f.field_key] || batchVariantValueMap[f.field_key] || batchStyleValueMap[f.field_key] || batchValueMap[f.field_key] || variantValueMap[f.field_key] || styleValueMap[f.field_key] || null;
+      const inheritedFrom = batchGtinValueMap[f.field_key] ? 'Batch (locked at production)'
+        : gtinValueMap[f.field_key] ? 'GTIN'
         : batchVariantValueMap[f.field_key] ? 'Batch (this Variant)'
         : batchStyleValueMap[f.field_key] ? 'Batch (this Style)'
         : batchValueMap[f.field_key] ? 'Batch'

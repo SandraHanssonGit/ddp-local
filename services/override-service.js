@@ -9,9 +9,9 @@ class OverrideService {
    */
   async setOverride(entityType, entityId, fieldKey, newValue, options = {}) {
     // Validate entity type
-    const validTypes = ['variant', 'batch', 'batch_style', 'gtin', 'sgtin'];
+    const validTypes = ['variant', 'batch', 'batch_style', 'batch_gtin', 'gtin', 'sgtin'];
     if (!validTypes.includes(entityType)) {
-      throw new Error(`Cannot override at ${entityType} level. Only variant, batch, batch_style, gtin, sgtin allow overrides.`);
+      throw new Error(`Cannot override at ${entityType} level. Only variant, batch, batch_style, batch_gtin, gtin, sgtin allow overrides.`);
     }
 
     // Get field definition
@@ -71,7 +71,7 @@ class OverrideService {
    */
   async removeOverride(entityType, entityId, fieldKey, options = {}) {
     // Validate entity type
-    const validTypes = ['variant', 'batch', 'batch_style', 'gtin', 'sgtin'];
+    const validTypes = ['variant', 'batch', 'batch_style', 'batch_gtin', 'gtin', 'sgtin'];
     if (!validTypes.includes(entityType)) {
       throw new Error(`Cannot remove override at ${entityType} level.`);
     }

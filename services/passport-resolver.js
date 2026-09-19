@@ -6,13 +6,22 @@ const sgtinRepository = require('../repositories/sgtins');
 const fieldRepository = require('../repositories/fields');
 const economicOperatorRepository = require('../repositories/economic-operators');
 const batchStyleScopeRepository = require('../repositories/batch-style-scopes');
+const batchGtinRepository = require('../repositories/batch-gtins');
 
 class PassportResolver {
   /**
    * Resolve a complete passport for an SGTIN
-   * Inheritance: SGTIN > GTIN > Batch > Variant > Style (via
-   * GTIN.style_id / GTIN.variant_id - Variant is optional, e.g. jeans
-   * GTINs have no variant_id, so that level is simply empty for them)
+   * Inheritance: SGTIN > Batch×GTIN > GTIN > Batch×Variant >
+   * Batch×Style > Batch > Variant > Style (via GTIN.style_id /
+   * GTIN.variant_id - Variant is optional, e.g. jeans GTINs have no
+   * variant_id, so that level is simply empty for them)
+   *
+   * Batch×GTIN (2026-09-19, freeze-at-production design) is the
+   * snapshot level written when a Batch is marked produced - it
+   * outranks plain GTIN so a later edit to the GTIN's own master data
+   * can't leak into an already-produced batch's passport. Reuses the
+   * existing batch_gtins row as its entity_id, same pattern as
+   * batch_style_scopes for entity_type='batch_style'.
    *
    * ROADMAP.md Phase 2: locale is resolved language-first, then level -
    * if a translation exists ANYWHERE in the chain, it wins over a
@@ -57,12 +66,14 @@ class PassportResolver {
     // passport must never create a scope row.
     const batchVariantScope = variant ? await batchStyleScopeRepository.find(batch.id, style.id, variant.id) : null;
     const batchStyleScope = await batchStyleScopeRepository.find(batch.id, style.id, null);
+    const batchGtinScope = await batchGtinRepository.find(batch.id, gtin.id);
 
     // Get all field definitions
     const fieldDefinitions = await fieldRepository.listFieldDefinitions();
 
     const levels = [
       await this._loadLevelValues('sgtin', sgtin.id, locale),
+      batchGtinScope ? await this._loadLevelValues('batch_gtin', batchGtinScope.id, locale) : { localized: {}, default: {} },
       await this._loadLevelValues('gtin', gtin.id, locale),
       batchVariantScope ? await this._loadLevelValues('batch_style', batchVariantScope.id, locale) : { localized: {}, default: {} },
       batchStyleScope ? await this._loadLevelValues('batch_style', batchStyleScope.id, locale) : { localized: {}, default: {} },
@@ -72,8 +83,8 @@ class PassportResolver {
     ];
 
     // Resolve all fields using inheritance precedence:
-    // SGTIN > GTIN > Batch×Variant > Batch×Style > Batch > Variant > Style
-    const sourceNames = ['sgtin', 'gtin', 'batch_variant', 'batch_style', 'batch', 'variant', 'style'];
+    // SGTIN > Batch×GTIN > GTIN > Batch×Variant > Batch×Style > Batch > Variant > Style
+    const sourceNames = ['sgtin', 'batch_gtin', 'gtin', 'batch_variant', 'batch_style', 'batch', 'variant', 'style'];
     const resolvedFields = fieldDefinitions.map(fieldDef =>
       this._resolveFieldValueLocaleAware(fieldDef, levels, sourceNames, locale)
     );

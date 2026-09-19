@@ -2,6 +2,7 @@ const fieldRepository = require('../repositories/fields');
 const batchRepository = require('../repositories/batches');
 const sgtinRepository = require('../repositories/sgtins');
 const batchStyleScopeRepository = require('../repositories/batch-style-scopes');
+const batchGtinRepository = require('../repositories/batch-gtins');
 const auditService = require('./audit-service');
 const passportVersionRepository = require('../repositories/passport-versions');
 
@@ -73,7 +74,7 @@ class FieldService {
   // tied to a specific production run.
   async setValue(entityType, entityId, fieldKey, value, options = {}) {
     // Validate entity type
-    const validTypes = ['style', 'variant', 'batch', 'batch_style', 'gtin', 'sgtin'];
+    const validTypes = ['style', 'variant', 'batch', 'batch_style', 'batch_gtin', 'gtin', 'sgtin'];
     if (!validTypes.includes(entityType)) {
       throw new Error(`Invalid entity type. Must be one of: ${validTypes.join(', ')}`);
     }
@@ -147,6 +148,13 @@ class FieldService {
       const scope = await batchStyleScopeRepository.getById(entityId);
       if (!scope) return false;
       const batch = await batchRepository.getById(scope.batch_id);
+      return !!(batch && batch.produced_at);
+    }
+
+    if (entityType === 'batch_gtin') {
+      const batchGtin = await batchGtinRepository.getById(entityId);
+      if (!batchGtin) return false;
+      const batch = await batchRepository.getById(batchGtin.batch_id);
       return !!(batch && batch.produced_at);
     }
 

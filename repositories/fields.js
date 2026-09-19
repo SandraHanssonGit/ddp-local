@@ -181,6 +181,10 @@ class FieldRepository {
       // permission, just narrower scope. Not a separate checkbox.
       batch_style: 'editable_at_batch',
       gtin: 'editable_at_gtin',
+      // batch_gtin is the freeze-at-production snapshot level (2026-09-19)
+      // - a GTIN-level value narrowed to one specific Batch. Same
+      // "can this field be set at GTIN?" permission as plain gtin.
+      batch_gtin: 'editable_at_gtin',
       sgtin: 'editable_at_sgtin'
     }[entityType];
 
