@@ -904,9 +904,16 @@ router.post('/batch/:batchId/dpp-values', async (req, res) => {
       entityId = scope.id;
     }
 
-    for (const [fieldKey, value] of Object.entries(req.body)) {
+    // Body is either {values, reason} (batch-detail.ejs's edit form,
+    // which prompts for an optional reason when the batch is locked)
+    // or a flat {fieldKey: value} map from older/other callers -
+    // support both rather than breaking anything already calling this.
+    const values = req.body.values || req.body;
+    const reason = req.body.reason || null;
+
+    for (const [fieldKey, value] of Object.entries(values)) {
       if (value) {
-        await fieldService.setValue(entityType, entityId, fieldKey, value, { locale });
+        await fieldService.setValue(entityType, entityId, fieldKey, value, { locale, reason });
       }
     }
 
@@ -1058,9 +1065,13 @@ router.post('/sgtin/:sgtinId/dpp-values', async (req, res) => {
     if (!sgtin) return res.status(404).json({ success: false, error: 'SGTIN not found' });
 
     const locale = req.query.lang || null;
-    for (const [fieldKey, value] of Object.entries(req.body)) {
+    // See /batch/:batchId/dpp-values above - same {values, reason} vs.
+    // flat-map compatibility.
+    const values = req.body.values || req.body;
+    const reason = req.body.reason || null;
+    for (const [fieldKey, value] of Object.entries(values)) {
       if (value) {
-        await fieldService.setValue('sgtin', sgtin.id, fieldKey, value, { locale });
+        await fieldService.setValue('sgtin', sgtin.id, fieldKey, value, { locale, reason });
       }
     }
 

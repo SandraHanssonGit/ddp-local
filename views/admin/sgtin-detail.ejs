@@ -265,11 +265,20 @@
           async function saveSgtinDppValues() {
             const values = {};
             document.querySelectorAll('[id^="field-"]').forEach(el => { values[el.id.substring(6)] = el.value; });
+
+            // This unit's batch is production-locked - capture an
+            // optional reason so the audit trail can show why a locked
+            // value was changed, not just who/when.
+            const isLocked = <%- JSON.stringify(!!batch.produced_at) %>;
+            const reason = isLocked
+              ? await dppPrompt('This unit\'s batch is production-locked. Why are you changing a value?', 'Reason (optional)')
+              : '';
+
             try {
               const res = await fetch('/admin-v2/sgtin/<%= sgtin.id %>/dpp-values' + localeQuery, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(values)
+                body: JSON.stringify({ values, reason })
               });
               if (res.ok) { await dppAlert('DPP values saved'); location.reload(); }
               else { await dppAlert('Error saving DPP values'); }

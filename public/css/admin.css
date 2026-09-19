@@ -564,3 +564,8 @@ tfoot td, tr.totals-row td {
   justify-content: flex-end;
   gap: 10px;
 }
+
+.dpp-modal-input {
+  width: 100%;
+  margin-bottom: 16px;
+}

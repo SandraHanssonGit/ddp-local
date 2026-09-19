@@ -309,11 +309,19 @@
         values[key] = el.value;
       });
 
+      // Batch is production-locked - capture an optional reason so the
+      // audit trail can show why a locked value was changed, not just
+      // who/when (ROADMAP.md freeze-at-production gap).
+      const isLocked = <%- JSON.stringify(!!batch.produced_at) %>;
+      const reason = isLocked
+        ? await dppPrompt('This batch is production-locked. Why are you changing a value?', 'Reason (optional)')
+        : '';
+
       try {
         const res = await fetch('/admin-v2/batch/<%= batch.id %>/dpp-values' + scopeAndLocaleQuery(), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(values)
+          body: JSON.stringify({ values, reason })
         });
 
         if (res.ok) {
