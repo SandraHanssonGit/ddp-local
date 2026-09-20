@@ -25,7 +25,7 @@
         <p style="margin-bottom:6px;"><span class="label-sm">EAN (as printed on barcode):</span> <span class="mono"><%= gtin.gtin %></span></p>
         <p style="margin-bottom:6px;"><span class="label-sm">GTIN (GS1, 14-digit):</span> <span class="mono"><%= toGtin14(gtin.gtin) %></span></p>
         <p style="margin-bottom:6px;"><span class="label-sm">SKU / Item #:</span> <%= gtin.item_number || '—' %></p>
-        <p style="margin-bottom:6px;"><span class="label-sm">Style:</span> <%= style.style_number %></p>
+        <p style="margin-bottom:6px;"><span class="label-sm">Product:</span> <%= style.style_number %></p>
         <p><span class="label-sm">Variant:</span> <%= variant ? variant.variant_name : '—' %></p>
       </div>
       <div class="card">
