@@ -7,6 +7,7 @@ const fieldRepository = require('../repositories/fields');
 const economicOperatorRepository = require('../repositories/economic-operators');
 const batchStyleScopeRepository = require('../repositories/batch-style-scopes');
 const batchGtinRepository = require('../repositories/batch-gtins');
+const productTypeRepository = require('../repositories/product-types');
 
 class PassportResolver {
   /**
@@ -58,6 +59,18 @@ class PassportResolver {
     // Load Variant, if this GTIN has one (not all product types do)
     const variant = gtin.variant_id ? await variantRepository.getById(gtin.variant_id) : null;
 
+    // GS1 Scheme (2026-09-20): a product type's 'gtin_sgtin' scheme
+    // means individual units ARE serialized (this SGTIN exists) but
+    // Batch-level values/overrides must NOT affect its passport - the
+    // Batch object itself is still loaded and returned below (used for
+    // its production_date in the field-validity check, and read
+    // elsewhere as passport.batch.batch_id), only its VALUE layers are
+    // excluded from inheritance. Unconfigured styles default to
+    // 'batch_gtin_sgtin' (today's only prior behavior), so this never
+    // changes an existing passport unless a scheme is deliberately set.
+    const gs1Scheme = await productTypeRepository.getSchemeForStyle(style.id);
+    const skipBatchLayers = gs1Scheme === 'gtin_sgtin';
+
     // ROADMAP.md: a Batch can span multiple Styles/Variants, so a plain
     // Batch-level override applies to the whole batch. These two scopes
     // let an override be narrowed to just this GTIN's Style within the
@@ -81,28 +94,43 @@ class PassportResolver {
     const fieldDefinitions = (await fieldRepository.listFieldDefinitions())
       .filter(fd => this._isFieldValidForDate(fd, batch.production_date));
 
-    const levels = [
-      await this._loadLevelValues('sgtin', sgtin.id, locale),
-      batchGtinScope ? await this._loadLevelValues('batch_gtin', batchGtinScope.id, locale) : { localized: {}, default: {} },
-      await this._loadLevelValues('gtin', gtin.id, locale),
-      batchVariantScope ? await this._loadLevelValues('batch_style', batchVariantScope.id, locale) : { localized: {}, default: {} },
-      batchStyleScope ? await this._loadLevelValues('batch_style', batchStyleScope.id, locale) : { localized: {}, default: {} },
-      await this._loadLevelValues('batch', batch.id, locale),
-      variant ? await this._loadLevelValues('variant', variant.id, locale) : { localized: {}, default: {} },
-      await this._loadLevelValues('style', style.id, locale)
-    ];
+    const emptyLevel = { localized: {}, default: {} };
+    const levels = skipBatchLayers
+      ? [
+          await this._loadLevelValues('sgtin', sgtin.id, locale),
+          await this._loadLevelValues('gtin', gtin.id, locale),
+          variant ? await this._loadLevelValues('variant', variant.id, locale) : emptyLevel,
+          await this._loadLevelValues('style', style.id, locale)
+        ]
+      : [
+          await this._loadLevelValues('sgtin', sgtin.id, locale),
+          batchGtinScope ? await this._loadLevelValues('batch_gtin', batchGtinScope.id, locale) : emptyLevel,
+          await this._loadLevelValues('gtin', gtin.id, locale),
+          batchVariantScope ? await this._loadLevelValues('batch_style', batchVariantScope.id, locale) : emptyLevel,
+          batchStyleScope ? await this._loadLevelValues('batch_style', batchStyleScope.id, locale) : emptyLevel,
+          await this._loadLevelValues('batch', batch.id, locale),
+          variant ? await this._loadLevelValues('variant', variant.id, locale) : emptyLevel,
+          await this._loadLevelValues('style', style.id, locale)
+        ];
 
     // Resolve all fields using inheritance precedence:
     // SGTIN > Batch×GTIN > GTIN > Batch×Variant > Batch×Style > Batch > Variant > Style
-    const sourceNames = ['sgtin', 'batch_gtin', 'gtin', 'batch_variant', 'batch_style', 'batch', 'variant', 'style'];
+    // ('gtin_sgtin' scheme: SGTIN > GTIN > Variant > Style, no Batch layers at all)
+    const sourceNames = skipBatchLayers
+      ? ['sgtin', 'gtin', 'variant', 'style']
+      : ['sgtin', 'batch_gtin', 'gtin', 'batch_variant', 'batch_style', 'batch', 'variant', 'style'];
     const resolvedFields = fieldDefinitions.map(fieldDef =>
       this._resolveFieldValueLocaleAware(fieldDef, levels, sourceNames, locale)
     );
 
     // ROADMAP.md Phase 4: economic operator (manufacturer/importer/
     // authorized representative) - Batch overrides Style, same
-    // precedence pattern as everywhere else.
-    const economicOperator = await economicOperatorRepository.resolveForBatchAndStyle(batch.operator_id, style.operator_id);
+    // precedence pattern as everywhere else. Skipped for 'gtin_sgtin'
+    // (Batch never applies), falling straight through to Style's.
+    const economicOperator = await economicOperatorRepository.resolveForBatchAndStyle(
+      skipBatchLayers ? null : batch.operator_id,
+      style.operator_id
+    );
 
     return {
       sgtin,
@@ -112,6 +140,7 @@ class PassportResolver {
       style,
       economicOperator,
       resolvedFields,
+      gs1Scheme,
       hierarchy: {
         styleId: style.id,
         variantId: variant ? variant.id : null,

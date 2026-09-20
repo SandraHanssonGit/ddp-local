@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../db/init-v2').db;
 const sgtinRepository = require('../../repositories/sgtins');
+const productTypeRepository = require('../../repositories/product-types');
 
 const getOne = (sql, params = []) => new Promise((resolve, reject) => {
   db.get(sql, params, (err, row) => {
@@ -79,6 +80,15 @@ router.post('/:id/produce-sgtins', async (req, res) => {
     const batchGtin = await getOne('SELECT * FROM batch_gtins WHERE id = ?', [req.params.id]);
     if (!batchGtin) {
       return res.status(404).json({ error: 'Batch-GTIN not found' });
+    }
+
+    // 'batch_gtin' scheme means this product type shares one code
+    // across the whole production run - no per-garment serialization,
+    // so an SGTIN should never exist for it at all.
+    const gtinRow = await getOne('SELECT style_id FROM gtins WHERE id = ?', [batchGtin.gtin_id]);
+    const scheme = gtinRow ? await productTypeRepository.getSchemeForStyle(gtinRow.style_id) : 'batch_gtin_sgtin';
+    if (scheme === 'batch_gtin') {
+      return res.status(400).json({ error: 'This product type (GS1 scheme: Batch + GTIN, no individual units) does not use individual serialized units.' });
     }
 
     const quantity = parseInt(req.body.quantity, 10);
