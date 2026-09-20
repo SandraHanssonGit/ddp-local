@@ -387,8 +387,13 @@
         <% const directGtins = gtins.filter(g => !g.variant_id); %>
         <% if (directGtins.length > 0) { %>
           <div class="card">
-            <h2 style="margin-bottom:20px;">GTINs</h2>
-            <div class="table-wrap">
+            <div class="card-head">
+              <h2>GTINs</h2>
+              <% if (directGtins.length > 5) { %>
+                <input type="text" id="style-gtin-search" placeholder="Search GTIN or Item #…" class="small" style="width:220px;" oninput="filterStyleGtins(this.value)">
+              <% } %>
+            </div>
+            <div class="table-wrap <%= directGtins.length > 5 ? 'table-wrap-scroll' : '' %>">
               <table>
                 <thead>
                   <tr>
@@ -398,9 +403,9 @@
                     <th class="center">SGTINs</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody id="style-gtin-table-body">
                   <% directGtins.forEach(gtin => { %>
-                    <tr>
+                    <tr data-search="<%= (gtin.gtin + ' ' + (gtin.item_number || '')).toLowerCase() %>">
                       <td class="mono small"><%= gtin.gtin %></td>
                       <td class="small"><%= gtin.item_number %></td>
                       <td class="small">
@@ -415,6 +420,7 @@
                 </tbody>
               </table>
             </div>
+            <p id="style-gtin-no-match" class="empty-state hidden">No GTINs match "<span id="style-gtin-no-match-term"></span>"</p>
           </div>
         <% } %>
 
@@ -422,6 +428,19 @@
   </div>
 
   <script>
+    function filterStyleGtins(term) {
+      const needle = term.trim().toLowerCase();
+      const rows = document.querySelectorAll('#style-gtin-table-body tr');
+      let visibleCount = 0;
+      rows.forEach(row => {
+        const match = !needle || row.dataset.search.includes(needle);
+        row.classList.toggle('hidden', !match);
+        if (match) visibleCount++;
+      });
+      document.getElementById('style-gtin-no-match-term').textContent = term;
+      document.getElementById('style-gtin-no-match').classList.toggle('hidden', visibleCount > 0 || !needle);
+    }
+
     function toggleEdit(section) {
       const view = document.getElementById(section + '-view');
       const edit = document.getElementById(section + '-edit');
