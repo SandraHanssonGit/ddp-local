@@ -334,36 +334,15 @@
           <div class="card">
             <div class="card-head" style="margin-bottom:20px;">
               <h2>Variants</h2>
-              <button onclick="document.getElementById('addVariantForm').classList.toggle('hidden')" class="btn btn-primary">
-                + Add Variant
-              </button>
             </div>
 
-            <!-- Add Variant Form -->
-            <div id="addVariantForm" class="form-panel hidden">
-              <h3 style="margin-bottom:16px; font-size:16px;">Add New Variant</h3>
-              <form id="variantForm">
-                <div class="field-grid">
-                  <div>
-                    <label>Variant Name *</label>
-                    <input type="text" name="variant_name" placeholder="Black" required />
-                  </div>
-                  <div>
-                    <label>Product Name *</label>
-                    <input type="text" name="product_name" placeholder="Raw Hem T-Shirt Black" required />
-                  </div>
-                </div>
-                <button type="submit" class="btn btn-primary">Add Variant</button>
-              </form>
-            </div>
-
-            <% variants.forEach(variant => {
+            <% variants.forEach((variant, idx) => {
                 const variantGtins = gtins.filter(g => g.variant_id === variant.id);
               %>
-                <div class="sub-card">
+                <div style="<%= idx > 0 ? 'border-top:1px solid var(--hairline); margin-top:20px; padding-top:20px;' : '' %>">
                   <div class="card-head" style="margin-bottom:12px;">
                     <h3><%= variant.variant_name %> <span class="muted small" style="font-weight:400;">— <%= variant.product_name || style.product_name %></span></h3>
-                    <span class="badge badge-accent"><%= variantGtins.length %> GTINs</span>
+                    <span class="badge badge-accent"><%= variantGtins.length %> GTIN<%= variantGtins.length !== 1 ? 's' : '' %></span>
                   </div>
 
                   <% if (variantGtins.length > 0) { %>
@@ -625,32 +604,6 @@
         });
         const result = await response.json();
         if (result.success) {
-          location.reload();
-        } else {
-          await dppAlert('Error: ' + (result.error || 'Unknown error'));
-        }
-      } catch (err) {
-        await dppAlert('Error: ' + err.message);
-      }
-    });
-
-    document.getElementById('variantForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData(e.target);
-      const data = {
-        variant_name: formData.get('variant_name'),
-        product_name: formData.get('product_name')
-      };
-
-      try {
-        const response = await fetch('/api/admin/styles/<%= style.id %>/variants', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        const result = await response.json();
-        if (result.success) {
-          await dppAlert('Variant created successfully');
           location.reload();
         } else {
           await dppAlert('Error: ' + (result.error || 'Unknown error'));
