@@ -133,7 +133,7 @@
                     <td class="center"><span class="badge badge-success small"><%= g.created_quantity || 0 %></span></td>
                     <td class="center"><span class="badge small"><%= g.activated_quantity || 0 %></span></td>
                     <td style="white-space:nowrap;">
-                      <a href="#" onclick="event.stopPropagation(); produceSgtins(<%= g.batch_gtin_id %>, '<%= g.item_number %>'); return false;" class="link-action" title="Produce SGTINs for this GTIN"><%- icon('plus', { size: 14 }) %></a>
+                      <a href="#" onclick="event.stopPropagation(); produceSgtins(<%= g.batch_gtin_id %>, '<%= g.item_number %>', <%= g.planned_quantity || 0 %>, <%= g.created_quantity || 0 %>); return false;" class="link-action" title="Produce SGTINs for this GTIN"><%- icon('plus', { size: 14 }) %></a>
                       <a href="?scopeGtin=<%= g.gtin_id %>#dpp-fields-card" onclick="event.stopPropagation();" class="link-action" title="Edit values scoped to this GTIN within the batch"><%- icon('arrow-right') %></a>
                     </td>
                   </tr>
@@ -174,7 +174,7 @@
                       <td class="center"><span class="badge badge-success small"><%= g.created_quantity || 0 %></span></td>
                       <td class="center"><span class="badge small"><%= g.activated_quantity || 0 %></span></td>
                       <td style="white-space:nowrap;">
-                        <a href="#" onclick="event.stopPropagation(); produceSgtins(<%= g.batch_gtin_id %>, '<%= g.item_number %>'); return false;" class="link-action" title="Produce SGTINs for this GTIN"><%- icon('plus', { size: 14 }) %></a>
+                        <a href="#" onclick="event.stopPropagation(); produceSgtins(<%= g.batch_gtin_id %>, '<%= g.item_number %>', <%= g.planned_quantity || 0 %>, <%= g.created_quantity || 0 %>); return false;" class="link-action" title="Produce SGTINs for this GTIN"><%- icon('plus', { size: 14 }) %></a>
                         <a href="?scopeGtin=<%= g.gtin_id %>#dpp-fields-card" onclick="event.stopPropagation();" class="link-action" title="Edit values scoped to this GTIN within the batch"><%- icon('arrow-right') %></a>
                       </td>
                     </tr>
@@ -458,13 +458,28 @@
       } catch (err) { await dppAlert('Error: ' + err.message); }
     }
 
-    async function produceSgtins(batchGtinId, itemLabel) {
-      const input = await dppPrompt('How many units to produce for ' + itemLabel + '?', 'e.g. 10');
+    async function produceSgtins(batchGtinId, itemLabel, plannedQuantity, createdQuantity) {
+      // Shows how many are already produced so it's clear this ADDS
+      // more rather than replacing the total - user flagged that
+      // clicking + again with no visible progress made it unclear you
+      // could keep producing the same SKU repeatedly.
+      const progressNote = createdQuantity > 0
+        ? createdQuantity + ' of ' + plannedQuantity + ' already produced. How many more'
+        : 'How many units to produce';
+      const input = await dppPrompt(progressNote + ' for ' + itemLabel + '?', 'e.g. 10');
       if (!input) return;
       const quantity = parseInt(input, 10);
       if (!Number.isInteger(quantity) || quantity < 1) {
         await dppAlert('Enter a positive whole number');
         return;
+      }
+
+      const totalAfter = createdQuantity + quantity;
+      if (plannedQuantity > 0 && totalAfter > plannedQuantity) {
+        const proceed = await dppConfirm(
+          'This would bring the total to ' + totalAfter + ', more than the ' + plannedQuantity + ' planned for ' + itemLabel + '. Produce anyway?'
+        );
+        if (!proceed) return;
       }
 
       try {
