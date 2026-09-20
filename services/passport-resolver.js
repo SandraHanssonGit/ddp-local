@@ -149,7 +149,7 @@ class PassportResolver {
 
     // Resolve all fields: GTIN > Variant > Style
     const resolvedFields = fieldDefinitions.map(fieldDef =>
-      this._resolveFieldValueLocaleAware(fieldDef, levels, ['gtin', 'variant', 'style'], locale)
+      this._resolveFieldValueLocaleAware(fieldDef, levels, ['gtin', 'variant', 'style'], locale, 'editable_at_gtin')
     );
 
     return {
@@ -303,7 +303,13 @@ class PassportResolver {
    * level has a translation does resolution fall back to the default
    * (locale = null) chain, in the same level precedence.
    */
-  _resolveFieldValueLocaleAware(fieldDef, levels, sourceNames, requestedLocale) {
+  // editableColumn (optional) - e.g. 'editable_at_gtin' - includes an
+  // `editable` flag on the result, for a caller that needs to know
+  // whether THIS level is allowed to set the field at all (not just
+  // where its value currently comes from). Omitted by callers that
+  // don't need it (the public passport is read-only either way).
+  _resolveFieldValueLocaleAware(fieldDef, levels, sourceNames, requestedLocale, editableColumn) {
+    const editable = editableColumn ? !!fieldDef[editableColumn] : true;
     if (requestedLocale) {
       for (let i = 0; i < levels.length; i++) {
         const v = levels[i].localized[fieldDef.field_key];
@@ -316,7 +322,8 @@ class PassportResolver {
             source: sourceNames[i],
             category: fieldDef.category,
             dataType: fieldDef.data_type,
-            locale: requestedLocale
+            locale: requestedLocale,
+            editable
           };
         }
       }
@@ -333,7 +340,8 @@ class PassportResolver {
           source: sourceNames[i],
           category: fieldDef.category,
           dataType: fieldDef.data_type,
-          locale: null
+          locale: null,
+          editable
         };
       }
     }
@@ -346,7 +354,8 @@ class PassportResolver {
       source: null,
       category: fieldDef.category,
       dataType: fieldDef.data_type,
-      locale: null
+      locale: null,
+      editable
     };
   }
 

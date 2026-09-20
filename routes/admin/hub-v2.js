@@ -1126,16 +1126,27 @@ router.get('/gtin/:gtinId', async (req, res) => {
 
     // GTIN has exactly one style_id (and optionally one variant_id), so
     // "inherited from Variant/Style" is well-defined here (unlike Batch,
-    // which can span several styles)
+    // which can span several styles).
+    //
+    // Shows EVERY field, not just ones editable_at_gtin (found
+    // 2026-09-20 - "det känns inte som alla fält syns": fields like
+    // Carbon Footprint or Story are Style/Variant-only and were
+    // completely invisible here before, even as read-only inherited
+    // info, same class of gap already fixed for the Batch-scoped view).
+    // resolveGtinPassport() already resolved every field correctly
+    // (GTIN > Variant > Style) - it just wasn't wired into this route.
     const locale = req.query.lang || null;
-    const gtinFields = await fieldRepository.getFieldsForLevel('gtin', gtin.id, locale);
-    const variantValueMap = variant ? await buildLocaleAwareValueMap('variant', variant.id, locale) : {};
-    const styleValueMap = await buildLocaleAwareValueMap('style', style.id, locale);
-    const dppValues = gtinFields.map(f => {
-      const inheritedValue = variantValueMap[f.field_key] || styleValueMap[f.field_key] || null;
-      const inheritedFrom = variantValueMap[f.field_key] ? 'Variant' : styleValueMap[f.field_key] ? 'Style' : null;
-      return { ...f, inheritedValue, inheritedFrom };
-    });
+    const gtinPassport = await passportResolver.resolveGtinPassport(gtin.id, locale);
+    const dppValues = gtinPassport.resolvedFields.map(f => ({
+      field_key: f.fieldKey,
+      label: f.label,
+      category: f.category,
+      data_type: f.dataType,
+      value: f.source === 'gtin' ? f.value : null,
+      inheritedValue: f.source && f.source !== 'gtin' ? f.value : null,
+      inheritedFrom: f.source === 'variant' ? 'Variant' : f.source === 'style' ? 'Style' : null,
+      editable: f.editable
+    }));
     const availableLocales = await fieldRepository.getAvailableLocales('gtin', gtin.id);
 
     res.render('admin/gtin-detail', {
