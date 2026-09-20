@@ -748,11 +748,16 @@ a first-class entity type, reusing the existing `editable_at_batch`
 permission flag rather than adding a new one - it's the same
 conceptual level, just narrower scope.
 
-**Admin UI** (`batch-detail.ejs`): a "Scope" tab row above DPP Field
-Values, same visual pattern as the language tabs - "Whole batch" plus
-one tab per Style/Variant combination actually present in that batch
-(derived from `batch_gtins`, via `listCombosForBatch()`). Switching
-scope reloads the field cards/edit form against that scope; saving a
+**Admin UI** (`batch-detail.ejs`) **- superseded (2026-09-20)**: this
+originally built a "Scope" tab row above DPP Field Values, same visual
+pattern as the language tabs - "Whole batch" plus one tab per
+Style/Variant combination actually present in that batch (derived from
+`batch_gtins`, via `listCombosForBatch()`). That flat tab bar was later
+removed and replaced by the Batch Contents tree driving scope directly
+(see "Batch-scoped Style/Variant/GTIN editing" further up) - the
+underlying `batch_style_scopes`/`getOrCreate()` mechanism is unchanged,
+only how you navigate to a scope changed. Switching scope reloads the
+field cards/edit form against that scope; saving a
 value for a scope not yet used creates its `batch_style_scopes` row on
 demand (viewing never does - a GET request must never write to the
 database). GTIN/SGTIN detail pages' "inherited from" chains extended
