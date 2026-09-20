@@ -81,28 +81,23 @@
               <button type="button" onclick="toggleEdit('style-info')" class="btn">Cancel</button>
             </div>
           </form>
-        </div>
 
-        <!-- Image Management Card -->
-        <div class="card">
-          <h2 style="margin-bottom:20px;">Product Images</h2>
-
-          <% if (style.image_url) { %>
-            <div style="margin-bottom:20px;">
-              <p class="small muted" style="margin-bottom:8px;">Current Image:</p>
+          <!-- Product Image (merged in - same card, same subject: this
+               Style's own identity, not a separate concern) -->
+          <div style="border-top:1px solid var(--hairline); margin-top:20px; padding-top:20px;">
+            <label class="label-sm" style="display:block; margin-bottom:10px;">Product Image</label>
+            <% if (style.image_url) { %>
               <img src="<%= style.image_url %>" alt="<%= style.product_name %>" class="image-preview">
-              <div style="margin-top:10px;">
+              <div style="margin-top:10px; display:flex; gap:14px; align-items:center;">
                 <a href="#" onclick="deleteStyleImage(); return false;" class="link-action danger">Delete Image</a>
+                <input type="file" id="image-upload" accept="image/*" class="small">
+                <button type="button" onclick="uploadImage()" class="btn small">Upload New</button>
               </div>
-            </div>
-          <% } else { %>
-            <div class="image-box" style="margin-bottom:20px;">No image uploaded yet</div>
-          <% } %>
-
-          <div style="border-top:1px solid var(--hairline); padding-top:20px;">
-            <label style="display:block; margin-bottom:10px;">Upload New Image</label>
-            <input type="file" id="image-upload" accept="image/*" style="margin-bottom:12px;">
-            <button type="button" onclick="uploadImage()" class="btn btn-primary">Upload Image</button>
+            <% } else { %>
+              <div class="image-box" style="margin-bottom:12px;">No image uploaded yet</div>
+              <input type="file" id="image-upload" accept="image/*" style="margin-bottom:12px;">
+              <button type="button" onclick="uploadImage()" class="btn btn-primary">Upload Image</button>
+            <% } %>
           </div>
         </div>
 
