@@ -1747,3 +1747,41 @@ disappeared from that batch's SGTIN's HTML passport AND its `/json`
 export; the Loud Larry batch (no `production_date` set) still showed
 it; the admin GTIN detail page was unaffected either way; clearing the
 date restored it everywhere immediately. Full regression sweep green.
+
+## External API / integration access ⏳ Not built (backlog, raised 2026-09-20)
+
+User's framing: "vi behöver apier eller GraphQL för allt som då det
+mesta kommer komma externt" (we need APIs or GraphQL for everything,
+since most data will come from external systems) - this session has
+repeatedly removed manual "+ Add" UI (GTIN, Variant, produce-SGTINs)
+specifically because that data is meant to arrive from other systems
+(M3/PIM/PLM/QC/etc, per CLAUDE.md's `source_system` design) - but no
+real API surface exists yet for those systems to actually write
+through. Concretely still missing:
+
+- A documented, authenticated write API (REST and/or GraphQL) covering
+  at minimum: create/update Style, Batch, GTIN, Variant; produce
+  SGTINs; set DPP field values at any level; add lifecycle events -
+  the same operations this admin UI already does internally, exposed
+  for external callers instead of only a logged-in browser session.
+- **Dynamic fields must be visible in the API automatically**: when an
+  admin adds a new field in Field Config, it should be readable/
+  writable through the API without a code change - the API needs to
+  read from `field_definitions` at request time the same way the admin
+  UI and passport resolver already do, not hardcode a fixed field list.
+- **Access control**: external systems need to request access and
+  receive a token (API key or OAuth-style token) scoped to what they're
+  allowed to read/write - user asked "Det antar jag ligger under
+  settings med?" (I assume that belongs under Settings too?) - agreed:
+  a new Settings sub-tab (e.g. "API Access", alongside Field Config /
+  Digital Access / Product Types) to issue, view, and revoke tokens,
+  most likely per `source_system` value (`m3`, `pim`, `plm`, `qc`, ...)
+  so every write is already attributable without extra bookkeeping.
+
+Not scoped or designed in detail yet - this is a placeholder for a
+real design pass (auth mechanism, rate limiting if any, which
+operations are exposed, REST vs GraphQL vs both) before building
+anything. Given this POC's existing security posture (admin API has no
+auth at all today - see the Security note above), a real external
+write API is also the first place where skipping authentication would
+stop being acceptable, even for a POC.
