@@ -1122,7 +1122,7 @@
                 <label>GS1 Scheme</label>
                 <select name="gs1_scheme">
                   <option value="batch_gtin_sgtin">Full hierarchy (GTIN + Batch + SGTIN)</option>
-                  <option value="batch_gtin">Batch + GTIN, no individual units</option>
+                  <option value="batch_gtin">GTIN + Batch, no individual units</option>
                   <option value="gtin_sgtin">Individual units, no Batch (GTIN + SGTIN)</option>
                 </select>
               </div>
@@ -1143,11 +1143,6 @@
                 </tr>
               </thead>
               <tbody>
-                <% const schemeLabels = {
-                  batch_gtin_sgtin: 'Full hierarchy',
-                  batch_gtin: 'Batch + GTIN only',
-                  gtin_sgtin: 'GTIN + SGTIN only'
-                }; %>
                 <% productTypes.forEach(pt => { %>
                   <tr>
                     <td><strong><%= pt.label %></strong></td>
@@ -1155,7 +1150,7 @@
                     <td>
                       <select onchange="updateProductTypeScheme(<%= pt.id %>, this.value)">
                         <option value="batch_gtin_sgtin" <%= pt.gs1_scheme === 'batch_gtin_sgtin' ? 'selected' : '' %>>Full hierarchy (GTIN + Batch + SGTIN)</option>
-                        <option value="batch_gtin" <%= pt.gs1_scheme === 'batch_gtin' ? 'selected' : '' %>>Batch + GTIN, no individual units</option>
+                        <option value="batch_gtin" <%= pt.gs1_scheme === 'batch_gtin' ? 'selected' : '' %>>GTIN + Batch, no individual units</option>
                         <option value="gtin_sgtin" <%= pt.gs1_scheme === 'gtin_sgtin' ? 'selected' : '' %>>Individual units, no Batch (GTIN + SGTIN)</option>
                       </select>
                     </td>
