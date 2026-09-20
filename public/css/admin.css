@@ -453,7 +453,12 @@ input:focus, textarea:focus, select:focus {
 .card-head h2 { font-size: 18px; }
 .card-head h3 { font-size: 16px; }
 
-.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; }
+/* .card + .card's 20px top margin is meant for cards stacked in a single
+   column - it also matches these two side-by-side cards since they're
+   adjacent siblings in the DOM, giving the second one an unwanted gap
+   that stops it stretching to match the first card's height. */
+.info-grid > .card + .card { margin-top: 0; }
 .info-item .label-sm { display: block; margin-bottom: 4px; }
 .info-item .value { font-size: 16px; }
 .info-item .value .hint { font-size: 12px; color: var(--muted); font-weight: 400; }
