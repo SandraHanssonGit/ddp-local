@@ -1090,12 +1090,19 @@
         </div>
 
         <p class="small muted" style="margin-bottom:20px;">
-          Controls which levels make up a product's identifier/QR code.
-          "Full hierarchy" is a serialized individual unit per garment
-          (today's default). "Batch + GTIN, no individual units" shares
-          one code across a whole production run - no per-garment
-          tracking. "Individual units, no Batch" serializes each unit
-          but doesn't let Batch-level overrides affect its passport.
+          Controls the shape of a product's GS1 Digital Link identifier/QR
+          code (GTIN always comes first per the GS1 standard, order
+          01 &rarr; 10 &rarr; 21). "Full hierarchy" is a serialized
+          individual unit per garment, with Batch included in the link
+          (<code>/01/{gtin}/10/{batch}/21/{serial}</code> - today's
+          default). "Individual units, no Batch" serializes each unit
+          but leaves Batch out of both the link and the passport's
+          inheritance (<code>/01/{gtin}/21/{serial}</code>). "Batch +
+          GTIN, no individual units" is meant to share one code across
+          a whole production run with no per-garment tracking at all -
+          <strong>not yet implemented</strong>: no public passport
+          exists for it today (selecting it only blocks producing
+          individual units; see ROADMAP.md).
         </p>
 
         <!-- Add Product Type Form -->
