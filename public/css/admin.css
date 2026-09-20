@@ -126,6 +126,54 @@ a:hover { text-decoration: underline; }
 
 .card + .card { margin-top: 20px; }
 
+/* Master info vs passport content (2026-09-20): identifiers (GTIN/
+   Style/etc's own record - never shown on the public passport) get a
+   muted, low-key treatment; the DPP Field Values card gets a stronger
+   accent border so it reads as "this is what the passport shows",
+   consistent across Style/Variant/GTIN detail pages. */
+.card-identifiers {
+  background: var(--surface-2);
+  box-shadow: none;
+}
+
+.card-identifiers .card-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.card-passport {
+  border: 2px solid var(--accent);
+}
+
+.card-passport .card-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.field-category-heading {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 20px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.field-category-heading:first-child { margin-top: 0; }
+
 .section-head {
   display: flex;
   justify-content: space-between;

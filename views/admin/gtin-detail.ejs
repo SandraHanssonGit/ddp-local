@@ -20,7 +20,8 @@
     </div>
 
     <div class="info-grid" style="margin-bottom:20px;">
-      <div class="card">
+      <div class="card card-identifiers">
+        <div class="card-eyebrow"><%- icon('info', { size: 12 }) %> Internal &middot; not shown on the public passport</div>
         <h3 style="margin-bottom:14px;">GTIN Info</h3>
         <p style="margin-bottom:6px;"><span class="label-sm">EAN (as printed on barcode):</span> <span class="mono"><%= gtin.gtin %></span></p>
         <p style="margin-bottom:6px;"><span class="label-sm">GTIN (GS1, 14-digit):</span> <span class="mono"><%= toGtin14(gtin.gtin) %></span></p>
@@ -62,7 +63,8 @@
       <% } %>
     </div>
 
-    <div class="card">
+    <div class="card card-passport">
+      <div class="card-eyebrow"><%- icon('qr-code', { size: 12 }) %> Shown on the public passport</div>
       <div class="card-head">
         <h2>DPP Field Values</h2>
         <button onclick="toggleDppEdit()" class="btn btn-primary">Edit</button>
@@ -81,38 +83,49 @@
       </div>
 
       <div id="dpp-fields-view">
-        <% (typeof dppValues !== 'undefined' ? dppValues : []).forEach(val => { %>
-          <% if (val.value) { %>
-            <div class="field-card overridden">
-              <div class="field-card-head">
-                <label class="label-sm"><%= val.label %></label>
-                <span class="badge badge-accent">Overridden here</span>
+        <%
+          const allDppValues = typeof dppValues !== 'undefined' ? dppValues : [];
+          const fieldGroups = [
+            { label: 'EU Required', items: allDppValues.filter(v => v.category === 'eu_required') },
+            { label: 'Nudie', items: allDppValues.filter(v => v.category === 'nudie') }
+          ];
+        %>
+        <% fieldGroups.forEach(group => { %>
+          <% if (group.items.length === 0) return; %>
+          <div class="field-category-heading"><%= group.label %></div>
+          <% group.items.forEach(val => { %>
+            <% if (val.value) { %>
+              <div class="field-card overridden">
+                <div class="field-card-head">
+                  <label class="label-sm"><%= val.label %></label>
+                  <span class="badge badge-accent">Overridden here</span>
+                </div>
+                <p class="field-card-value"><%= val.value %></p>
+                <% if (val.inheritedValue) { %>
+                  <p class="field-card-note">Inherited from <%= val.inheritedFrom %>: <span class="mono"><%= val.inheritedValue %></span></p>
+                <% } %>
+                <p style="margin-top:8px;"><a href="#" onclick="clearOverride('<%= val.field_key %>'); return false;" class="link-action danger">Clear override <span style="display:inline-flex;vertical-align:middle;"><%- icon('arrow-right', { size: 13 }) %></span> inherit</a></p>
               </div>
-              <p class="field-card-value"><%= val.value %></p>
-              <% if (val.inheritedValue) { %>
-                <p class="field-card-note">Inherited from <%= val.inheritedFrom %>: <span class="mono"><%= val.inheritedValue %></span></p>
-              <% } %>
-              <p style="margin-top:8px;"><a href="#" onclick="clearOverride('<%= val.field_key %>'); return false;" class="link-action danger">Clear override <span style="display:inline-flex;vertical-align:middle;"><%- icon('arrow-right', { size: 13 }) %></span> inherit</a></p>
-            </div>
-          <% } else if (val.inheritedValue) { %>
-            <div class="field-card inherited">
-              <div class="field-card-head">
-                <label class="label-sm"><%= val.label %></label>
-                <span class="badge badge-muted">Inherited from <%= val.inheritedFrom %></span>
+            <% } else if (val.inheritedValue) { %>
+              <div class="field-card inherited">
+                <div class="field-card-head">
+                  <label class="label-sm"><%= val.label %></label>
+                  <span class="badge badge-muted">Inherited from <%= val.inheritedFrom %></span>
+                </div>
+                <p class="field-card-value muted"><%= val.inheritedValue %></p>
               </div>
-              <p class="field-card-value muted"><%= val.inheritedValue %></p>
-            </div>
-          <% } else { %>
-            <div class="field-card notset">
-              <div class="field-card-head">
-                <label class="label-sm"><%= val.label %></label>
-                <span class="badge" style="background:var(--lock-border); color:var(--lock-text);">Not set yet</span>
+            <% } else { %>
+              <div class="field-card notset">
+                <div class="field-card-head">
+                  <label class="label-sm"><%= val.label %></label>
+                  <span class="badge" style="background:var(--lock-border); color:var(--lock-text);">Not set yet</span>
+                </div>
+                <p class="field-card-note">No value at Style level either — this can be filled in here.</p>
               </div>
-              <p class="field-card-note">No value at Style level either — this can be filled in here.</p>
-            </div>
-          <% } %>
+            <% } %>
+          <% }); %>
         <% }); %>
-        <% if (typeof dppValues === 'undefined' || dppValues.length === 0) { %>
+        <% if (allDppValues.length === 0) { %>
           <p class="muted" style="font-style:italic;">No fields are configured to be editable at the GTIN level.</p>
         <% } %>
       </div>
