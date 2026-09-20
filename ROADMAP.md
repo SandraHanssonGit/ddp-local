@@ -17,8 +17,37 @@ GTIN-only architecture for reference only.
 longer reflect current priority** - kept for context, not as the
 current plan. See "Platform vision, consolidated" further down for
 the current state of everything (built / designed / genuinely new),
-and the still-open items list further below for what's actually
-outstanding right now.
+and the current backlog priority immediately below for what's
+actually outstanding right now.
+
+## Current backlog priority (2026-09-20)
+
+In this order: fix known bugs first, then the probable follow-ups
+flagged from this session's fixes, then the placeholder new-feature
+items (not designed in depth yet, just captured so they aren't lost).
+
+**1. Bugs** (see "Known bugs found during this work" below for detail)
+- `repositories/sgtins.js`'s `create()` omits `batch_id` from its
+  INSERT despite the column being `NOT NULL` - latent, no live route
+  calls it yet.
+- Orphaned `batch_gtins` row (batch 1 → a `gtin_id` that no longer
+  exists) - masked by the JOIN today, worth a real cleanup pass.
+
+**2. Follow-ups** (probable, not yet confirmed with user)
+- Variant and SGTIN admin detail pages likely have the same
+  "only shows editable-here fields" bug already fixed on GTIN and
+  Style detail (see "GTIN detail page was hiding non-GTIN-editable
+  fields entirely" below) - same `getFieldsForLevel(level, id)`
+  pattern, not yet checked or fixed for these two pages.
+
+**3. New feature placeholders** (captured, not designed in depth)
+1. External API / GraphQL access - see "External API / integration
+   access" below.
+2. Test Scan tool - design already confirmed (see "Soft/lazy SGTIN
+   creation on first scan..." below), just needs building; should live
+   under its own Settings tab.
+3. Admin Hub role-based access control (RBAC) - see "Admin Hub
+   role-based access control (RBAC)" below.
 
 | # | Phase | Why this position |
 |---|---|---|
