@@ -234,10 +234,13 @@
               <button type="button" onclick="toggleEdit('dpp-fields')" class="btn">Cancel</button>
             </div>
           </div>
-        </div>
 
-        <!-- Transparency Card (internal code/table names stay "supply chain") -->
-        <div class="card">
+          <!-- Transparency (merged in - same card, same subject: it's a
+               digital product information field too (data_type=
+               'repeating_group'), just with its own dedicated UI instead
+               of a plain text/textarea like the fields above. Internal
+               code/table names stay "supply chain". -->
+          <div style="border-top:1px solid var(--hairline); margin-top:20px; padding-top:20px;">
           <div class="card-head">
             <h2>Transparency</h2>
             <button onclick="document.getElementById('addSupplyChainForm').classList.toggle('hidden')" class="btn btn-primary">+ Add Step</button>
@@ -312,6 +315,7 @@
           <% } else { %>
             <p class="muted" style="font-style:italic;">No transparency steps added yet.</p>
           <% } %>
+          </div>
         </div>
 
         <!-- Variants Card - moved below the passport-content cards
