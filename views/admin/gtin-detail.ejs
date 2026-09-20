@@ -29,9 +29,9 @@
         <p><span class="label-sm">Variant:</span> <%= variant ? variant.variant_name : '—' %></p>
       </div>
       <div class="card">
-        <div class="stat-label">SGTINs Produced</div>
-        <div class="stat-value" style="color:var(--success);"><%= sgtins.length %></div>
-        <div class="stat-list" style="margin-top:16px;">
+        <h3 style="margin-bottom:14px;">Facts</h3>
+        <div class="stat-list">
+          <div class="stat-row"><span class="k">SGTINs Produced:</span><span class="v"><%= sgtins.length %></span></div>
           <div class="stat-row"><span class="k">Batches:</span><span class="v"><%= batchCount %></span></div>
           <div class="stat-row"><span class="k">Last Produced:</span><span class="v"><%= lastProducedDate ? new Date(lastProducedDate).toLocaleDateString('sv-SE') : '—' %></span></div>
         </div>
