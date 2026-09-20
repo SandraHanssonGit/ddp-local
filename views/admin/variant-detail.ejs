@@ -19,10 +19,7 @@
       <a href="/admin-v2?tab=products" class="back-link"><%- icon('arrow-left') %> Back to Products</a>
     </div>
 
-    <div class="detail-grid">
-      <!-- Main Content -->
-      <div>
-
+    <div>
         <!-- Variant Info Card -->
         <div class="card card-identifiers">
           <div class="card-head">
@@ -67,39 +64,52 @@
               <button type="button" onclick="toggleEdit('variant-info')" class="btn">Cancel</button>
             </div>
           </form>
-        </div>
 
-        <!-- Image Management Card -->
-        <div class="card">
-          <h2 style="margin-bottom:20px;">Variant Image</h2>
-
-          <% if (variant.image_url) { %>
-            <div style="margin-bottom:20px;">
-              <p class="small muted" style="margin-bottom:8px;">Current image (this variant):</p>
-              <img src="<%= variant.image_url %>" alt="" class="image-preview">
-              <div style="margin-top:10px;">
-                <a href="#" onclick="deleteVariantImage(); return false;" class="link-action muted">Delete Image (revert to Style's)</a>
+          <!-- Variant Image (merged in - same card, same subject, matching
+               Style's Product Image treatment: hover-zoom, usage info,
+               styled file input). Three states: this variant's own image,
+               falling back to the Style's (dimmed), or neither yet. -->
+          <div style="border-top:1px solid var(--hairline); margin-top:20px; padding-top:20px;">
+            <label class="label-sm" style="display:block; margin-bottom:10px;">Variant Image</label>
+            <div style="display:flex; gap:20px; align-items:flex-start;">
+              <% if (variant.image_url) { %>
+                <div class="image-preview-wrap">
+                  <img src="<%= variant.image_url %>" alt="<%= variant.product_name %>" class="image-preview" title="Hover to zoom">
+                </div>
+              <% } else if (style.image_url) { %>
+                <div class="image-preview-wrap">
+                  <img src="<%= style.image_url %>" alt="<%= variant.product_name %>" class="image-preview" style="opacity:0.75;" title="Hover to zoom — using the Style's image">
+                </div>
+              <% } else { %>
+                <div class="image-box" style="width:130px; height:130px; display:flex; align-items:center; justify-content:center; padding:8px; flex:none;">No image yet</div>
+              <% } %>
+              <div class="small muted" style="flex:1; max-width:360px;">
+                <% if (variant.image_url) { %>
+                  <p style="margin:0 0 8px;">Using this variant's own image.</p>
+                <% } else if (style.image_url) { %>
+                  <p style="margin:0 0 8px;">Using the Style's image (no variant-specific image set).</p>
+                <% } else { %>
+                  <p style="margin:0 0 8px;">No image set for this variant or its Style yet.</p>
+                <% } %>
+                <p style="margin:0 0 8px;"><strong style="color:var(--text);">Used on:</strong></p>
+                <ul style="margin:0 0 12px; padding-left:18px;">
+                  <li>Public passport hero image (this variant)</li>
+                  <li>Products tab thumbnail</li>
+                </ul>
+                <p style="margin:0;">Recommended: square, at least 800&times;800px, JPG/PNG/WebP.</p>
               </div>
             </div>
-          <% } else if (style.image_url) { %>
-            <div style="margin-bottom:20px;">
-              <p class="small muted" style="margin-bottom:8px;">Using product image (no variant-specific image set):</p>
-              <img src="<%= style.image_url %>" alt="" class="image-preview" style="opacity:0.75;">
-            </div>
-          <% } else { %>
-            <div class="image-box" style="margin-bottom:20px;">No image uploaded yet</div>
-          <% } %>
-
-          <div style="border-top:1px solid var(--hairline); padding-top:20px;">
-            <label style="display:block; margin-bottom:10px;">Upload New Image for this Variant</label>
-            <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
-              <label class="btn file-btn">
+            <div style="margin-top:14px; display:flex; gap:10px; align-items:center;">
+              <label class="btn small file-btn">
                 Choose File
                 <input type="file" id="variant-image-upload" accept="image/*" class="file-input-hidden" onchange="document.getElementById('variant-image-upload-name').textContent = this.files[0] ? this.files[0].name : 'No file chosen'">
               </label>
               <span id="variant-image-upload-name" class="small muted">No file chosen</span>
+              <button type="button" onclick="uploadVariantImage()" class="btn small" style="margin-left:8px;">Upload New</button>
+              <% if (variant.image_url) { %>
+                <a href="#" onclick="deleteVariantImage(); return false;" class="link-action muted small" style="margin-left:auto; display:inline-flex; align-items:center; gap:4px;"><%- icon('trash-2', { size: 13 }) %> Delete</a>
+              <% } %>
             </div>
-            <button type="button" onclick="uploadVariantImage()" class="btn btn-primary">Upload Image</button>
           </div>
         </div>
 
@@ -193,11 +203,13 @@
         </div>
 
         <!-- GTINs Card -->
-        <div class="card">
-          <h2 style="margin-bottom:20px;">GTINs for <%= variant.variant_name %></h2>
-
-          <% if (gtins && gtins.length > 0) { %>
-            <div class="table-wrap">
+        <% if (gtins && gtins.length > 0) { %>
+          <div class="card">
+            <div class="card-head">
+              <h2>GTINs for <%= variant.variant_name %></h2>
+              <input type="text" id="variant-gtin-search" placeholder="Search GTIN or Item #…" class="small" style="width:220px;" oninput="filterVariantGtins(this.value)">
+            </div>
+            <div class="table-wrap <%= gtins.length > 5 ? 'table-wrap-scroll' : '' %>">
               <table>
                 <thead>
                   <tr>
@@ -208,14 +220,14 @@
                     <th>Action</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody id="variant-gtin-table-body">
                   <% gtins.forEach(g => {
                     let sizeDisplay = '';
                     if (g.size_value_1) sizeDisplay += g.size_value_1;
                     if (g.size_value_2) sizeDisplay += '-' + g.size_value_2;
                     if (g.size_value_3) sizeDisplay += '-' + g.size_value_3;
                   %>
-                    <tr>
+                    <tr data-search="<%= (g.gtin + ' ' + (g.item_number || '')).toLowerCase() %>">
                       <td class="mono"><strong><%= g.gtin %></strong></td>
                       <td class="small"><%= g.item_number || '—' %></td>
                       <td class="small"><%= sizeDisplay || '—' %></td>
@@ -226,28 +238,27 @@
                 </tbody>
               </table>
             </div>
-          <% } else { %>
-            <div class="empty-state">No GTINs for this variant</div>
-          <% } %>
-        </div>
-
-      </div>
-
-      <!-- Sidebar -->
-      <div>
-        <div class="card">
-          <h3 style="margin-bottom:16px;">Statistics</h3>
-          <div class="stat-list">
-            <div class="stat-row"><span class="k">GTINs:</span><span class="v"><%= gtinCount %></span></div>
-            <div class="stat-row"><span class="k">SGTINs:</span><span class="v"><%= sgtinCount %></span></div>
-            <div class="stat-row"><span class="k">Batches:</span><span class="v"><%= typeof batchCount !== 'undefined' ? batchCount : 0 %></span></div>
+            <p id="variant-gtin-no-match" class="empty-state hidden">No GTINs match "<span id="variant-gtin-no-match-term"></span>"</p>
           </div>
-        </div>
-      </div>
+        <% } %>
+
     </div>
   </div>
 
   <script>
+    function filterVariantGtins(term) {
+      const needle = term.trim().toLowerCase();
+      const rows = document.querySelectorAll('#variant-gtin-table-body tr');
+      let visibleCount = 0;
+      rows.forEach(row => {
+        const match = !needle || row.dataset.search.includes(needle);
+        row.classList.toggle('hidden', !match);
+        if (match) visibleCount++;
+      });
+      document.getElementById('variant-gtin-no-match-term').textContent = term;
+      document.getElementById('variant-gtin-no-match').classList.toggle('hidden', visibleCount > 0 || !needle);
+    }
+
     function toggleEdit(section) {
       const view = document.getElementById(section + '-view');
       const edit = document.getElementById(section + '-edit');
