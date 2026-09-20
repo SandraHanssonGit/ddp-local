@@ -31,6 +31,9 @@
     .logo-crop img{position:absolute;top:-76px;left:0;width:176px;height:176px;filter:var(--logo-filter);mix-blend-mode:multiply;}
     .icon-btn{background:none;border:1px solid var(--hairline);border-radius:100px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);}
     .lang-link{font-size:12px;font-weight:600;padding:6px 10px;border-radius:100px;color:var(--muted);transition:background-color 0.15s ease,color 0.15s ease;}
+    .category-badge{font-size:10px;letter-spacing:0.06em;text-transform:uppercase;font-weight:700;padding:3px 9px;border-radius:100px;}
+    .category-badge.eu_required{background:var(--accent-soft);color:var(--accent);}
+    .category-badge.nudie{background:var(--surface-2);color:var(--muted);}
     .lang-link:hover{background:var(--surface-2);color:var(--text);text-decoration:none;}
     .lang-link.active{background:var(--text);color:var(--bg);}
     .lang-link.active:hover{background:var(--text);color:var(--bg);}
@@ -215,6 +218,9 @@
           <div class="row" style="gap:12px;">
             <svg class="icon" viewBox="0 0 24 24"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
             <span style="font-size:16px;font-weight:600;">Transparency</span>
+            <% if (typeof transparencyCategory !== 'undefined' && transparencyCategory) { %>
+              <span class="category-badge <%= transparencyCategory %>"><%= transparencyCategory === 'eu_required' ? 'EU Required' : 'Nudie' %></span>
+            <% } %>
           </div>
           <svg class="icon" style="color:var(--muted);" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
         </div>

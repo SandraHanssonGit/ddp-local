@@ -156,6 +156,12 @@ async function renderPassportPage(req, res, sgtinRecord, basePath) {
   const supplyChainGroups = transparencyVisible
     ? await supplyChainRepository.getGroupedForEntity('style', passport.style.id)
     : [];
+  // Shows an "EU Required"/"Nudie" badge on the Transparency section
+  // header - it sits outside the EU Required/Nudie accordions (it's a
+  // repeating list, not a normal field), so without this its category
+  // isn't visible anywhere on the page.
+  const transparencyField = await fieldRepository.getFieldDefinitionByKey('transparency');
+  const transparencyCategory = transparencyField ? transparencyField.category : null;
   const roles = await fieldRepository.listRoles();
 
   res.render('dpp-passport', {
@@ -164,6 +170,7 @@ async function renderPassportPage(req, res, sgtinRecord, basePath) {
     events,
     availableLocales,
     supplyChainGroups,
+    transparencyCategory,
     url: basePath,
     locale,
     roles,
@@ -215,6 +222,12 @@ async function renderPassportJson(req, res, sgtinRecord) {
       visitedByBrand: !!step.visited_by_brand
     }))
   }));
+  // Not to be confused with each supplyChain group's own `category`
+  // (a step grouping like "Raw Material"/"Trims") - this is the
+  // eu_required/nudie Digital Access classification of Transparency as
+  // a whole, same badge shown on the HTML passport.
+  const transparencyField = await fieldRepository.getFieldDefinitionByKey('transparency');
+  const supplyChainCategory = transparencyField ? transparencyField.category : null;
 
   // "Last updated" / version come from passport_versions, which is
   // only bumped on direct SGTIN writes (ROADMAP.md) - the same scope
@@ -260,7 +273,8 @@ async function renderPassportJson(req, res, sgtinRecord) {
       source: passport.economicOperator.source
     } : null,
     fields,
-    supplyChain
+    supplyChain,
+    supplyChainCategory
   });
 }
 
