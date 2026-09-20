@@ -40,12 +40,15 @@ items (not designed in depth yet, just captured so they aren't lost).
   referenced it. Verified the Batch page and hub still render
   correctly afterward.
 
-**2. Follow-ups** (probable, not yet confirmed with user)
-- Variant and SGTIN admin detail pages likely have the same
-  "only shows editable-here fields" bug already fixed on GTIN and
-  Style detail (see "GTIN detail page was hiding non-GTIN-editable
-  fields entirely" below) - same `getFieldsForLevel(level, id)`
-  pattern, not yet checked or fixed for these two pages.
+**2. Follow-ups**
+- ~~Variant and SGTIN admin detail pages likely have the same
+  "only shows editable-here fields" bug~~ - **confirmed and fixed
+  2026-09-20**: both used the narrow `getFieldsForLevel(level, id)`
+  pattern. Added `resolveVariantPassport()` to `passport-resolver.js`
+  and wired SGTIN detail to the already-existing
+  `resolveSgtinPassport()` instead of hand-building the inheritance
+  chain. See "Variant and SGTIN detail pages were hiding non-editable
+  fields entirely" below for full detail.
 
 **3. New feature placeholders** (captured, not designed in depth)
 1. External API / GraphQL access - see "External API / integration
@@ -1664,11 +1667,57 @@ in View Mode and locked in Edit Mode; a genuinely GTIN-editable field
 `POST /gtin/:id/dpp-values`; full regression sweep green (hub, Products
 tab, gtin/9, style/9, public JSON passport all unaffected).
 
-**Same bug likely also affects Variant and SGTIN admin detail pages** -
-both still use the same narrow `getFieldsForLevel(level, id)` pattern
-(`routes/admin/hub-v2.js`, variant and sgtin detail routes). Not yet
-requested or fixed - flagged here as a probable follow-up once this
-GTIN fix has been used for a while.
+**Same bug also affected Variant and SGTIN admin detail pages** - both
+used the same narrow `getFieldsForLevel(level, id)` pattern. Confirmed
+and fixed the same day - see "Variant and SGTIN detail pages were
+hiding non-editable fields entirely" below.
+
+## Variant and SGTIN detail pages were hiding non-editable fields entirely ✅ Done (2026-09-20)
+
+Follow-up to the GTIN detail fix above, confirmed via direct code
+inspection rather than a fresh user report: both routes used the exact
+same narrow `getFieldsForLevel(level, id)` query.
+
+- **Variant**: no resolver method existed for the Variant masterdata
+  page, so added `resolveVariantPassport(variantId, locale)` to
+  `passport-resolver.js` (Variant > Style, same shape as
+  `resolveGtinPassport`), and rewired `routes/admin/hub-v2.js`'s
+  `GET /variant/:variantId` to use it. Checked against the live data:
+  every `field_definitions` row happens to have `editable_at_variant=1`
+  today, so this fix doesn't change what's currently visible on any
+  real Variant page - it's a real correctness fix for whenever a
+  Variant-only-restricted field is added, not a visible change today.
+- **SGTIN**: `resolveSgtinPassport()` already existed (it's what the
+  public passport uses) but two things were missing: the admin route
+  was hand-building the same 8-level inheritance chain itself via
+  `getFieldsForLevel('sgtin', ...)` plus seven separate value-map
+  lookups instead of calling the resolver, and the resolver's own
+  `_resolveFieldValueLocaleAware` call for SGTIN never passed
+  `'editable_at_sgtin'` (the `editable` flag parameter added for the
+  GTIN fix), so it always defaulted to `editable: true`. Fixed both -
+  `routes/admin/hub-v2.js`'s `GET /sgtin/:sgtinId` now just calls
+  `resolveSgtinPassport()` and maps its `resolvedFields`, a net
+  simplification as well as a bug fix.
+- Both `views/admin/variant-detail.ejs` and `sgtin-detail.ejs` gained
+  the same View/Edit mode treatment as GTIN detail: a genuinely-unset,
+  non-editable field shows "Not editable at [level] level" instead of
+  the generic "fill this in" message, and Edit Mode shows a locked line
+  (with current value, if any) instead of an editable textarea.
+
+Verified: SGTIN has several `editable_at_sgtin=0` fields
+(`sustainability_info`, `repair_program`, `carbon_footprint`,
+`transparency`, `transport`, `additional_story`,
+`secondhand_program`) that were completely invisible on SGTIN detail
+before this fix - confirmed sgtin/2 (under style 3, which has
+Style-level values) now shows Carbon Footprint and Transparency
+correctly as "Not set anywhere - not editable at SGTIN level", and
+Repair Program (which already had a pre-existing SGTIN-level override
+value from before this fix existed) correctly shows that value in View
+Mode while Edit Mode locks it from further changes. Confirmed a
+genuinely SGTIN-editable field (Color) still saves correctly via
+`POST /sgtin/:id/dpp-values`, cleaned up the test value afterward. Full
+regression sweep green (all Variant/SGTIN pages, hub, public passport
+HTML unaffected).
 
 ## Configurable passport sections ✅ Done (2026-09-20)
 
