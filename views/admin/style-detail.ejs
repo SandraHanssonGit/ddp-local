@@ -83,36 +83,6 @@
           </form>
         </div>
 
-        <!-- DPP Values Card -->
-        <div class="card">
-          <h2 style="margin-bottom:20px;">Digital Product Passport (DPP)</h2>
-
-          <div class="callout">
-            <p class="callout-title">Public Passport URL (GS1 Digital Link)</p>
-            <p class="mono small" style="background:var(--surface); padding:8px 10px; border-radius:4px; border:1px solid var(--hairline); word-break:break-all;">
-              http://localhost:3000/01/{gtin}/21/{serial}
-            </p>
-            <p class="small muted" style="margin-top:8px;">Example URLs will appear when you view GTINs and SGTINs</p>
-          </div>
-
-          <% const setDppValues = typeof dppValues !== 'undefined' ? dppValues.filter(v => v.value) : []; %>
-          <% if (setDppValues.length > 0) { %>
-            <h3 class="label-sm" style="margin-bottom:12px;">DPP Values (EU & Nudie)</h3>
-            <% setDppValues.forEach(v => { %>
-              <div style="border-left:3px solid var(--accent); padding:6px 0 6px 14px; margin-bottom:12px;">
-                <p style="font-weight:600;"><%= v.label %></p>
-                <p class="small"><%= v.value %></p>
-                <p class="small muted" style="margin-top:4px;">Category: <span class="mono"><%= v.category %></span></p>
-              </div>
-            <% }); %>
-          <% } else { %>
-            <div class="empty-state">
-              No DPP values set for this style yet<br>
-              <a href="#dpp-fields" onclick="document.getElementById('dpp-fields-edit').classList.remove('hidden'); document.getElementById('dpp-fields-view').classList.add('hidden');" class="link-action">Add DPP Values <%- icon('arrow-right', { size: 14 }) %></a>
-            </div>
-          <% } %>
-        </div>
-
         <!-- Image Management Card -->
         <div class="card">
           <h2 style="margin-bottom:20px;">Product Images</h2>
@@ -314,6 +284,7 @@
 
           <!-- View Mode -->
           <div id="dpp-fields-view">
+            <% const setDppValues = typeof dppValues !== 'undefined' ? dppValues.filter(v => v.value) : []; %>
             <% if (setDppValues.length > 0) { %>
               <%
                 const styleFieldGroups = [
