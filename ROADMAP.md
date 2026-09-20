@@ -1146,15 +1146,38 @@ phase. Each item below is a decision/plan, not yet implemented.
   lock behavior starting only once `active`. Batch/GTIN-level "active
   once shipped" (mentioned as a related idea) needs its own follow-up
   design pass — shipping isn't tracked anywhere in the schema yet.
-- **Audit hardcoded columns vs dynamic fields.** Found and fixed one
-  real duplication already (`batches.country_of_production` vs the
-  dynamic `country_of_origin` field). Other hardcoded columns likely
-  have the same problem — `batches.production_order/supplier/factory`,
-  `gtins.size_value_*/color`, etc. Plan: go through each one and decide
-  — genuine structural identifier (stays a column: `style_number`,
-  `gtin`, `serial_number`) vs. actual DPP content that should migrate
-  to a dynamic field with a real EU/Nudie category, so it isn't
-  invisible to the categorization system.
+- **Audit hardcoded columns vs dynamic fields - findings in, decision
+  pending (2026-09-20).** Found and fixed one real duplication already
+  (`batches.country_of_production` vs the dynamic `country_of_origin`
+  field). Audited the rest of `db/init-v2.js` against the live
+  `field_definitions` table (only 7 rows exist today - none overlap any
+  of the columns below, so this isn't about duplicate storage, it's
+  about consumer-facing content with no override/audit/lock support):
+  - **Migration candidates** (rendered on the public/consumer passport
+    today with zero inheritance/override/audit/lock, same gap
+    `country_of_origin` used to have): `batches.supplier`,
+    `batches.factory`, `gtins.color`.
+  - **Stay columns** (structural/operational, not DPP content):
+    `batches.production_order` (a PO reference key), `gtins.size_value_1/2/3`
+    (functions as SKU identity alongside `item_number`, though it IS
+    shown to consumers - flagged as borderline, see below),
+    `styles.product_type_id` (the FK driving GS1 scheme selection).
+  - **Needs its own decision, not a field-system question**:
+    `gtins.variant` (free-text column) looks like leftover duplication
+    against the real `variants` table/`variant_id` FK, not against
+    `dpp_values`. `gtins.product_type` similarly looks like leftover
+    duplication against `styles.product_type_id`. `styles.product_type`
+    (text) is already mid-migration to `product_type_id` via the
+    existing backfill in `db/init-v2.js` - a separate, already-in-
+    progress cleanup, not part of this field-system question.
+  - **Likely dead, needs confirming**: `gtins.ean` is write-only (only
+    touched by `import-service.js`/`repositories/gtins.js`, no view or
+    service reads it back) - same shape as `country_of_production`
+    before that was confirmed dead. `gtins.weight` is populated on
+    import but not currently rendered in any view found either.
+  Not migrated yet - this needs the same "which levels can edit it,
+  what category" decision every other field gets, not something to
+  decide autonomously mid-cleanup.
 - **Role-based field visibility - superseded (2026-09-20), see
   "Extended authority/recycler view" under "Platform vision" instead.**
   This entry originally proposed a public, no-login role selector
