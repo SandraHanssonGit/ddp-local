@@ -1294,16 +1294,17 @@ phase. Each item below is a decision/plan, not yet implemented.
   to add the first one). `product_name` is enforced as a **required**
   form field per the 2026-09-16 decision below, even though the column
   stays nullable.
-- ~~**No admin UI to create a new GTIN at all.**~~ ✅ Done (2026-09-20,
-  found during the same pass as Batch/Variant above - not originally
-  its own bullet here, since `gtinRepository.create()` looked usable
-  and the removed "Add GTIN to Batch" form made it seem like GTIN
-  creation just didn't belong on the Batch page rather than not
-  existing anywhere). `gtins.create()` was correct but unused - added
-  `POST /api/admin/styles/:styleId/gtins` and a "GTINs" card on
-  `style-detail.ejs` for GTINs directly under the Style (the case with
-  no card at all before this, including plain jeans with no variants -
-  CLAUDE.md's own primary example).
+- ~~**No admin UI to create a new GTIN at all.**~~ ✅ Done (2026-09-20),
+  **manual form since removed (same day)** - found during the same pass
+  as Batch/Variant above, `gtins.create()` was correct but unused, so
+  added `POST /api/admin/styles/:styleId/gtins` and a "+ Add GTIN" form
+  on `style-detail.ejs`. User then clarified: "Add GTIN kommer komma
+  externt så behövs nog inte där" - GTIN creation is meant to come from
+  an external system (PIM/M3), not manual admin entry, so the form was
+  a dead end. Removed the button/form/JS handler; the route itself is
+  left in place as a plausible future integration point. The "GTINs"
+  card on `style-detail.ejs` is now read-only and only renders when
+  there's a direct-under-Style GTIN to show.
 - ~~**SGTIN serial number generator doesn't exist.**~~ ✅ Done
   (2026-09-20). Also fixed in passing: `repositories/sgtins.js`'s
   `create()` never actually inserted `batch_id` despite the column
