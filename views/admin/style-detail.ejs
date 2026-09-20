@@ -389,9 +389,7 @@
           <div class="card">
             <div class="card-head">
               <h2>GTINs</h2>
-              <% if (directGtins.length > 5) { %>
-                <input type="text" id="style-gtin-search" placeholder="Search GTIN or Item #…" class="small" style="width:220px;" oninput="filterStyleGtins(this.value)">
-              <% } %>
+              <input type="text" id="style-gtin-search" placeholder="Search GTIN or Item #…" class="small" style="width:220px;" oninput="filterStyleGtins(this.value)">
             </div>
             <div class="table-wrap <%= directGtins.length > 5 ? 'table-wrap-scroll' : '' %>">
               <table>
