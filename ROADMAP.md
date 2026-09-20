@@ -34,8 +34,11 @@ items (not designed in depth yet, just captured so they aren't lost).
   route already calls it with the right argument order. Stale note,
   left over from before this session's Batch Contents / produce-sgtins
   work touched this path.
-- Orphaned `batch_gtins` row (batch 1 → a `gtin_id` that no longer
-  exists) - masked by the JOIN today, worth a real cleanup pass.
+- ~~Orphaned `batch_gtins` row~~ - **fixed 2026-09-20**: `batch_gtins.id=1`
+  (batch 1 → `gtin_id=1`, which no longer existed in `gtins`) deleted
+  after confirming no `dpp_values` or `field_change_log` rows
+  referenced it. Verified the Batch page and hub still render
+  correctly afterward.
 
 **2. Follow-ups** (probable, not yet confirmed with user)
 - Variant and SGTIN admin detail pages likely have the same
@@ -1620,13 +1623,12 @@ exception, not the start of hardening the admin API generally.
   (`routes/admin/batch-gtins.js`) already calls `create(gtinId,
   batchId, serialNumber, options)` with `batch_id` correctly included
   in the INSERT. This note was stale.
-- **Orphaned `batch_gtins` row** (found 2026-09-19 while building the
-  Batch tree): batch 1 has a `batch_gtins` row whose `gtin_id` (1)
-  no longer exists in `gtins` - a dangling foreign key, likely left
-  over from earlier demo-data cleanup in this session. Not currently
-  causing visible problems (every query joins `gtins` and silently
-  drops rows that don't match), but worth a real cleanup pass rather
-  than relying on the JOIN masking it forever.
+- ~~**Orphaned `batch_gtins` row**~~ (found 2026-09-19 while building
+  the Batch tree) - **fixed 2026-09-20**: `batch_gtins.id=1` (batch 1
+  → `gtin_id=1`, which no longer existed in `gtins`) was a dangling
+  foreign key, likely left over from earlier demo-data cleanup. Deleted
+  after confirming no `dpp_values` or `field_change_log` rows
+  referenced it; Batch page and hub verified to still render correctly.
 
 ## GTIN detail page was hiding non-GTIN-editable fields entirely ✅ Done (2026-09-20)
 
