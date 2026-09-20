@@ -16,6 +16,7 @@ const db = require('../../db/init-v2').db;
 const batchGtinsRouter = require('./batch-gtins');
 const fieldRepository = require('../../repositories/fields');
 const variantRepository = require('../../repositories/variants');
+const batchRepository = require('../../repositories/batches');
 const supplyChainRepository = require('../../repositories/supply-chain');
 const economicOperatorRepository = require('../../repositories/economic-operators');
 const productTypeRepository = require('../../repositories/product-types');
@@ -713,6 +714,30 @@ router.post('/variant/:variantId/dpp-values', async (req, res) => {
 });
 
 // Batch detail
+// Create a new Batch
+router.post('/batch', async (req, res) => {
+  try {
+    const { batch_id, production_order, production_date, supplier, factory, country_of_production } = req.body;
+    if (!batch_id) {
+      return res.status(400).json({ success: false, error: 'batch_id is required' });
+    }
+
+    const existing = await batchRepository.getByBatchId(batch_id);
+    if (existing) {
+      return res.status(400).json({ success: false, error: `Batch ${batch_id} already exists` });
+    }
+
+    const id = await batchRepository.create(batch_id, {
+      production_order, production_date, supplier, factory, country_of_production
+    });
+    const batch = await batchRepository.getById(id);
+
+    res.json({ success: true, batch });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 router.get('/batch/:batchId', async (req, res) => {
   try {
     const batch = await getOne('SELECT * FROM batches WHERE id = ?', [req.params.batchId]);
