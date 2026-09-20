@@ -151,7 +151,6 @@ const init = () => {
         data_type TEXT DEFAULT 'text',
         category TEXT,
         required BOOLEAN DEFAULT 0,
-        consumer_visible BOOLEAN DEFAULT 1,
         editable_at_style BOOLEAN DEFAULT 1,
         editable_at_batch BOOLEAN DEFAULT 1,
         editable_at_gtin BOOLEAN DEFAULT 1,
@@ -871,6 +870,29 @@ const migrateDigitalAccessRoles = async () => {
   }
   console.log('[DPP v2] Digital Access setup complete');
 };
+
+// Split GTIN into two independent Levels (2026-09-20, user request):
+// "masterdata" GTIN (entity_type='gtin', the GTIN's own detail page)
+// vs "batch data" GTIN (entity_type='batch_gtin', a GTIN scoped to one
+// Batch - the Batch tree's "Batch (this GTIN)" view). These used to
+// share editable_at_gtin (documented reasoning at the time: "same
+// permission, just narrower scope") - user wants them decidable
+// independently, since a field might belong on the GTIN masterdata
+// page but not be something a batch run should override, or vice
+// versa. Backfills the new column from editable_at_gtin so existing
+// fields keep behaving exactly as before until explicitly changed.
+const migrateBatchGtinLevel = async () => {
+  const columns = await all(`PRAGMA table_info(field_definitions)`);
+  const hasColumn = columns.some(c => c.name === 'editable_at_batch_gtin');
+  if (hasColumn) return;
+
+  console.log('[DPP v2] Adding field_definitions.editable_at_batch_gtin...');
+  await run(`ALTER TABLE field_definitions ADD COLUMN editable_at_batch_gtin BOOLEAN DEFAULT 1`);
+  await run(`UPDATE field_definitions SET editable_at_batch_gtin = editable_at_gtin`);
+  console.log('[DPP v2] editable_at_batch_gtin added and backfilled from editable_at_gtin');
+};
+migrateBatchGtinLevel().catch(err => console.error('[editable_at_batch_gtin migration]', err));
+
 // migrateSupplierFactoryColorFields assigns field_roles by looking up
 // roles by key, so it must run AFTER migrateDigitalAccessRoles has
 // seeded them (and after that migration has dropped the old

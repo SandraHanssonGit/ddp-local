@@ -18,7 +18,7 @@ router.post('/', async (req, res) => {
   try {
     const {
       field_key, label, category, description, data_type, required, role_ids, sort_order,
-      editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_sgtin,
+      editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_batch_gtin, editable_at_sgtin,
       locks_at_production
     } = req.body;
 
@@ -36,6 +36,7 @@ router.post('/', async (req, res) => {
       editable_at_variant: editable_at_variant !== false,
       editable_at_batch: editable_at_batch !== false,
       editable_at_gtin: editable_at_gtin !== false,
+      editable_at_batch_gtin: editable_at_batch_gtin !== false,
       editable_at_sgtin: editable_at_sgtin !== false,
       locks_at_production: locks_at_production === undefined ? undefined : !!locks_at_production
     });
@@ -66,15 +67,15 @@ router.put('/:fieldId', async (req, res) => {
   try {
     const {
       label, description, required, role_ids, sort_order, category,
-      editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_sgtin,
+      editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_batch_gtin, editable_at_sgtin,
       locks_at_production
     } = req.body;
 
     // Only touch fields the caller actually sent - a bare `undefined` bind
     // value throws in sqlite3, and omitting a field from a request body
     // is not the same as explicitly clearing it
-    const booleanFields = new Set(['required', 'editable_at_style', 'editable_at_variant', 'editable_at_batch', 'editable_at_gtin', 'editable_at_sgtin', 'locks_at_production']);
-    const candidates = { label, description, required, sort_order, category, editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_sgtin, locks_at_production };
+    const booleanFields = new Set(['required', 'editable_at_style', 'editable_at_variant', 'editable_at_batch', 'editable_at_gtin', 'editable_at_batch_gtin', 'editable_at_sgtin', 'locks_at_production']);
+    const candidates = { label, description, required, sort_order, category, editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_batch_gtin, editable_at_sgtin, locks_at_production };
     const updates = {};
     for (const [key, value] of Object.entries(candidates)) {
       if (value === undefined) continue;

@@ -6,9 +6,9 @@ class FieldRepository {
     const sql = `
       INSERT INTO field_definitions
       (field_key, label, description, data_type, category, required,
-       editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_sgtin,
+       editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_batch_gtin, editable_at_sgtin,
        locks_at_production, sort_order)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     // No explicit locks_at_production given - default from category,
     // same rule the startup backfill uses (migrateLocksAtProduction in
@@ -28,6 +28,7 @@ class FieldRepository {
       options.editable_at_variant !== false ? 1 : 0,
       options.editable_at_batch !== false ? 1 : 0,
       options.editable_at_gtin !== false ? 1 : 0,
+      options.editable_at_batch_gtin !== false ? 1 : 0,
       options.editable_at_sgtin !== false ? 1 : 0,
       locksAtProduction,
       options.sort_order || 0
@@ -154,7 +155,7 @@ class FieldRepository {
 
   async updateFieldDefinition(fieldId, updates) {
     const allowedFields = ['label', 'description', 'required', 'sort_order', 'category',
-                          'editable_at_style', 'editable_at_variant', 'editable_at_batch', 'editable_at_gtin', 'editable_at_sgtin',
+                          'editable_at_style', 'editable_at_variant', 'editable_at_batch', 'editable_at_gtin', 'editable_at_batch_gtin', 'editable_at_sgtin',
                           'locks_at_production'];
     const setClauses = [];
     const values = [];
@@ -300,9 +301,11 @@ class FieldRepository {
       batch_style: 'editable_at_batch',
       gtin: 'editable_at_gtin',
       // batch_gtin is the freeze-at-production snapshot level (2026-09-19)
-      // - a GTIN-level value narrowed to one specific Batch. Same
-      // "can this field be set at GTIN?" permission as plain gtin.
-      batch_gtin: 'editable_at_gtin',
+      // - a GTIN-level value narrowed to one specific Batch. Split from
+      // plain GTIN into its own permission (2026-09-20, user request) -
+      // "masterdata" GTIN and "batch data" GTIN are independently
+      // decidable now, not the same checkbox.
+      batch_gtin: 'editable_at_batch_gtin',
       sgtin: 'editable_at_sgtin'
     }[entityType];
 

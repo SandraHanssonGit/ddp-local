@@ -550,10 +550,11 @@
                 <label class="checkbox-row"><input type="checkbox" name="editable_at_style" checked /> Style</label>
                 <label class="checkbox-row"><input type="checkbox" name="editable_at_variant" checked /> Variant</label>
                 <label class="checkbox-row"><input type="checkbox" name="editable_at_batch" checked /> Batch</label>
-                <label class="checkbox-row"><input type="checkbox" name="editable_at_gtin" /> GTIN</label>
+                <label class="checkbox-row"><input type="checkbox" name="editable_at_gtin" /> GTIN (Masterdata)</label>
+                <label class="checkbox-row"><input type="checkbox" name="editable_at_batch_gtin" /> GTIN (Batch)</label>
                 <label class="checkbox-row"><input type="checkbox" name="editable_at_sgtin" /> SGTIN</label>
               </div>
-              <p class="small muted" style="margin:10px 0 0;">The field only appears as an editable row on the levels checked here.</p>
+              <p class="small muted" style="margin:10px 0 0;">The field only appears as an editable row on the levels checked here. GTIN (Masterdata) is the GTIN's own detail page; GTIN (Batch) is that GTIN scoped to one Batch in the Batch tree - independent settings.</p>
             </div>
             <button type="submit" class="btn btn-primary">Add Field</button>
           </form>
@@ -595,7 +596,8 @@
                     { key: 'editable_at_style', short: 'S', name: 'Style' },
                     { key: 'editable_at_variant', short: 'V', name: 'Variant' },
                     { key: 'editable_at_batch', short: 'B', name: 'Batch' },
-                    { key: 'editable_at_gtin', short: 'G', name: 'GTIN' },
+                    { key: 'editable_at_gtin', short: 'G', name: 'GTIN (Masterdata)' },
+                    { key: 'editable_at_batch_gtin', short: 'BG', name: 'GTIN (Batch)' },
                     { key: 'editable_at_sgtin', short: 'SG', name: 'SGTIN' }
                   ];
                 %>
@@ -717,6 +719,7 @@
               editable_at_variant: formData.has('editable_at_variant'),
               editable_at_batch: formData.has('editable_at_batch'),
               editable_at_gtin: formData.has('editable_at_gtin'),
+              editable_at_batch_gtin: formData.has('editable_at_batch_gtin'),
               editable_at_sgtin: formData.has('editable_at_sgtin')
             };
 
@@ -769,6 +772,7 @@
               editable_at_variant: formData.has('editable_at_variant'),
               editable_at_batch: formData.has('editable_at_batch'),
               editable_at_gtin: formData.has('editable_at_gtin'),
+              editable_at_batch_gtin: formData.has('editable_at_batch_gtin'),
               editable_at_sgtin: formData.has('editable_at_sgtin')
             };
 

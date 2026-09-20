@@ -469,9 +469,16 @@ class PassportResolver {
     // The one level an edit at this scope actually writes to - the
     // same entity the merged view's Save button already posts to.
     const writeTarget = gtin ? 'batch_gtin' : 'batch_style';
+    // Which Levels checkbox gates writing at this scope - batch_gtin
+    // (a GTIN scoped to this Batch) has its own permission, split from
+    // plain GTIN masterdata per user request (2026-09-20); batch_style
+    // (Style/Variant scoped to this Batch) still reuses editable_at_batch,
+    // unchanged.
+    const editableColumn = gtin ? 'editable_at_batch_gtin' : 'editable_at_batch';
 
     const fieldDefinitions = await fieldRepository.listFieldDefinitions();
     const resolvedFields = fieldDefinitions.map(fieldDef => {
+      const editable = !!fieldDef[editableColumn];
       for (const lvl of levelDefs) {
         const value = lvl.valueMap[fieldDef.field_key];
         if (value) {
@@ -486,7 +493,8 @@ class PassportResolver {
             value,
             source: lvl.source,
             locked: !!lvl.lockedMap[fieldDef.field_key],
-            set_at_this_scope: lvl.source === writeTarget
+            set_at_this_scope: lvl.source === writeTarget,
+            editable
           };
         }
       }
@@ -497,7 +505,8 @@ class PassportResolver {
         value: undefined,
         source: null,
         locked: false,
-        set_at_this_scope: false
+        set_at_this_scope: false,
+        editable
       };
     });
 

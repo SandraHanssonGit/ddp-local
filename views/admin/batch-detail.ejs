@@ -345,15 +345,22 @@
         <% if (typeof dppValues !== 'undefined' && dppValues.length > 0) { %>
           <% dppValues.forEach(val => { %>
             <% const isScopedField = typeof val.source !== 'undefined'; %>
+            <% const notEditableHere = isScopedField && val.editable === false; %>
             <div class="field-row">
               <label style="display:block; margin-bottom:6px;"><%= val.label %></label>
-              <% if (isScopedField && !val.set_at_this_scope && val.value) { %>
-                <p class="small muted" style="margin-bottom:6px; display:flex; align-items:center; gap:4px;">
-                  <% if (val.locked) { %><%- icon('lock', { size: 12 }) %><% } %>
-                  Inherited from <%= fieldSourceLabel(val.source) %>: <span class="mono"><%= val.value %></span> — leave blank to keep inheriting
+              <% if (notEditableHere) { %>
+                <p class="small muted" style="display:flex; align-items:center; gap:4px;">
+                  <%- icon('lock', { size: 12 }) %> Not editable at this level (see Field Config &rsaquo; Levels) - <%= val.value ? ('current value: ' + val.value) : 'no value set' %>
                 </p>
+              <% } else { %>
+                <% if (isScopedField && !val.set_at_this_scope && val.value) { %>
+                  <p class="small muted" style="margin-bottom:6px; display:flex; align-items:center; gap:4px;">
+                    <% if (val.locked) { %><%- icon('lock', { size: 12 }) %><% } %>
+                    Inherited from <%= fieldSourceLabel(val.source) %>: <span class="mono"><%= val.value %></span> — leave blank to keep inheriting
+                  </p>
+                <% } %>
+                <textarea id="field-<%= val.field_key %>" rows="3"><%= (isScopedField && !val.set_at_this_scope) ? '' : (val.value || '') %></textarea>
               <% } %>
-              <textarea id="field-<%= val.field_key %>" rows="3"><%= (isScopedField && !val.set_at_this_scope) ? '' : (val.value || '') %></textarea>
             </div>
           <% }); %>
         <% } else { %>
