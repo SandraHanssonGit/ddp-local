@@ -80,7 +80,6 @@ const init = () => {
         style_id INTEGER NOT NULL,
         variant_id INTEGER,
         gtin TEXT NOT NULL UNIQUE,
-        ean TEXT,
         size TEXT,
         color TEXT,
         variant TEXT,
@@ -663,12 +662,31 @@ const migrateDeduplicateDppValues = async () => {
   console.log('[DPP v2] dpp_values deduplication complete');
 };
 
+// Found 2026-09-20 during the hardcoded-columns audit: gtins.gtin
+// already IS the GTIN/EAN barcode (CLAUDE.md treats them as the same
+// identifier, and every real gtins.gtin value confirms it - e.g.
+// "5711814090000"). The separate gtins.ean column was meant for a case
+// where a product's published EAN differs from its internal GTIN, but
+// it's never been populated (always NULL) and never read back anywhere
+// - user confirmed there should only be one field for this. Guarded by
+// checking for the column first, so this only runs once.
+const migrateDropGtinEan = async () => {
+  const columns = await all(`PRAGMA table_info(gtins)`);
+  const hasEan = columns.some(c => c.name === 'ean');
+  if (!hasEan) return;
+
+  console.log('[DPP v2] Dropping unused gtins.ean column (gtin is the single EAN field)...');
+  await run(`ALTER TABLE gtins DROP COLUMN ean`);
+  console.log('[DPP v2] gtins.ean drop complete');
+};
+
 // Initialize on module load
 init();
 migrateDppValuesLocale().catch(err => console.error('[dpp_values locale migration]', err));
 migrateProductTypes().catch(err => console.error('[product_types migration]', err));
 migrateLocksAtProduction().catch(err => console.error('[locks_at_production migration]', err));
 migrateDeduplicateDppValues().catch(err => console.error('[dpp_values deduplication]', err));
+migrateDropGtinEan().catch(err => console.error('[gtins.ean drop migration]', err));
 
 module.exports = {
   db,

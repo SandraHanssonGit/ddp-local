@@ -364,7 +364,6 @@ class ImportService {
           style_id: parseInt(row.style_id),
           variant_id: row.variant_id ? parseInt(row.variant_id) : null,
           gtin: row.gtin.trim(),
-          ean: row.ean || null,
           product_type: validation.productType,
           item_number: row.item_number || null,
           size_value_1: validation.parsed?.size_value_1 || row.size_value_1 || null,
@@ -378,17 +377,16 @@ class ImportService {
           try {
             const sql = `
               INSERT INTO gtins (
-                style_id, variant_id, gtin, ean, product_type, item_number,
+                style_id, variant_id, gtin, product_type, item_number,
                 size_value_1, size_value_2, size_value_3, weight
               )
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
 
             await runQuery(sql, [
               gtinRecord.style_id,
               gtinRecord.variant_id || null,
               gtinRecord.gtin,
-              gtinRecord.ean,
               gtinRecord.product_type,
               gtinRecord.item_number,
               gtinRecord.size_value_1,
