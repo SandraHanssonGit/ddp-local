@@ -279,7 +279,6 @@
                   <th>GTIN</th>
                   <th>SKU / Name</th>
                   <th>Batch</th>
-                  <th>QC Status</th>
                   <th>Produktpass</th>
                   <th>Action</th>
                 </tr>
@@ -296,15 +295,6 @@
                       <span class="muted" style="display:block;"><%= sg.product_name %></span>
                     </td>
                     <td class="mono small"><%= sg.batch_id %></td>
-                    <td>
-                      <% if (sg.qc_status === 'passed') { %>
-                        <span class="badge badge-success small"><%- icon('check', { size: 12 }) %> Passed</span>
-                      <% } else if (sg.qc_status === 'failed') { %>
-                        <span class="badge badge-danger small"><%- icon('x', { size: 12 }) %> Failed</span>
-                      <% } else { %>
-                        <span class="badge badge-muted small">—</span>
-                      <% } %>
-                    </td>
                     <td><a href="<%= dppUrl %>" target="_blank" class="link-action"><%- icon('arrow-right') %></a></td>
                     <td><a href="/admin-v2/sgtin/<%= sg.id %>" class="link-action"><%- icon('arrow-right') %></a></td>
                   </tr>
