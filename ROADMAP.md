@@ -518,6 +518,21 @@ end-to-end (GTIN-scoped frozen values display and save correctly,
 public passport reflects edits immediately, Style-scoping still works
 unchanged, full regression sweep green).
 
+**Follow-up, also done (2026-09-20)**: user tried the merged view and
+found it "för otydligt" (too unclear) - the scoped field editor only
+listed fields *editable at that exact level* (via `getFieldsForLevel`),
+hiding everything inherited from Style/GTIN/etc: "man vill ju se alla
+fält ner till den nivån man tittar på och man vill ju se alla fält
+som är låsta" (want to see every field down to the level being viewed,
+and want to see which ones are locked). Added
+`passport-resolver.js`'s `resolveBatchScopedFields()` - resolves
+*every* field (not just editable-here ones) with its value, source
+level, and locked status, same precedence as the SGTIN chain minus
+the SGTIN layer. The scoped card now shows three states per field:
+set at this scope (editable, lock icon if locked), inherited from
+elsewhere (read-only, "Inherited from X" note), or not set anywhere.
+Whole-batch view is unchanged.
+
 ## Soft/lazy SGTIN creation on first scan + "Test scan a passport" tool (concept idea-only; the test tool itself is fully designed, not built, 2026-09-19)
 
 Raised alongside the question above: rather than requiring every
