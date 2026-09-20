@@ -80,6 +80,21 @@
               </p>
             </div>
           </div>
+
+          <!-- Produktpass URL (merged in - moved out of its own
+               sidebar callout, same card/subject as this unit's other
+               identifiers) -->
+          <div style="border-top:1px solid var(--hairline); margin-top:20px; padding-top:20px;">
+            <label class="label-sm" style="display:block; margin-bottom:10px;">Produktpass URL (GS1 Digital Link)</label>
+            <p class="mono small" style="word-break:break-all;"><%= dppUrl %></p>
+            <p style="margin-top:10px;"><a href="<%= dppUrl %>" target="_blank" class="link-action">Öppna produktpass <%- icon('arrow-right', { size: 14 }) %></a></p>
+            <p class="small muted" style="margin-top:14px; padding-top:12px; border-top:1px solid var(--hairline);">
+              Legacy-länk (fungerar fortfarande internt):<br>
+              <a href="/dpp/<%= batch.batch_id %>/<%= gtin.gtin %>/<%= sgtin.serial_number %>" target="_blank" class="mono" style="word-break:break-all;">
+                /dpp/<%= batch.batch_id %>/<%= gtin.gtin %>/<%= sgtin.serial_number %>
+              </a>
+            </p>
+          </div>
         </div>
 
         <!-- Lifecycle Events -->
@@ -333,19 +348,6 @@
             <% } %>
             <a href="/admin-v2/style/<%= style.id %>"><%- icon('arrow-right', { size: 14 }) %> View Product</a>
           </div>
-        </div>
-
-        <!-- DPP URL -->
-        <div class="callout">
-          <p class="callout-title">Produktpass URL (GS1 Digital Link)</p>
-          <p class="mono small" style="word-break:break-all;"><%= dppUrl %></p>
-          <p style="margin-top:10px;"><a href="<%= dppUrl %>" target="_blank" class="link-action">Öppna produktpass <%- icon('arrow-right', { size: 14 }) %></a></p>
-          <p class="small muted" style="margin-top:14px; padding-top:12px; border-top:1px solid var(--hairline);">
-            Legacy-länk (fungerar fortfarande internt):<br>
-            <a href="/dpp/<%= batch.batch_id %>/<%= gtin.gtin %>/<%= sgtin.serial_number %>" target="_blank" class="mono" style="word-break:break-all;">
-              /dpp/<%= batch.batch_id %>/<%= gtin.gtin %>/<%= sgtin.serial_number %>
-            </a>
-          </p>
         </div>
       </div>
     </div>
