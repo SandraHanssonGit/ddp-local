@@ -18,7 +18,7 @@
       </div>
       <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
         <a href="/admin-v2?tab=sgtins" class="btn"><%- icon('arrow-left') %> Back to Individual Units</a>
-        <a href="/01/<%= toGtin14(gtin.gtin) %>/21/<%= sgtin.serial_number %>" target="_blank" class="btn btn-primary"><%- icon('arrow-right') %> Produktpass</a>
+        <a href="<%= dppUrl %>" target="_blank" class="btn btn-primary"><%- icon('arrow-right') %> Produktpass</a>
       </div>
     </div>
 
@@ -325,8 +325,8 @@
         <!-- DPP URL -->
         <div class="callout">
           <p class="callout-title">Produktpass URL (GS1 Digital Link)</p>
-          <p class="mono small" style="word-break:break-all;">/01/<%= toGtin14(gtin.gtin) %>/21/<%= sgtin.serial_number %></p>
-          <p style="margin-top:10px;"><a href="/01/<%= toGtin14(gtin.gtin) %>/21/<%= sgtin.serial_number %>" target="_blank" class="link-action">Öppna produktpass <%- icon('arrow-right', { size: 14 }) %></a></p>
+          <p class="mono small" style="word-break:break-all;"><%= dppUrl %></p>
+          <p style="margin-top:10px;"><a href="<%= dppUrl %>" target="_blank" class="link-action">Öppna produktpass <%- icon('arrow-right', { size: 14 }) %></a></p>
           <p class="small muted" style="margin-top:14px; padding-top:12px; border-top:1px solid var(--hairline);">
             Legacy-länk (fungerar fortfarande internt):<br>
             <a href="/dpp/<%= batch.batch_id %>/<%= gtin.gtin %>/<%= sgtin.serial_number %>" target="_blank" class="mono" style="word-break:break-all;">

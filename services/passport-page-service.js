@@ -36,6 +36,21 @@ function findSgtinByGtinSerial(gtin, serial) {
   });
 }
 
+// Validates the optional /10/:batch segment on the GS1 Digital Link
+// URL (2026-09-20) against the SGTIN's actual batch - GTIN+serial
+// alone already resolve the SGTIN uniquely, so this exists purely to
+// catch a wrong/stale batch in the URL (a copy-paste error, or a code
+// printed before a correction) rather than silently ignoring it.
+function sgtinBatchMatches(sgtinRecord, batchIdParam) {
+  return new Promise((resolve, reject) => {
+    db.get(
+      `SELECT 1 FROM batches WHERE id = ? AND batch_id = ?`,
+      [sgtinRecord.batch_id, batchIdParam],
+      (err, row) => (err ? reject(err) : resolve(!!row))
+    );
+  });
+}
+
 // Legacy lookup, kept for the /dpp/:batch/:gtin/:sgtin route
 function findSgtinByBatchGtinSerial(batch, gtin, serial) {
   return new Promise((resolve, reject) => {
@@ -324,6 +339,7 @@ async function renderPassportJson(req, res, sgtinRecord) {
 module.exports = {
   findSgtinByGtinSerial,
   findSgtinByBatchGtinSerial,
+  sgtinBatchMatches,
   renderPassportPage,
   renderPassportJson
 };

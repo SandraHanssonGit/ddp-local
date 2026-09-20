@@ -10,9 +10,56 @@ const router = express.Router();
 const passportPage = require('../services/passport-page-service');
 
 /**
- * URL: /01/:gtin/21/:serial
- * sgtins has UNIQUE(gtin_id, serial_number), so GTIN + serial alone
- * uniquely identify the SGTIN - no batch needed in the URL.
+ * URL: /01/:gtin/10/:batch/21/:serial (canonical, includes Batch/Lot -
+ * GS1 AI 10 - 2026-09-20 user request: even though GTIN + serial alone
+ * already uniquely identify the SGTIN (UNIQUE(gtin_id, serial_number)),
+ * Batch is real supply-chain-traceability data GS1 Digital Link
+ * supports carrying in the identifier itself, not just inside the
+ * passport body. :batch is validated against the SGTIN's actual batch
+ * (not just decorative) - a mismatch 404s the same as an unknown
+ * serial, so a stale/wrong batch segment in a URL never silently
+ * resolves to the wrong unit's data.
+ */
+router.get('/01/:gtin/10/:batch/21/:serial', async (req, res) => {
+  try {
+    const { gtin, batch, serial } = req.params;
+    const sgtinRecord = await passportPage.findSgtinByGtinSerial(gtin, serial);
+
+    if (!sgtinRecord || !(await passportPage.sgtinBatchMatches(sgtinRecord, batch))) {
+      return res.status(404).render('passport-not-found', { serial_number: `${gtin}/${batch}/${serial}` });
+    }
+
+    const basePath = `${req.baseUrl}${req.path}`;
+    await passportPage.renderPassportPage(req, res, sgtinRecord, basePath);
+  } catch (err) {
+    console.error('[gs1-passport]', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * URL: /01/:gtin/10/:batch/21/:serial/json
+ */
+router.get('/01/:gtin/10/:batch/21/:serial/json', async (req, res) => {
+  try {
+    const { gtin, batch, serial } = req.params;
+    const sgtinRecord = await passportPage.findSgtinByGtinSerial(gtin, serial);
+
+    if (!sgtinRecord || !(await passportPage.sgtinBatchMatches(sgtinRecord, batch))) {
+      return res.status(404).json({ error: 'SGTIN not found', params: { gtin, batch, serial } });
+    }
+
+    await passportPage.renderPassportJson(req, res, sgtinRecord);
+  } catch (err) {
+    console.error('[gs1-json]', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * URL: /01/:gtin/21/:serial (legacy, no Batch segment) - kept working
+ * for any code already issued without it; GTIN + serial alone is
+ * still sufficient to resolve the SGTIN.
  */
 router.get('/01/:gtin/21/:serial', async (req, res) => {
   try {
@@ -32,7 +79,7 @@ router.get('/01/:gtin/21/:serial', async (req, res) => {
 });
 
 /**
- * URL: /01/:gtin/21/:serial/json
+ * URL: /01/:gtin/21/:serial/json (legacy, no Batch segment)
  */
 router.get('/01/:gtin/21/:serial/json', async (req, res) => {
   try {

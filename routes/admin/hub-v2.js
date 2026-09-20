@@ -16,6 +16,8 @@ const db = require('../../db/init-v2').db;
 const batchGtinsRouter = require('./batch-gtins');
 const fieldRepository = require('../../repositories/fields');
 const { SECTION_ICON_OPTIONS } = require('../../utils/section-icons');
+const { toGtin14 } = require('../../utils/gtin');
+const { buildDigitalLinkPath } = require('../../utils/gs1-link');
 const variantRepository = require('../../repositories/variants');
 const batchRepository = require('../../repositories/batches');
 const supplyChainRepository = require('../../repositories/supply-chain');
@@ -303,12 +305,14 @@ router.get('/', async (req, res) => {
           COALESCE(v.product_name, s.product_name) AS product_name,
           b.batch_id,
           v.variant_name,
+          COALESCE(pt.gs1_scheme, 'batch_gtin_sgtin') AS gs1_scheme,
           COUNT(DISTINCT le.id) as event_count
         FROM sgtins sg
         JOIN gtins g ON g.id = sg.gtin_id
         JOIN styles s ON s.id = g.style_id
         JOIN batches b ON b.id = sg.batch_id
         LEFT JOIN variants v ON v.id = g.variant_id
+        LEFT JOIN product_types pt ON pt.id = s.product_type_id
         LEFT JOIN lifecycle_events le ON le.sgtin_id = sg.id
         ${whereClause}
         GROUP BY sg.id
@@ -1248,6 +1252,8 @@ router.get('/sgtin/:sgtinId', async (req, res) => {
 
     const versionHistory = await passportVersionRepository.getHistory('sgtin', sgtin.id);
     const scanStats = await scanService.getScanStats(sgtin.id);
+    const gs1Scheme = await productTypeRepository.getSchemeForStyle(style.id);
+    const dppUrl = buildDigitalLinkPath({ gtin14: toGtin14(gtin.gtin), serial: sgtin.serial_number, batchId: batch.batch_id, scheme: gs1Scheme });
 
     res.render('admin/sgtin-detail', {
       sgtin,
@@ -1261,6 +1267,8 @@ router.get('/sgtin/:sgtinId', async (req, res) => {
       dppValues,
       versionHistory,
       scanStats,
+      gs1Scheme,
+      dppUrl,
       user: { username: 'demo', role: 'admin' }
     });
   } catch (err) {

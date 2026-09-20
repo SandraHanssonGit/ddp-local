@@ -284,7 +284,7 @@
               </thead>
               <tbody>
                 <% sgtins.forEach(sg => {
-                  const dppUrl = `/01/${toGtin14(sg.gtin)}/21/${sg.serial_number}`;
+                  const dppUrl = buildDigitalLinkPath({ gtin14: toGtin14(sg.gtin), serial: sg.serial_number, batchId: sg.batch_id, scheme: sg.gs1_scheme });
                 %>
                   <tr>
                     <td class="mono"><strong><%= sg.serial_number %></strong></td>
