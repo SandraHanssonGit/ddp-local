@@ -7,6 +7,7 @@ const styleRepository = require('../../repositories/styles');
 const batchRepository = require('../../repositories/batches');
 const gtinRepository = require('../../repositories/gtins');
 const sgtinRepository = require('../../repositories/sgtins');
+const variantRepository = require('../../repositories/variants');
 const fieldService = require('../../services/field-service');
 
 // Image upload config
@@ -121,6 +122,31 @@ router.post('/:styleId/fields/:fieldKey', async (req, res) => {
     const updatedFields = await fieldService.getEntityFieldsWithValues('style', style.id);
 
     res.json({ success: true, fields: updatedFields });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Create a new Variant under this Style
+router.post('/:styleId/variants', async (req, res) => {
+  try {
+    const style = await styleRepository.getById(req.params.styleId);
+    if (!style) {
+      return res.status(404).json({ success: false, error: 'Style not found' });
+    }
+
+    const { variant_name, product_name } = req.body;
+    if (!variant_name) {
+      return res.status(400).json({ success: false, error: 'variant_name is required' });
+    }
+    if (!product_name) {
+      return res.status(400).json({ success: false, error: 'product_name is required' });
+    }
+
+    const variantId = await variantRepository.create(style.id, variant_name, product_name);
+    const variant = await variantRepository.getById(variantId);
+
+    res.json({ success: true, variant });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

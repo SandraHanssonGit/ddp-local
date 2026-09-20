@@ -1,6 +1,15 @@
 const db = require('../db/init-v2');
 
 class VariantRepository {
+  async create(styleId, variantName, productName, imageUrl) {
+    const sql = `
+      INSERT INTO variants (style_id, variant_name, product_name, image_url)
+      VALUES (?, ?, ?, ?)
+    `;
+    const result = await db.run(sql, [styleId, variantName, productName || null, imageUrl || null]);
+    return result.lastID;
+  }
+
   async getById(id) {
     const sql = `SELECT * FROM variants WHERE id = ?`;
     return db.get(sql, [id]);
