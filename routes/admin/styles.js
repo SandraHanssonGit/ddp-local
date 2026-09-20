@@ -152,6 +152,34 @@ router.post('/:styleId/variants', async (req, res) => {
   }
 });
 
+// Create a new GTIN under this Style (optionally under one of its Variants)
+router.post('/:styleId/gtins', async (req, res) => {
+  try {
+    const style = await styleRepository.getById(req.params.styleId);
+    if (!style) {
+      return res.status(404).json({ success: false, error: 'Style not found' });
+    }
+
+    const { gtin, variant_id, item_number, size_value_1, size_value_2, size_value_3 } = req.body;
+    if (!gtin) {
+      return res.status(400).json({ success: false, error: 'gtin is required' });
+    }
+
+    const gtinId = await gtinRepository.create(style.id, gtin, {
+      variant_id: variant_id || null,
+      item_number,
+      size_value_1,
+      size_value_2,
+      size_value_3
+    });
+    const createdGtin = await gtinRepository.getById(gtinId);
+
+    res.json({ success: true, gtin: createdGtin });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Upload style image
 router.post('/:styleId/image', upload.single('image'), async (req, res) => {
   try {

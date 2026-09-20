@@ -209,6 +209,89 @@
             <% }); %>
         </div>
 
+        <!-- GTINs Card (direct-under-Style GTINs - jeans without variants
+             use this; a Style with variants also gets one here for a
+             direct GTIN, though most of its GTINs live in the Variants
+             card above) -->
+        <div class="card">
+          <div class="card-head" style="margin-bottom:20px;">
+            <h2>GTINs</h2>
+            <button onclick="document.getElementById('addGtinForm').classList.toggle('hidden')" class="btn btn-primary">
+              + Add GTIN
+            </button>
+          </div>
+
+          <!-- Add GTIN Form -->
+          <div id="addGtinForm" class="form-panel hidden">
+            <h3 style="margin-bottom:16px; font-size:16px;">Add New GTIN</h3>
+            <form id="gtinForm">
+              <div class="field-grid">
+                <div>
+                  <label>GTIN / EAN *</label>
+                  <input type="text" name="gtin" placeholder="05707141145391" required />
+                </div>
+                <% if (variants && variants.length > 0) { %>
+                  <div>
+                    <label>Variant</label>
+                    <select name="variant_id">
+                      <option value="">-- None (direct under Style) --</option>
+                      <% variants.forEach(v => { %>
+                        <option value="<%= v.id %>"><%= v.variant_name %></option>
+                      <% }); %>
+                    </select>
+                  </div>
+                <% } %>
+                <div>
+                  <label>Item Number</label>
+                  <input type="text" name="item_number" placeholder="SKU" />
+                </div>
+                <div>
+                  <label>Size 1</label>
+                  <input type="text" name="size_value_1" placeholder="W30" />
+                </div>
+                <div>
+                  <label>Size 2</label>
+                  <input type="text" name="size_value_2" placeholder="L32" />
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary">Add GTIN</button>
+            </form>
+          </div>
+
+          <% const directGtins = gtins.filter(g => !g.variant_id); %>
+          <% if (directGtins.length === 0) { %>
+            <p class="small muted">No GTINs directly under this Style.</p>
+          <% } else { %>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>GTIN</th>
+                    <th>Item #</th>
+                    <th>Size</th>
+                    <th class="center">SGTINs</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% directGtins.forEach(gtin => { %>
+                    <tr>
+                      <td class="mono small"><%= gtin.gtin %></td>
+                      <td class="small"><%= gtin.item_number %></td>
+                      <td class="small">
+                        <% let size = gtin.size_value_1 || ''; %>
+                        <% if (gtin.size_value_2) size += '-' + gtin.size_value_2; %>
+                        <% if (gtin.size_value_3) size += '-' + gtin.size_value_3; %>
+                        <%= size %>
+                      </td>
+                      <td class="center"><span class="badge badge-success small"><%= gtin.sgtin_count || 0 %></span></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+          <% } %>
+        </div>
+
         <!-- DPP Fields Card -->
         <div class="card" id="dpp-fields">
           <div class="card-head">
@@ -520,6 +603,35 @@
         const result = await response.json();
         if (result.success) {
           await dppAlert('Variant created successfully');
+          location.reload();
+        } else {
+          await dppAlert('Error: ' + (result.error || 'Unknown error'));
+        }
+      } catch (err) {
+        await dppAlert('Error: ' + err.message);
+      }
+    });
+
+    document.getElementById('gtinForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const data = {
+        gtin: formData.get('gtin'),
+        variant_id: formData.get('variant_id') || null,
+        item_number: formData.get('item_number'),
+        size_value_1: formData.get('size_value_1'),
+        size_value_2: formData.get('size_value_2')
+      };
+
+      try {
+        const response = await fetch('/api/admin/styles/<%= style.id %>/gtins', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        if (result.success) {
+          await dppAlert('GTIN created successfully');
           location.reload();
         } else {
           await dppAlert('Error: ' + (result.error || 'Unknown error'));
