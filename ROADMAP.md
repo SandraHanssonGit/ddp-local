@@ -100,47 +100,62 @@ to build).
 recycler), not an internal admin permissions system - a separate,
 simpler problem than a full RBAC system.
 
-**Built**:
-- `field_definitions.authority_visible` boolean (default `true`,
-  additive alongside `consumer_visible`, guarded migration in
-  `db/init-v2.js`), exposed in Field Config's create/edit forms and
-  fields table.
+**Built, then immediately superseded by "Digital Access" (same day,
+2026-09-20)** - kept below as the historical first pass:
+- `field_definitions.authority_visible` boolean, exposed in Field
+  Config's create/edit forms and fields table.
 - New `middleware/auth.js` (`verifyToken`/`checkRole`/`requireRole`) -
-  mirrors `routes/api.js`'s existing JWT pattern rather than importing
-  from it (that file doesn't export these and is v1/legacy code not
-  worth touching for a v2 feature). Turned out `/api/login` already
-  worked against v2's real `users` table (`DB_VERSION` defaults to
-  `v2`) - no new login/JWT-issuing code needed, only the
-  verification/role-check side.
-- New `GET /01/:gtin/21/:serial/authority` (`routes/gs1.js`), protected
-  by `requireRole(['authority', 'recycler', 'admin', 'super_admin'])` -
-  **this is the first v2 route to enforce auth** (see "Security note"
-  below), deliberately scoped to just this one route rather than the
-  unscheduled "Auth-hardening the whole v2 admin API" task.
-  `requireRole` redirects to `/login?redirect=...` on failure (a
-  browser-facing variant of `verifyToken`/`checkRole`, which stay
-  JSON-erroring for future API use) - `login-v2.ejs` now honors
-  `?redirect=`.
-- Reuses `dpp-passport.ejs` as-is via a new `renderAuthorityPassportPage`
-  (`passport-page-service.js`) filtered by `authority_visible` instead
-  of `consumer_visible` - no template changes needed, since the EU
-  Required/Nudie Information sections already iterate `resolvedFields`
-  generically. Added a banner distinguishing this view from the public
-  one. No scan event logged (not a consumer scan, same reasoning as the
-  JSON export).
-- Credential type: reused the existing `users` table/`role` column
-  (roles `authority`/`recycler` alongside the existing `admin`/
-  `super_admin`/`viewer`/etc.) rather than building separate external-
-  party infrastructure - the simplest POC option, per the original
-  proposal's own note that a real production system would need its own
-  credential type later.
+  mirrors `routes/api.js`'s existing JWT pattern. Turned out
+  `/api/login` already worked against v2's real `users` table
+  (`DB_VERSION` defaults to `v2`) - no new login/JWT-issuing code
+  needed, only the verification/role-check side.
+- `GET /01/:gtin/21/:serial/authority` (`routes/gs1.js`), protected by
+  `requireRole(['authority', 'recycler', 'admin', 'super_admin'])` -
+  the first v2 route to enforce auth (see "Security note" below).
+- Reused `dpp-passport.ejs` as-is via a `renderAuthorityPassportPage`
+  filtered by `authority_visible` - no template changes needed, since
+  EU Required/Nudie Information already iterate `resolvedFields`
+  generically.
+- Verified working end-to-end (redirect/403/200 flow, flags confirmed
+  independent) before the user asked for the more general version.
 
-**Verified**: unauthenticated access redirects to login; a test
-`authority`-role user sees the banner and the wider field set; a
-`viewer`-role user is correctly denied (403); `authority_visible` and
-`consumer_visible` confirmed fully independent (hid a field from
-authority view only, consumer view unaffected); Field Config create/
-edit persist the new flag correctly.
+**Superseded design ("Digital Access", built same day)**: user
+feedback was that two hardcoded booleans was still "too hardcoded" -
+wanted a configurable roles list (any number, not just two) managed
+under Settings, with each field picking which roles see it, and an
+explicit product decision that the passport should have a **visible
+role switcher with no login required for now** (COMPLIANCE.md gap #7's
+concern accepted as a known tradeoff, not overlooked - password-gating
+specific roles is supported but not turned on for any role yet).
+
+- New `roles` (`role_key`, `label`, `requires_auth`, `is_default`) and
+  `field_roles` (many-to-many) tables, replacing
+  `consumer_visible`/`authority_visible` entirely - guarded migration
+  seeds `consumer`/`authority`/`recycler`, backfills `field_roles` from
+  the two old flags, then drops both columns. New Settings > **Digital
+  Access** tab (list/add/edit/delete roles - the default role can't be
+  deleted). Field Config's two checkboxes replaced by a dynamic
+  "visible to which roles" checkbox group.
+- `services/passport-page-service.js`: one `filterByRole(fields, roleId)`
+  replaces the two old filter functions. New `resolveRoleForRequest`
+  reads `?role=<role_key>` (default the `is_default` role) and enforces
+  that role's `requires_auth` at render time (not via static route
+  middleware, since the requirement is now per-role DB state, decided
+  per-request) - redirects to `/login` or 403s on a role mismatch,
+  otherwise renders with no auth at all. `renderAuthorityPassportPage`
+  and the dedicated `/authority` route are gone - `?role=authority` on
+  the normal passport URL does the same thing, generalized to any role.
+  `renderPassportJson` supports `?role=` the same way.
+- `views/dpp-passport.ejs` gained a role-switcher pill bar (same
+  pattern as the existing language tabs) and a generic "Viewing as: X"
+  banner for any non-default role, replacing the authority-specific one.
+
+**Verified**: migration backfilled all 10 existing fields' role_roles
+with no data loss, old columns confirmed dropped; `?role=authority`
+renders immediately with no login; toggling a role's `requires_auth`
+on reproduced the exact same redirect/403/200 flow as the superseded
+design, now fully dynamic instead of hardcoded to one route; Field
+Config and Digital Access CRUD verified end-to-end.
 
 ### 2. Structured fields per lifecycle event type (not built)
 
@@ -1490,11 +1505,14 @@ sense of security. **Auth-hardening the whole v2 admin API is its own
 separate task, not yet scheduled.**
 
 **Update (2026-09-20)**: the first real auth on a v2 route now exists -
-`GET /01/:gtin/21/:serial/authority` (the "Extended authority/recycler
-view", see "Platform vision" above), protected by the new
-`middleware/auth.js`. Every `/admin-v2/*` and `/api/admin/*` route is
-still completely open, as described above - this is one narrowly
--scoped exception, not the start of hardening the admin API generally.
+not a dedicated route, but the public passport route itself
+(`/01/:gtin/21/:serial`, `?role=<key>`), which enforces a role's
+`requires_auth` flag at render time when set ("Digital Access", see
+"Platform vision" above). No role has `requires_auth` on by default
+today, so in practice nothing is gated yet - the mechanism exists,
+switched off. Every `/admin-v2/*` and `/api/admin/*` route is still
+completely open, as described above - this is one narrowly-scoped
+exception, not the start of hardening the admin API generally.
 
 ## Known bugs found during this work (fix opportunistically)
 
