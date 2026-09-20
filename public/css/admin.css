@@ -631,7 +631,6 @@ input:focus, textarea:focus, select:focus {
 tfoot td, tr.totals-row td {
   font-weight: 700;
   border-top: 2px solid var(--hairline);
-  background: var(--surface-2);
 }
 
 /* Custom alert/confirm modal (public/js/admin-modal.js) — replaces
