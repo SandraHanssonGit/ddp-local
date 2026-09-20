@@ -840,26 +840,37 @@ router.get('/batch/:batchId', async (req, res) => {
     // exists. availableLocales drives the language tab bar.
     const locale = req.query.lang || null;
 
-    // A Batch can span multiple Styles/Variants (CLAUDE.md's
-    // PO45001234 example), so ?scopeStyle=/&scopeVariant= narrow the
-    // DPP Field Values card to just one Style (or Style+Variant)
-    // within this batch, mirroring the language-tab pattern. No
-    // scope query param = the original whole-batch behavior.
+    // A Batch can span multiple Styles/Variants/GTINs (CLAUDE.md's
+    // PO45001234 example), so ?scopeStyle=/&scopeVariant=/&scopeGtin=
+    // narrow the DPP Field Values card to just one Style, Style+Variant,
+    // or GTIN within this batch, mirroring the language-tab pattern. No
+    // scope query param = the original whole-batch behavior. The Batch
+    // Contents tree's rows drive this now (design 2026-09-20 - merged
+    // the tree and the field editor into one flow instead of two
+    // separate cards) rather than a separate flat scope-tab list.
     const scopeStyleId = req.query.scopeStyle ? parseInt(req.query.scopeStyle) : null;
     const scopeVariantId = req.query.scopeVariant ? parseInt(req.query.scopeVariant) : null;
-    const scope = scopeStyleId ? await batchStyleScopeRepository.find(batch.id, scopeStyleId, scopeVariantId) : null;
+    const scopeGtinId = req.query.scopeGtin ? parseInt(req.query.scopeGtin) : null;
+
+    let scopeEntityType = 'batch';
+    let scope = null;
+    if (scopeGtinId) {
+      scope = await batchGtinRepository.find(batch.id, scopeGtinId);
+      scopeEntityType = 'batch_gtin';
+    } else if (scopeStyleId) {
+      scope = await batchStyleScopeRepository.find(batch.id, scopeStyleId, scopeVariantId);
+      scopeEntityType = 'batch_style';
+    }
     // -1 is a sentinel entity_id that can never match a real
     // dpp_values row - lets getFieldsForLevel return every
     // batch-editable field as "not set" before any scope row exists
     // yet, without creating one just to view the page.
-    const scopeEntityId = scope ? scope.id : -1;
+    const scopeEntityId = scopeEntityType === 'batch' ? batch.id : (scope ? scope.id : -1);
 
-    const dppValues = scopeStyleId
-      ? await fieldRepository.getFieldsForLevel('batch_style', scopeEntityId, locale)
-      : await fieldRepository.getFieldsForLevel('batch', batch.id, locale);
-    const availableLocales = scopeStyleId
-      ? (scope ? await fieldRepository.getAvailableLocales('batch_style', scope.id) : [])
-      : await fieldRepository.getAvailableLocales('batch', batch.id);
+    const dppValues = await fieldRepository.getFieldsForLevel(scopeEntityType, scopeEntityId, locale);
+    const availableLocales = scopeEntityType === 'batch'
+      ? await fieldRepository.getAvailableLocales('batch', batch.id)
+      : (scope ? await fieldRepository.getAvailableLocales(scopeEntityType, scope.id) : []);
     const scopeCombos = await batchStyleScopeRepository.listCombosForBatch(batch.id);
 
     res.render('admin/batch-detail', {
@@ -880,6 +891,7 @@ router.get('/batch/:batchId', async (req, res) => {
       scopeCombos,
       scopeStyleId,
       scopeVariantId,
+      scopeGtinId,
       scope,
       user: { username: 'demo', role: 'admin' }
     });
@@ -910,10 +922,12 @@ router.post('/batch/:batchId/mark-produced', async (req, res) => {
   }
 });
 
-// Save DPP field values at Batch level, or scoped to one Style/Variant
-// within the batch via ?scopeStyle=/&scopeVariant= (see the GET route
-// above). Unlike viewing, saving DOES create the batch_style_scopes
-// row on demand (getOrCreate) - there's an actual value to attach it to.
+// Save DPP field values at Batch level, or scoped to one Style/Variant/
+// GTIN within the batch via ?scopeStyle=/&scopeVariant=/&scopeGtin=
+// (see the GET route above). Unlike viewing, saving DOES create the
+// batch_style_scopes row on demand (getOrCreate) - there's an actual
+// value to attach it to. A batch_gtins row always already exists for
+// any GTIN actually in the batch, so scopeGtin only needs a lookup.
 router.post('/batch/:batchId/dpp-values', async (req, res) => {
   try {
     const batch = await getOne('SELECT * FROM batches WHERE id = ?', [req.params.batchId]);
@@ -922,10 +936,16 @@ router.post('/batch/:batchId/dpp-values', async (req, res) => {
     const locale = req.query.lang || null;
     const scopeStyleId = req.query.scopeStyle ? parseInt(req.query.scopeStyle) : null;
     const scopeVariantId = req.query.scopeVariant ? parseInt(req.query.scopeVariant) : null;
+    const scopeGtinId = req.query.scopeGtin ? parseInt(req.query.scopeGtin) : null;
 
     let entityType = 'batch';
     let entityId = batch.id;
-    if (scopeStyleId) {
+    if (scopeGtinId) {
+      const scope = await batchGtinRepository.find(batch.id, scopeGtinId);
+      if (!scope) return res.status(404).json({ success: false, error: 'GTIN not found in this batch' });
+      entityType = 'batch_gtin';
+      entityId = scope.id;
+    } else if (scopeStyleId) {
       const scope = await batchStyleScopeRepository.getOrCreate(batch.id, scopeStyleId, scopeVariantId);
       entityType = 'batch_style';
       entityId = scope.id;
