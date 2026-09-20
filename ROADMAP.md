@@ -466,7 +466,7 @@ som finns i Batchen?"
    badge already shows the right thing) - the Batch tree's SGTIN rows
    keep linking there, unchanged.
 
-## Batch-scoped Style/Variant/GTIN passport view (design proposed 2026-09-20, user asked to pause - not built)
+## Batch-scoped Style/Variant/GTIN editing ✅ Done - resolved simpler than originally proposed (2026-09-20)
 
 **Problem**: clicking a Style/Variant/GTIN row in the Batch tree
 currently goes to that entity's generic master-data page, which
@@ -497,8 +497,26 @@ overlaps with the already-built Batch×Style "Scope" tabs on
 `batch-detail.ejs` (editing overrides scoped to one Style/Variant
 within the batch) - worth checking whether that existing mechanism can
 be reused/extended for the GTIN level too, rather than building a
-second, separate editing surface. **Not resolved - user is still
-thinking this through, explicitly said not to build yet.**
+second, separate editing surface.
+
+**Resolved much simpler than the read-only-view proposal above**: user
+pointed out the Batch Contents tree and the existing Scope-tab field
+editor were really the same navigation concept shown twice ("Denna
+delen skall ju bli en? Som jag förstår det"). Instead of a new
+resolver method, route, and template, **extended the existing
+Batch×Style Scope mechanism to also support GTIN-level scoping** via
+the already-existing `batch_gtins` table (same entity_id source
+`freezeBatchAtProduction()` already uses) - no new schema. The tree's
+Style/Variant/GTIN row action arrows now set `?scopeStyle=/
+&scopeVariant=/&scopeGtin=` on the batch page itself (scrolling to the
+field editor) instead of navigating away; the old flat "Scope: Whole
+batch | ..." tab bar was removed as redundant. Editing works
+before AND after production - locked fields still show/save through
+the normal locked-value + reason-prompt flow (unchanged), unlocked NJ
+fields remain freely editable at any scope, at any time. Verified
+end-to-end (GTIN-scoped frozen values display and save correctly,
+public passport reflects edits immediately, Style-scoping still works
+unchanged, full regression sweep green).
 
 ## Soft/lazy SGTIN creation on first scan + "Test scan a passport" tool (concept idea-only; the test tool itself is fully designed, not built, 2026-09-19)
 

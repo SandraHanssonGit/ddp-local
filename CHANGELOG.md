@@ -4,6 +4,32 @@ Session-level log of changes to `dpp-v2-local`, kept in addition to git
 history because several changes here are fixes to bugs discovered
 during manual review, not obvious from a commit message alone.
 
+## 2026-09-20 (etapp 50) — Batch detail: merge tree + field editor, retroactive freeze, small fixes
+
+Several follow-ups after living with the new Batch tree:
+
+1. **Style/Variant action arrows** (missed when first building the
+   tree, caught by comparing against the Products tab it was modeled
+   on) + a **search box** matching every other list in the app.
+2. **Retroactive freeze for batch 1**: found it was marked produced
+   (2026-09-16) before freeze-at-production existed (2026-09-19), so
+   it never actually ran - `freezeBatchAtProduction(1, {...})` called
+   directly once via script (froze 3 fields), verified live on the
+   public passport. No general "re-freeze" UI built - user only wanted
+   this one batch fixed.
+3. **Merged the Batch Contents tree and the DPP Field Values card into
+   one flow**: extended the existing Batch×Style Scope mechanism to
+   also support GTIN-level scoping (`batch_gtins` as the entity_id,
+   same source `freezeBatchAtProduction()` already uses) instead of
+   building a whole new batch-scoped passport page/resolver method as
+   first proposed. Tree row action arrows now set scope on the same
+   page instead of navigating to separate detail pages; the old flat
+   scope-tab bar was removed as redundant.
+
+Also reviewed ROADMAP.md end to end for consistency after all of the
+above - fixed several sections that no longer matched reality (see
+that file's own commit history for the corrections made).
+
 ## 2026-09-19 (etapp 49) — Batch detail: Batch Information card + unified tree
 
 Several small consistency fixes plus the planned tree redesign, all
