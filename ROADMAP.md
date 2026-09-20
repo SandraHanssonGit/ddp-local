@@ -36,6 +36,97 @@ Updated priority order for what's left, decided 2026-09-16:
 
 ---
 
+## Platform vision, consolidated (design 2026-09-20, not built)
+
+User stepped back and described the whole target platform in one pass
+after "jag har tänkt lite" - this section maps every part of that
+vision against what already exists, what's already designed, and
+what's genuinely new. Nothing in this section is built yet.
+
+**Already built** (see git history / earlier sections for detail):
+- `locks_at_production` per field (not just per category) - covers
+  "all EU fields lock at production" AND "some NJ fields should also
+  lock like EU fields."
+- Freeze-at-production (Batch×GTIN snapshot + `field_change_log` entry
+  with reason) - covers "locked, but correctable if wrong, as long as
+  it's carefully logged."
+- `consumer_visible`, enforced on the live public passport - binary
+  public/not-public control.
+- `editable_at_sgtin` already exists as a column - serial-level field
+  support needs no new schema, just field_definitions rows with that
+  flag set, whenever/if EU serial-level rules materialize.
+
+**Already designed, not built** (see their own sections above/below):
+- Field Sections (headings) - matches "man skall kunna säga i vilken
+  sektion något skall hamna. Det påverkar hur productpasset ser ut."
+- Field source/provenance + pre-production preview - matches "EU data
+  from other systems needs to be available for review before
+  production."
+- "Test scan a passport" tool + coarse geo-location on scan - matches
+  the scan-statistics ask.
+- Soft/lazy SGTIN creation on first scan - matches "soft activation."
+
+**Confirmed, no new mechanism needed**: NJ fields that stay
+perpetually externally-fed and never lock are just
+`locks_at_production = false` + the (not yet built) field-source
+config resolving live from `source_system` - not a separate feature.
+
+**Genuinely new - designed below**:
+1. Extended authority/recycler view (confirmed scope: external
+   parties, not internal admin roles)
+2. Structured fields per lifecycle event type
+3. Customizable per-passport page layout - confirmed **explicitly
+   deprioritized** by the user ("det ligger längst fram i planen") -
+   logged here only so it isn't forgotten, no design work started.
+
+### 1. Extended authority/recycler view (not built)
+
+**Problem** (COMPLIANCE.md gap #7, restated): the public passport only
+has one visibility level (`consumer_visible`). A market-surveillance
+authority or a recycler legitimately needs to see more than a regular
+consumer - but there must not be a self-service "pick your role"
+toggle on the public page, since that would let anyone claim elevated
+access (COMPLIANCE.md's own conclusion, now confirmed as the direction
+to build).
+
+**Confirmed scope**: this is about external parties (authority/
+recycler), not an internal admin permissions system - a separate,
+simpler problem than a full RBAC system.
+
+**Proposed design** (not yet built, needs a build-time decision on
+auth approach before coding):
+- New `field_definitions.authority_visible` boolean (default `true`,
+  additive alongside `consumer_visible` - not a breaking change to the
+  existing flag or its enforcement).
+- New authenticated route rendering the same passport template with
+  the wider field set. Simplest POC approach: reuse the existing admin
+  JWT auth (an authority/recycler logs in like an admin, hits e.g.
+  `GET /admin-v2/passport/:sgtinId/authority-view`) rather than
+  building a separate signed-token or external-account system -
+  avoids new auth infrastructure per CLAUDE.md §10/Rule 10. A real
+  production system would likely need its own credential type for
+  external parties, but that's a scope decision for later, not this
+  POC.
+
+### 2. Structured fields per lifecycle event type (not built)
+
+**Problem**: `lifecycle_events.event_data` is free-form JSON today -
+flexible, but nothing defines *which* fields belong to e.g. a
+"Repaired" event (repaired by whom, cost, parts replaced) vs. a
+"Returned" event, so the "Add Event" admin form can't render the right
+inputs per event type.
+
+**Confirmed design**: same pattern as `field_definitions`/`dpp_values`,
+scoped to event types instead of DPP entity levels:
+- New `lifecycle_event_field_definitions` table (`id`, `event_type`,
+  `field_key`, `label`, `data_type`, `required`, `sort_order`) -
+  defines which fields render for each event type's "Add Event" form.
+- Values stay in the existing `lifecycle_events.event_data` JSON
+  column - no new value-storage table needed, since event_data is
+  already a flexible per-event blob. The new definitions table only
+  drives *which* fields the admin form shows and validates for a given
+  `event_type`, not where the values are stored.
+
 ## Phase 0 — Field administration gap ✅ Done (2026-09-16)
 
 Built and tested end-to-end: a field set at any of the four levels
