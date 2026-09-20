@@ -39,6 +39,31 @@
       <% if (tab === 'products') { %>
         <div class="section-head">
           <h2>Products</h2>
+          <button onclick="document.getElementById('addStyleForm').classList.toggle('hidden')" class="btn btn-primary">
+            + Add Style
+          </button>
+        </div>
+
+        <!-- Add Style Form -->
+        <div id="addStyleForm" class="form-panel hidden">
+          <h3 style="margin-bottom:16px; font-size:16px;">Add New Style</h3>
+          <form id="styleForm">
+            <div class="field-grid">
+              <div>
+                <label>Style Number *</label>
+                <input type="text" name="style_number" placeholder="114519" required />
+              </div>
+              <div>
+                <label>Product Name</label>
+                <input type="text" name="product_name" placeholder="Thin Finn" />
+              </div>
+              <div>
+                <label>Product Type</label>
+                <input type="text" name="product_type" placeholder="jeans" />
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Style</button>
+          </form>
         </div>
 
         <div class="field-row">
@@ -828,6 +853,34 @@
     document.getElementById('batchSearch')?.addEventListener('change', function() {
       const style = <%- JSON.stringify(typeof selectedStyleId !== 'undefined' ? selectedStyleId : null) %>;
       window.location = '/admin-v2?tab=batches' + (style ? '&style=' + style : '') + '&search=' + encodeURIComponent(this.value);
+    });
+
+    document.getElementById('styleForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const data = {
+        style_number: formData.get('style_number'),
+        product_name: formData.get('product_name'),
+        product_type: formData.get('product_type')
+      };
+
+      try {
+        const response = await fetch('/api/admin/styles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          await dppAlert('Style created successfully');
+          location.reload();
+        } else {
+          await dppAlert('Error: ' + (result.error || 'Unknown error'));
+        }
+      } catch (err) {
+        await dppAlert('Error: ' + err.message);
+      }
     });
   </script>
 </body>
