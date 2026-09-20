@@ -1120,12 +1120,23 @@ router.get('/gtin/:gtinId', async (req, res) => {
     const sgtins = await getAll(`
       SELECT
         sg.*,
-        b.batch_id
+        b.batch_id,
+        b.production_date
       FROM sgtins sg
       JOIN batches b ON b.id = sg.batch_id
       WHERE sg.gtin_id = ?
       ORDER BY b.batch_id DESC, sg.serial_number ASC
     `, [gtin.id]);
+
+    // Quick stats for the "SGTINs Produced" card - reuses the sgtins
+    // query above rather than a second round trip, since it already
+    // has each SGTIN's batch and that batch's production_date.
+    const batchCount = new Set(sgtins.map(sg => sg.batch_id)).size;
+    const lastProducedDate = sgtins
+      .map(sg => sg.production_date)
+      .filter(Boolean)
+      .sort()
+      .pop() || null;
 
     // GTIN has exactly one style_id (and optionally one variant_id), so
     // "inherited from Variant/Style" is well-defined here (unlike Batch,
@@ -1157,6 +1168,8 @@ router.get('/gtin/:gtinId', async (req, res) => {
       style,
       variant,
       sgtins,
+      batchCount,
+      lastProducedDate,
       dppValues,
       locale,
       availableLocales,
