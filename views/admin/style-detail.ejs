@@ -375,6 +375,7 @@
                             <th>Item #</th>
                             <th>Size</th>
                             <th class="center">SGTINs</th>
+                            <th>Action</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -389,6 +390,7 @@
                                 <%= size %>
                               </td>
                               <td class="center"><span class="badge badge-success small"><%= gtin.sgtin_count || 0 %></span></td>
+                              <td><a href="/admin-v2/gtin/<%= gtin.id %>" class="link-action"><%- icon('arrow-right') %></a></td>
                             </tr>
                           <% }); %>
                         </tbody>
