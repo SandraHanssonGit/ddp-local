@@ -92,7 +92,13 @@
 
           <div style="border-top:1px solid var(--hairline); padding-top:20px;">
             <label style="display:block; margin-bottom:10px;">Upload New Image for this Variant</label>
-            <input type="file" id="variant-image-upload" accept="image/*" style="margin-bottom:12px;">
+            <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+              <label class="btn file-btn">
+                Choose File
+                <input type="file" id="variant-image-upload" accept="image/*" class="file-input-hidden" onchange="document.getElementById('variant-image-upload-name').textContent = this.files[0] ? this.files[0].name : 'No file chosen'">
+              </label>
+              <span id="variant-image-upload-name" class="small muted">No file chosen</span>
+            </div>
             <button type="button" onclick="uploadVariantImage()" class="btn btn-primary">Upload Image</button>
           </div>
         </div>

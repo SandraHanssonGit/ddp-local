@@ -506,6 +506,25 @@ input:focus, textarea:focus, select:focus {
   color: var(--muted);
 }
 
+/* Custom file input trigger - the native <input type="file"> renders
+   very differently (and rather ugly) across browsers, with its own
+   unstyleable "Choose File | No file chosen" button+text. Visually
+   hide the real input (still focusable/keyboard-usable) and drive it
+   from a normal styled button-as-label plus our own filename text. */
+.file-input-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.file-btn { position: relative; display: inline-flex; align-items: center; cursor: pointer; }
+
 .image-preview-wrap {
   display: inline-block;
   background: #fff;

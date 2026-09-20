@@ -101,14 +101,24 @@
                   <p style="margin:0;">Recommended: square, at least 800&times;800px, JPG/PNG/WebP.</p>
                 </div>
               </div>
-              <div style="margin-top:14px; display:flex; gap:14px; align-items:center;">
-                <input type="file" id="image-upload" accept="image/*" class="small">
-                <button type="button" onclick="uploadImage()" class="btn small">Upload New</button>
+              <div style="margin-top:14px; display:flex; gap:10px; align-items:center;">
+                <label class="btn small file-btn">
+                  Choose File
+                  <input type="file" id="image-upload" accept="image/*" class="file-input-hidden" onchange="document.getElementById('image-upload-name').textContent = this.files[0] ? this.files[0].name : 'No file chosen'">
+                </label>
+                <span id="image-upload-name" class="small muted">No file chosen</span>
+                <button type="button" onclick="uploadImage()" class="btn small" style="margin-left:8px;">Upload New</button>
                 <a href="#" onclick="deleteStyleImage(); return false;" class="link-action danger small" style="margin-left:auto; display:inline-flex; align-items:center; gap:4px;"><%- icon('trash-2', { size: 13 }) %> Delete</a>
               </div>
             <% } else { %>
               <div class="image-box" style="margin-bottom:12px;">No image uploaded yet</div>
-              <input type="file" id="image-upload" accept="image/*" style="margin-bottom:12px;">
+              <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                <label class="btn file-btn">
+                  Choose File
+                  <input type="file" id="image-upload" accept="image/*" class="file-input-hidden" onchange="document.getElementById('image-upload-name').textContent = this.files[0] ? this.files[0].name : 'No file chosen'">
+                </label>
+                <span id="image-upload-name" class="small muted">No file chosen</span>
+              </div>
               <button type="button" onclick="uploadImage()" class="btn btn-primary">Upload Image</button>
             <% } %>
           </div>
