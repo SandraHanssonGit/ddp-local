@@ -19,6 +19,7 @@ const variantRepository = require('../../repositories/variants');
 const supplyChainRepository = require('../../repositories/supply-chain');
 const economicOperatorRepository = require('../../repositories/economic-operators');
 const productTypeRepository = require('../../repositories/product-types');
+const passportResolver = require('../../services/passport-resolver');
 const batchStyleScopeRepository = require('../../repositories/batch-style-scopes');
 const batchGtinRepository = require('../../repositories/batch-gtins');
 
@@ -867,7 +868,28 @@ router.get('/batch/:batchId', async (req, res) => {
     // yet, without creating one just to view the page.
     const scopeEntityId = scopeEntityType === 'batch' ? batch.id : (scope ? scope.id : -1);
 
-    const dppValues = await fieldRepository.getFieldsForLevel(scopeEntityType, scopeEntityId, locale);
+    // Scoped views (Style/Variant/GTIN) show EVERY field with its
+    // resolved value/source/lock status, not just the ones editable
+    // at that exact level (design 2026-09-20: "man vill ju se alla
+    // fält ner till den nivån man tittar på och man vill ju se alla
+    // fält som är låsta"). Whole-batch view keeps its original
+    // editable-fields-only behavior - a Batch can span multiple
+    // Styles, so there's no single resolved passport to show there.
+    let dppValues;
+    let scopedFieldsResult = null;
+    if (scopeGtinId) {
+      scopedFieldsResult = await passportResolver.resolveBatchScopedFields(batch.id, 'gtin', scopeGtinId, locale);
+      dppValues = scopedFieldsResult.resolvedFields;
+    } else if (scopeVariantId) {
+      scopedFieldsResult = await passportResolver.resolveBatchScopedFields(batch.id, 'variant', scopeVariantId, locale);
+      dppValues = scopedFieldsResult.resolvedFields;
+    } else if (scopeStyleId) {
+      scopedFieldsResult = await passportResolver.resolveBatchScopedFields(batch.id, 'style', scopeStyleId, locale);
+      dppValues = scopedFieldsResult.resolvedFields;
+    } else {
+      dppValues = await fieldRepository.getFieldsForLevel('batch', batch.id, locale);
+    }
+
     const availableLocales = scopeEntityType === 'batch'
       ? await fieldRepository.getAvailableLocales('batch', batch.id)
       : (scope ? await fieldRepository.getAvailableLocales(scopeEntityType, scope.id) : []);

@@ -265,14 +265,61 @@
         <% } %>
       </p>
 
+      <%
+        // Scoped views (Style/Variant/GTIN) carry `source`/`locked`/
+        // `set_at_this_scope` per field (resolveBatchScopedFields);
+        // whole-batch view's fields (getFieldsForLevel) don't - kept
+        // as two branches below rather than forcing whole-batch
+        // through the scoped shape, since a Batch can span multiple
+        // Styles and has no single resolved passport of its own.
+        const fieldSourceLabel = (s) => ({
+          batch_gtin: 'Batch (this GTIN)',
+          gtin: 'GTIN',
+          batch_variant: 'Batch (this Variant)',
+          batch_style: 'Batch (this Style)',
+          batch: 'Batch',
+          variant: 'Variant',
+          style: 'Style'
+        })[s] || s;
+      %>
+
       <!-- View Mode -->
       <div id="dpp-fields-view">
         <% (typeof dppValues !== 'undefined' ? dppValues : []).forEach(val => { %>
-          <% if (val.value) { %>
+          <% const isScopedField = typeof val.source !== 'undefined'; %>
+          <% if (isScopedField && val.set_at_this_scope) { %>
             <div class="field-card overridden">
               <div class="field-card-head">
                 <label class="label-sm"><%= val.label %></label>
-                <span class="badge badge-accent"><%= (currentScopeGtinId || (typeof scopeStyleId !== 'undefined' && scopeStyleId)) ? 'Set for this scope' : 'Set at Batch' %></span>
+                <span class="badge badge-accent" style="display:inline-flex; align-items:center; gap:4px;">
+                  <% if (val.locked) { %><%- icon('lock', { size: 12 }) %><% } %>Set for this scope
+                </span>
+              </div>
+              <p class="field-card-value"><%= val.value %></p>
+              <p style="margin-top:8px;"><a href="#" onclick="clearOverride('<%= val.field_key %>'); return false;" class="link-action danger">Clear</a></p>
+            </div>
+          <% } else if (isScopedField && val.value) { %>
+            <div class="field-card inherited">
+              <div class="field-card-head">
+                <label class="label-sm"><%= val.label %></label>
+                <span class="badge badge-muted" style="display:inline-flex; align-items:center; gap:4px;">
+                  <% if (val.locked) { %><%- icon('lock', { size: 12 }) %><% } %>Inherited from <%= fieldSourceLabel(val.source) %>
+                </span>
+              </div>
+              <p class="field-card-value muted"><%= val.value %></p>
+            </div>
+          <% } else if (isScopedField) { %>
+            <div class="field-card notset">
+              <div class="field-card-head">
+                <label class="label-sm"><%= val.label %></label>
+                <span class="badge" style="background:var(--lock-border); color:var(--lock-text);">Not set anywhere</span>
+              </div>
+            </div>
+          <% } else if (val.value) { %>
+            <div class="field-card overridden">
+              <div class="field-card-head">
+                <label class="label-sm"><%= val.label %></label>
+                <span class="badge badge-accent">Set at Batch</span>
               </div>
               <p class="field-card-value"><%= val.value %></p>
               <p style="margin-top:8px;"><a href="#" onclick="clearOverride('<%= val.field_key %>'); return false;" class="link-action danger">Clear</a></p>
@@ -295,9 +342,16 @@
       <div id="dpp-fields-edit" class="hidden">
         <% if (typeof dppValues !== 'undefined' && dppValues.length > 0) { %>
           <% dppValues.forEach(val => { %>
+            <% const isScopedField = typeof val.source !== 'undefined'; %>
             <div class="field-row">
               <label style="display:block; margin-bottom:6px;"><%= val.label %></label>
-              <textarea id="field-<%= val.field_key %>" rows="3"><%= val.value %></textarea>
+              <% if (isScopedField && !val.set_at_this_scope && val.value) { %>
+                <p class="small muted" style="margin-bottom:6px; display:flex; align-items:center; gap:4px;">
+                  <% if (val.locked) { %><%- icon('lock', { size: 12 }) %><% } %>
+                  Inherited from <%= fieldSourceLabel(val.source) %>: <span class="mono"><%= val.value %></span> — leave blank to keep inheriting
+                </p>
+              <% } %>
+              <textarea id="field-<%= val.field_key %>" rows="3"><%= (isScopedField && !val.set_at_this_scope) ? '' : (val.value || '') %></textarea>
             </div>
           <% }); %>
         <% } else { %>
