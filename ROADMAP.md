@@ -1817,6 +1817,25 @@ logging, and `passport_versions` all currently assume a resolved
 first specifically to avoid touching the currently-working
 `batch_gtin_sgtin` path while building a much bigger, riskier piece.
 
+**Follow-up, also done (2026-09-20)**: user noticed the Product Types
+description text itself ("Controls which levels make up a product's
+identifier/QR code") promised Batch is part of the *identifier* for
+"Full hierarchy (Batch + GTIN + SGTIN)" - but the GS1 Digital Link URL
+never actually included it (GTIN + serial alone already uniquely
+identify an SGTIN, so it was left out entirely). Rather than soften the
+description, built the real thing: `utils/gs1-link.js`'s
+`buildDigitalLinkPath()` now includes Batch as GS1 AI 10
+(`/01/{gtin}/10/{batch}/21/{serial}`) for `batch_gtin_sgtin`, and
+leaves it out for `gtin_sgtin` (matching that scheme's own "no Batch"
+name). `routes/gs1.js` gained the matching `/01/:gtin/10/:batch/21/:serial`
+route (+ `/json`) alongside the existing batch-less one, which keeps
+working for any code already issued without it - the batch segment is
+validated against the SGTIN's actual batch (`sgtinBatchMatches()`), so
+a wrong/stale batch in a URL 404s instead of silently resolving anyway.
+The admin SGTIN detail page and the SGTINs tab list both build their
+links through this same helper now, so they can't drift from what the
+live public route actually expects.
+
 Verified against real data (GTIN 3 / style 3, Jeans): a Batch-only
 value (Factory) disappeared from the live passport when switched to
 `gtin_sgtin`, while a value that happened to also exist at GTIN level
