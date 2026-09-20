@@ -58,39 +58,27 @@
               <label class="label-sm">Item Number</label>
               <p class="value"><%= gtin.item_number %></p>
             </div>
-          </div>
-        </div>
-
-        <!-- Hierarchy Info -->
-        <div class="card">
-          <h2 style="margin-bottom:20px;">Product Hierarchy</h2>
-          <div style="display:flex; flex-direction:column; gap:14px;">
-            <div>
-              <label class="label-sm">Style</label>
-              <p class="value"><strong><%= style.style_number %></strong> - <%= style.product_name %></p>
-            </div>
-            <div>
+            <div class="info-item">
               <label class="label-sm">Batch</label>
               <p class="value">
                 <strong><%= batch.batch_id %></strong>
                 <% if (batch.production_order) { %> - Order: <%= batch.production_order %><% } %>
               </p>
             </div>
-            <% if (variant) { %>
-              <div>
-                <label class="label-sm">Variant</label>
-                <p class="value"><%= variant.variant_name %></p>
-              </div>
-            <% } %>
-          </div>
-        </div>
-
-        <!-- Garment Information -->
-        <div class="card">
-          <h2 style="margin-bottom:20px;">Garment Information</h2>
-          <div class="info-item">
-            <label class="label-sm">Created</label>
-            <p class="value"><%= new Date(sgtin.created_at).toLocaleDateString('en-US') %></p>
+            <div class="info-item">
+              <label class="label-sm">Created</label>
+              <p class="value"><%= new Date(sgtin.created_at).toLocaleDateString('en-US') %></p>
+            </div>
+            <div class="info-item">
+              <label class="label-sm">First Scanned</label>
+              <p class="value">
+                <% if (typeof scanStats !== 'undefined' && scanStats && scanStats.first_scan) { %>
+                  <%= new Date(scanStats.first_scan).toLocaleDateString('en-US') %>
+                <% } else { %>
+                  <span class="muted">Not scanned yet</span>
+                <% } %>
+              </p>
+            </div>
           </div>
         </div>
 

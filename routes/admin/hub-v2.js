@@ -24,6 +24,7 @@ const productTypeRepository = require('../../repositories/product-types');
 const passportResolver = require('../../services/passport-resolver');
 const batchStyleScopeRepository = require('../../repositories/batch-style-scopes');
 const batchGtinRepository = require('../../repositories/batch-gtins');
+const scanService = require('../../services/scan-service');
 
 // Image upload config for variants - mirrors routes/admin/styles.js's
 // style image upload (found missing entirely for variants alongside
@@ -1246,6 +1247,7 @@ router.get('/sgtin/:sgtinId', async (req, res) => {
     const availableLocales = await fieldRepository.getAvailableLocales('sgtin', sgtin.id);
 
     const versionHistory = await passportVersionRepository.getHistory('sgtin', sgtin.id);
+    const scanStats = await scanService.getScanStats(sgtin.id);
 
     res.render('admin/sgtin-detail', {
       sgtin,
@@ -1258,6 +1260,7 @@ router.get('/sgtin/:sgtinId', async (req, res) => {
       events,
       dppValues,
       versionHistory,
+      scanStats,
       user: { username: 'demo', role: 'admin' }
     });
   } catch (err) {
