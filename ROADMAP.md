@@ -1146,17 +1146,26 @@ phase. Each item below is a decision/plan, not yet implemented.
   lock behavior starting only once `active`. Batch/GTIN-level "active
   once shipped" (mentioned as a related idea) needs its own follow-up
   design pass — shipping isn't tracked anywhere in the schema yet.
-- **Audit hardcoded columns vs dynamic fields - findings in, decision
-  pending (2026-09-20).** Found and fixed one real duplication already
-  (`batches.country_of_production` vs the dynamic `country_of_origin`
-  field). Audited the rest of `db/init-v2.js` against the live
-  `field_definitions` table (only 7 rows exist today - none overlap any
-  of the columns below, so this isn't about duplicate storage, it's
-  about consumer-facing content with no override/audit/lock support):
-  - **Migration candidates** (rendered on the public/consumer passport
-    today with zero inheritance/override/audit/lock, same gap
-    `country_of_origin` used to have): `batches.supplier`,
-    `batches.factory`, `gtins.color`.
+- **Audit hardcoded columns vs dynamic fields (2026-09-20).** Found and
+  fixed one real duplication already (`batches.country_of_production`
+  vs the dynamic `country_of_origin` field, done earlier). Audited the
+  rest of `db/init-v2.js` against the live `field_definitions` table:
+  - ~~**Migration candidates**~~ ✅ Done (2026-09-20): `batches.supplier`
+    (`eu_required`), `batches.factory` (`eu_required`), `gtins.color`
+    (`nudie`, per explicit decision - factory/supplier are traceability
+    facts like country_of_origin, color is plain product description).
+    Guarded migration creates the three `field_definitions` rows and
+    backfills `dpp_values` from the existing columns (batch 1's factory
+    "Cambodia" confirmed carried over) - the old columns stay in the
+    schema (real data, unlike `ean`/`weight`), just no longer read.
+    Removed the now-duplicate raw-column display in `dpp-passport.ejs`'s
+    Production section, `passport-page-service.js`'s JSON
+    `manufacturing.factory`/`product.color`, and `batch-detail.ejs`'s
+    Batch Information card - all three now render generically wherever
+    `country_of_origin` already did (EU Required Information / Nudie
+    Information sections, no template changes needed there). Supplier/
+    Factory removed from the "+ Add Batch" form - set via DPP Field
+    Values after creation, consistent with every other field.
   - **Stay columns** (structural/operational, not DPP content):
     `batches.production_order` (a PO reference key), `gtins.size_value_1/2/3`
     (functions as SKU identity alongside `item_number`, though it IS
@@ -1183,11 +1192,8 @@ phase. Each item below is a decision/plan, not yet implemented.
     User confirmed it should go too. Same guarded-migration treatment,
     also removed from `import.ejs`'s documented CSV columns/sample
     (which still listed both `ean` and `weight`).
-  The remaining candidates (`batches.supplier/factory`, `gtins.color`,
-  and the `gtins.variant`/`product_type` duplication questions) still
-  need the same "which levels can edit it,
-  what category" decision every other field gets, not something to
-  decide autonomously mid-cleanup.
+  Still open: the `gtins.variant`/`product_type` duplication questions
+  above (against `variants`/`product_type_id`, not the field system).
 - **Role-based field visibility - superseded (2026-09-20), see
   "Extended authority/recycler view" under "Platform vision" instead.**
   This entry originally proposed a public, no-login role selector
