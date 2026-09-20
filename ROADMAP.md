@@ -1160,41 +1160,53 @@ phase. Each item below is a decision/plan, not yet implemented.
   2026-09-20). Kept here only as a record of the rejected alternative -
   the `field_definitions.authority_visible` boolean design under
   "Platform vision" is the current plan.
-- **No admin UI to create a new Batch at all.** Same class of gap as
-  the Variant and SGTIN ones below - the only `INSERT INTO batches` in
-  the codebase are old v1 code in `routes/api.js` (different schema
-  entirely - `total_units`, `partner_name`, not v2's `production_order`/
-  `factory`/`operator_id` shape) and seed scripts. Found when the user
-  asked how to create a batch and pointed at the Batches tab's style
-  filter dropdown, mistaking it for a batch-creation control (its
-  placeholder said "All Batches" while listing Styles - separately
-  fixed, see CHANGELOG.md). No "+ Add Batch" exists anywhere in the hub.
-- **No admin UI to create a new Variant at all.** Same class of gap as
-  the SGTIN generator below - `variants` rows only ever come from seed
-  scripts (`scripts/seed.js`), there's no "+ Add Variant" anywhere in
-  the hub. Found while fixing variant B02's demo data (it had
-  `product_name = NULL`, falling back to the Style's name - not a real
-  scenario, since **every variant will always have its own unique
-  name** per user clarification 2026-09-16). When this form is built,
-  `product_name` must be a **required field**, not optional-with-
-  fallback, even though the database column stays nullable (the
-  COALESCE-to-Style fallback in `passport-resolver.js` etc. is
-  defensive, not something the UI should ever actively rely on).
-- **SGTIN serial number generator doesn't exist.** The schema is
-  already correct for GS1 compliance (`UNIQUE(gtin_id, serial_number)`
-  is scoped per GTIN, not per batch, so a serial can never collide
-  across production runs of the same GTIN) — but there is no admin
-  route that actually creates SGTINs at production time at all, only
-  seed scripts (`scripts/seed-*.js`) with manually-typed serials. A
-  real "produce SGTINs for this batch" feature needs to look up the
-  highest existing serial for that GTIN across ALL batches and continue
-  from there, never restart at `0001` per batch.
+- ~~**No admin UI to create a new Style at all.**~~ ✅ Done
+  (2026-09-20). Found while auditing the Batch/Variant/GTIN/SGTIN gaps
+  below - not previously tracked here, since `POST /api/admin/styles`
+  already existed and worked; only old v1's `admin-edit.ejs` had a "+
+  Add Style" button, wired to v1's own routes, so v2's hub had no
+  create path at all for the root of the hierarchy. Added a "+ Add
+  Style" toggle form to the Products tab, same pattern as Field
+  Config's "+ Add Field".
+- ~~**No admin UI to create a new Batch at all.**~~ ✅ Done
+  (2026-09-20). The only `INSERT INTO batches` had been old v1 code in
+  `routes/api.js` (different schema entirely) and seed scripts -
+  `repositories/batches.js`'s `create()` was already correct but
+  unused. Added `POST /admin-v2/batch` and a "+ Add Batch" toggle form
+  on the Batches tab (rejects a missing/duplicate `batch_id` up front).
+- ~~**No admin UI to create a new Variant at all.**~~ ✅ Done
+  (2026-09-20). `repositories/variants.js` had no `create()` method at
+  all. Added it plus `POST /api/admin/styles/:styleId/variants` and an
+  always-visible "Variants" card on `style-detail.ejs` (previously
+  hidden entirely for a Style with zero variants, so there was no way
+  to add the first one). `product_name` is enforced as a **required**
+  form field per the 2026-09-16 decision below, even though the column
+  stays nullable.
+- ~~**No admin UI to create a new GTIN at all.**~~ ✅ Done (2026-09-20,
+  found during the same pass as Batch/Variant above - not originally
+  its own bullet here, since `gtinRepository.create()` looked usable
+  and the removed "Add GTIN to Batch" form made it seem like GTIN
+  creation just didn't belong on the Batch page rather than not
+  existing anywhere). `gtins.create()` was correct but unused - added
+  `POST /api/admin/styles/:styleId/gtins` and a "GTINs" card on
+  `style-detail.ejs` for GTINs directly under the Style (the case with
+  no card at all before this, including plain jeans with no variants -
+  CLAUDE.md's own primary example).
+- ~~**SGTIN serial number generator doesn't exist.**~~ ✅ Done
+  (2026-09-20). Also fixed in passing: `repositories/sgtins.js`'s
+  `create()` never actually inserted `batch_id` despite the column
+  being `NOT NULL` - any real call would have thrown; added it as a
+  required parameter. Added `getMaxSerialForGtin()` (highest serial a
+  GTIN has ever used across every batch, per **Format (user,
+  2026-09-19)** below - never restart at 1 and risk a real collision)
+  and `POST /admin-v2/batch-gtins/:id/produce-sgtins`, with a "+"
+  action per GTIN row in the Batch Contents tree.
   **Format (user, 2026-09-19)**: 4 digits (`0001`-`9999`) is too short
   a ceiling for real production volumes - use at least 5-6 digits
   (`00001`-`99999` or `000001`-`999999`), zero-padded. Demo data
   seeded this session still uses 4-digit serials (`0001` etc.) - fine
-  for now since it's just placeholder data, but the real generator
-  should not inherit that width.
+  for now since it's just placeholder data; the real generator (built
+  above) uses 6 digits, not inheriting that width.
 - **Economic operator / "Legal Responsibility" - direction not
   decided, UI fully removed for now (2026-09-19).** User: "we're
   responsible for all our products" - in reality there's one operator
