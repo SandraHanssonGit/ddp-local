@@ -459,8 +459,14 @@ input:focus, textarea:focus, select:focus {
 .info-item .value .hint { font-size: 12px; color: var(--muted); font-weight: 400; }
 
 .stat-list { display: flex; flex-direction: column; gap: 12px; font-size: 14px; }
-.stat-list .stat-row { display: flex; justify-content: space-between; }
-.stat-list .stat-row .k { color: var(--muted); }
+.stat-list .stat-row { display: flex; justify-content: space-between; align-items: baseline; }
+.stat-list .stat-row .k {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--muted);
+}
 .stat-list .stat-row .v { font-weight: 600; }
 
 /* 3-state DPP field cards: overridden / inherited / not-set */
