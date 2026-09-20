@@ -113,8 +113,7 @@
                 const styleHasChildren = s.gtins.length > 0 || s.variants.length > 0;
               %>
                 <tr
-                  style="background:var(--surface-2); <%= styleHasChildren ? 'cursor:pointer;' : '' %>"
-                  <% if (styleHasChildren) { %>onclick="toggleTreeGroup('<%= styleKey %>')"<% } %>
+                  <% if (styleHasChildren) { %>style="cursor:pointer;" onclick="toggleTreeGroup('<%= styleKey %>')"<% } %>
                 >
                   <td class="mono">
                     <% if (styleHasChildren) { %>
