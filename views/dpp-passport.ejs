@@ -95,10 +95,10 @@
 
   <!-- Hero -->
   <div class="wrap" style="padding:36px 20px 24px 20px;">
-    <div class="cap" style="margin-bottom:8px;">Digital Product Passport &middot; Style <%= passport.style.style_number %></div>
+    <div class="cap" style="margin-bottom:8px;">Digital Product Passport &middot; <%= passport.gtin.item_number || passport.style.style_number %></div>
     <h1 style="font-size:32px;font-weight:600;"><%= passport.style.product_name %></h1>
     <div class="row" style="gap:14px;margin-top:12px;flex-wrap:wrap;">
-      <span class="cap" style="color:var(--text);font-family:monospace;letter-spacing:0.02em;">GTIN <%= passport.gtin.gtin %></span>
+      <span class="cap" style="color:var(--text);font-family:monospace;letter-spacing:0.02em;">GTIN <%= typeof toGtin14 === 'function' ? toGtin14(passport.gtin.gtin) : passport.gtin.gtin %></span>
       <span style="color:var(--hairline);">&bull;</span>
       <span class="cap" style="color:var(--text);">Serial <%= passport.sgtin.serial_number %></span>
       <% if (typeof locale !== 'undefined' && locale) { %>
@@ -335,7 +335,7 @@
       <div class="accordion-content open">
         <div class="field-row">
           <div class="field-label">GTIN</div>
-          <div class="field-value" style="font-family:monospace;"><%= passport.gtin.gtin %></div>
+          <div class="field-value" style="font-family:monospace;"><%= typeof toGtin14 === 'function' ? toGtin14(passport.gtin.gtin) : passport.gtin.gtin %></div>
         </div>
         <div class="field-row">
           <div class="field-label">Serial</div>

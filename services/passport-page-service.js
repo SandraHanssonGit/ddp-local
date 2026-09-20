@@ -175,7 +175,8 @@ async function renderPassportPage(req, res, sgtinRecord, basePath) {
     locale,
     roles,
     currentRole: role,
-    currentUser: user
+    currentUser: user,
+    toGtin14
   });
 }
 
