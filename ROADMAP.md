@@ -1276,10 +1276,12 @@ with variant), and `variants` had no content columns at all.
   style/batch/gtin/sgtin - new `editable_at_variant` column on
   `field_definitions`, `variant` added to the valid entity types in
   `field-service.js` and `override-service.js`.
-- Resolution precedence, per explicit decision: **SGTIN > GTIN > Batch
-  > Variant > Style**. Verified with real overrides: a GTIN-level value
-  beat a Variant-level one, and the existing Batch-level
-  `country_of_origin` override still beat Variant, exactly as decided.
+- Resolution precedence, per explicit decision (as of 2026-09-16 -
+  since extended twice more, see the Batch×Style/Batch×GTIN sections
+  above for the current full chain): **SGTIN > GTIN > Batch > Variant
+  > Style**. Verified with real overrides: a GTIN-level value beat a
+  Variant-level one, and the existing Batch-level `country_of_origin`
+  override still beat Variant, exactly as decided.
 - New `repositories/variants.js`; `variant-detail.ejs` gained a working
   edit form (the old one called a `PATCH /api/admin/variants/:id`
   endpoint that never existed - fixed to hit the real route) plus a DPP
