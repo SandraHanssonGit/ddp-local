@@ -87,11 +87,13 @@
           <div style="border-top:1px solid var(--hairline); margin-top:20px; padding-top:20px;">
             <label class="label-sm" style="display:block; margin-bottom:10px;">Product Image</label>
             <% if (style.image_url) { %>
-              <img src="<%= style.image_url %>" alt="<%= style.product_name %>" class="image-preview">
+              <div class="image-preview-wrap">
+                <img src="<%= style.image_url %>" alt="<%= style.product_name %>" class="image-preview" title="Hover to zoom">
+              </div>
               <div style="margin-top:10px; display:flex; gap:14px; align-items:center;">
-                <a href="#" onclick="deleteStyleImage(); return false;" class="link-action danger">Delete Image</a>
                 <input type="file" id="image-upload" accept="image/*" class="small">
                 <button type="button" onclick="uploadImage()" class="btn small">Upload New</button>
+                <a href="#" onclick="deleteStyleImage(); return false;" class="link-action danger small" style="margin-left:auto; display:inline-flex; align-items:center; gap:4px;"><%- icon('trash-2', { size: 13 }) %> Delete</a>
               </div>
             <% } else { %>
               <div class="image-box" style="margin-bottom:12px;">No image uploaded yet</div>
