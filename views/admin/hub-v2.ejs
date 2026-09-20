@@ -266,6 +266,7 @@
       <% if (tab === 'sgtins') { %>
         <div class="section-head">
           <h2>Individual Units</h2>
+          <input type="text" id="sgtinSearch" placeholder="Search Serial, GTIN, SKU, Batch, Style #..." style="width:300px;" value="<%= search || '' %>">
         </div>
 
         <% if (sgtins && sgtins.length > 0) { %>
@@ -310,6 +311,18 @@
               </tbody>
             </table>
           </div>
+          <% if (typeof sgtinTotalPages !== 'undefined' && sgtinTotalPages > 1) { %>
+            <div style="display:flex; align-items:center; gap:14px; margin-top:16px;">
+              <% const sgtinPageQuery = (p) => '/admin-v2?tab=sgtins&page=' + p + (search ? '&search=' + encodeURIComponent(search) : ''); %>
+              <% if (sgtinPage > 1) { %>
+                <a href="<%= sgtinPageQuery(sgtinPage - 1) %>" class="btn">Prev</a>
+              <% } %>
+              <span class="small muted">Page <%= sgtinPage %> of <%= sgtinTotalPages %> (<%= sgtinTotal %> units)</span>
+              <% if (sgtinPage < sgtinTotalPages) { %>
+                <a href="<%= sgtinPageQuery(sgtinPage + 1) %>" class="btn">Next</a>
+              <% } %>
+            </div>
+          <% } %>
         <% } else { %>
           <div class="empty-state">No individual units found</div>
         <% } %>
@@ -890,6 +903,10 @@
     document.getElementById('batchSearch')?.addEventListener('change', function() {
       const style = <%- JSON.stringify(typeof selectedStyleId !== 'undefined' ? selectedStyleId : null) %>;
       window.location = '/admin-v2?tab=batches' + (style ? '&style=' + style : '') + '&search=' + encodeURIComponent(this.value);
+    });
+
+    document.getElementById('sgtinSearch')?.addEventListener('change', function() {
+      window.location = '/admin-v2?tab=sgtins&search=' + encodeURIComponent(this.value);
     });
 
     document.getElementById('styleForm')?.addEventListener('submit', async (e) => {

@@ -232,10 +232,43 @@ router.get('/', async (req, res) => {
       data.search = search;
     }
 
-    // SGTINS TAB (Individual garments)
+    // SGTINS TAB (Individual garments) - one row per physical unit, so
+    // this is the largest table in the app; needs search + pagination
+    // same as the Batches/GTINs tabs got earlier (2026-09-16), which
+    // this tab never had at all.
     else if (tab === 'sgtins') {
       const gtinId = req.query.gtin;
-      let query = `
+      const search = req.query.search || '';
+      const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+      const pageSize = 50;
+
+      const conditions = [];
+      const params = [];
+
+      if (gtinId) {
+        conditions.push(`sg.gtin_id = ?`);
+        params.push(gtinId);
+      }
+
+      if (search) {
+        conditions.push(`(sg.serial_number LIKE ? OR g.gtin LIKE ? OR g.item_number LIKE ? OR b.batch_id LIKE ? OR s.style_number LIKE ?)`);
+        params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+      }
+
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+      const countRow = await getOne(`
+        SELECT COUNT(DISTINCT sg.id) as count
+        FROM sgtins sg
+        JOIN gtins g ON g.id = sg.gtin_id
+        JOIN styles s ON s.id = g.style_id
+        JOIN batches b ON b.id = sg.batch_id
+        ${whereClause}
+      `, params);
+      const total = countRow ? countRow.count : 0;
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+      data.sgtins = await getAll(`
         SELECT
           sg.id,
           sg.serial_number,
@@ -258,17 +291,16 @@ router.get('/', async (req, res) => {
         JOIN batches b ON b.id = sg.batch_id
         LEFT JOIN variants v ON v.id = g.variant_id
         LEFT JOIN lifecycle_events le ON le.sgtin_id = sg.id
-      `;
-      const params = [];
+        ${whereClause}
+        GROUP BY sg.id
+        ORDER BY b.batch_id DESC, sg.serial_number ASC
+        LIMIT ? OFFSET ?
+      `, [...params, pageSize, (page - 1) * pageSize]);
 
-      if (gtinId) {
-        query += ` WHERE sg.gtin_id = ?`;
-        params.push(gtinId);
-      }
-
-      query += ` GROUP BY sg.id ORDER BY b.batch_id DESC, sg.serial_number ASC`;
-
-      data.sgtins = await getAll(query, params);
+      data.search = search;
+      data.sgtinPage = page;
+      data.sgtinTotalPages = totalPages;
+      data.sgtinTotal = total;
     }
 
     // FIELDS TAB (DPP Field Definitions)
