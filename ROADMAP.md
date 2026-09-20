@@ -737,7 +737,9 @@ doesn't enforce uniqueness across NULL `variant_id` rows, so
 SELECT-before-INSERT rather than relying on the table's UNIQUE
 constraint.
 
-**Resolution precedence extended**: `SGTIN > GTIN > Batch×Variant >
+**Resolution precedence extended** (as of 2026-09-16 - Batch×GTIN was
+added on top of this later, see the freeze-at-production section above
+for the current full chain): `SGTIN > GTIN > Batch×Variant >
 Batch×Style > Batch > Variant > Style` (`passport-resolver.js`) - a
 more specific scope always wins. `services/field-service.js`,
 `services/override-service.js`, and `repositories/fields.js`
