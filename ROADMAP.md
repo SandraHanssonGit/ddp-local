@@ -1127,8 +1127,14 @@ phase. Each item below is a decision/plan, not yet implemented.
   temporarily dropping the page size to 5 and confirming page 1/2
   return disjoint rows. ✅ Batches tab search added (2026-09-16) —
   matches the batch's own visible data (Batch ID, Production Order),
-  not just the Style filter, per user feedback. SGTINs tab still has
-  **no search or pagination at all** — same gap, not yet fixed there.
+  not just the Style filter, per user feedback. ✅ SGTINs tab search +
+  pagination done (2026-09-20) — the GTINs tab pagination this section
+  describes was itself later removed when Products replaced it, so
+  this was rebuilt fresh from this note's description rather than
+  copied from a still-live route: search matches serial_number/gtin/
+  item_number/batch_id/style_number, LIMIT/OFFSET 50/page, Prev/Next
+  preserving `search` (the pre-existing `?gtin=` filter from
+  gtin-detail.ejs composes with both unchanged).
 - **Draft → Active status for Style (and Batch/GTIN).** User proposal:
   a new Style/Variant starts as `draft`; only becomes `active` once its
   first production completes, and only from that point does field-level
@@ -1234,13 +1240,25 @@ phase. Each item below is a decision/plan, not yet implemented.
   per-entity "Language: Default | + add locale" tab bars. Answer:
   "Språkhanteringen kan vara kvar" - leave it exactly as it is. Not a
   follow-up item.
-- **Database cleanup.** Untracked stale files sitting in the repo
-  (`data/dpp-v2.db.stale-backup`, `data/dpp.db.stale-backup`) should be
-  deleted once confirmed unneeded. Also folds in the hardcoded-columns
-  audit above, plus a pass over `data/dpp-v2.db` itself for leftover
-  test/seed cruft from this session's manual curl testing (e.g. the
-  placeholder economic operator/test rows created while verifying
-  Phase 4) that shouldn't ship as if it were real reference data.
+- **Database cleanup - partially done (2026-09-20).** `data/dpp-v2.db.stale-backup`
+  deleted (confirmed superseded by the live, actively-updated
+  `data/dpp-v2.db`). `data/dpp.db.stale-backup` **deliberately left
+  untouched** — investigating it surfaced that `data/dpp.db` itself
+  (the path v1's own `src/db.js`/`scripts/seed.js` expect) doesn't
+  exist on disk at all, only this stale-backup copy of it. Per CLAUDE.md
+  §22.6 (never rename/delete v1's data without explicit approval) this
+  needs the developer's own call, not an autonomous cleanup decision -
+  user confirmed v1's data isn't a current priority, so it stays as-is
+  for now rather than being restored or deleted.
+  Still open: the hardcoded-columns audit, and a pass over
+  `data/dpp-v2.db` for leftover test/seed cruft from manual curl
+  testing (e.g. placeholder economic operator/test rows from Phase 4).
+  Also found and attempted to fix in this pass: the known orphaned
+  `batch_gtins` row (id 1, `gtin_id` 1 no longer exists in `gtins`,
+  confirmed nothing else references it) - the delete was blocked by the
+  environment's own destructive-action safeguard, so the row is still
+  there; needs the developer to run it directly:
+  `DELETE FROM batch_gtins WHERE id = 1 AND gtin_id = 1`.
 
 ## DPP Fields tab: Levels column + Edit/Delete ✅ Done (2026-09-16)
 
