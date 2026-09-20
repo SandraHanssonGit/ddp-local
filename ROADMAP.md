@@ -1170,11 +1170,16 @@ phase. Each item below is a decision/plan, not yet implemented.
     (text) is already mid-migration to `product_type_id` via the
     existing backfill in `db/init-v2.js` - a separate, already-in-
     progress cleanup, not part of this field-system question.
-  - **Likely dead, needs confirming**: `gtins.ean` is write-only (only
-    touched by `import-service.js`/`repositories/gtins.js`, no view or
-    service reads it back) - same shape as `country_of_production`
-    before that was confirmed dead. `gtins.weight` is populated on
-    import but not currently rendered in any view found either.
+  - ~~`gtins.ean`~~ ✅ Dropped (2026-09-20) - user caught what this
+    audit missed: `gtins.gtin` already **is** the EAN (CLAUDE.md treats
+    GTIN/EAN as the same identifier, confirmed by real data), and the
+    public JSON export's `identifiers.ean` already derived from
+    `gtin.gtin`, not this column. Never populated (always NULL), never
+    read back - not a field-system question at all, just a redundant
+    column. Column dropped via a guarded migration in `db/init-v2.js`,
+    removed from `repositories/gtins.js` and `import-service.js`.
+  - **Likely dead, needs confirming**: `gtins.weight` is populated on
+    import but not currently rendered in any view found.
   Not migrated yet - this needs the same "which levels can edit it,
   what category" decision every other field gets, not something to
   decide autonomously mid-cleanup.
