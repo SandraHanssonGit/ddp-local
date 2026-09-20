@@ -60,6 +60,15 @@
         <img src="/nudie-logo.png" alt="Nudie Jeans co">
       </div>
       <div class="row" style="gap:10px;">
+        <% if (typeof roles !== 'undefined' && roles.length > 1) { %>
+          <div class="row" style="gap:2px;">
+            <% roles.forEach(r => { %>
+              <a href="?role=<%= encodeURIComponent(r.role_key) %>" class="lang-link <%= currentRole.id === r.id ? 'active' : '' %>" title="<%= r.requires_auth ? 'Requires login' : '' %>">
+                <%= r.label %><% if (r.requires_auth) { %> &#128274;<% } %>
+              </a>
+            <% }); %>
+          </div>
+        <% } %>
         <% if (typeof availableLocales !== 'undefined' && availableLocales.length > 0) { %>
           <div class="row" style="gap:2px;">
             <a href="?" class="lang-link <%= (typeof locale === 'undefined' || !locale) ? 'active' : '' %>">Default</a>
@@ -75,9 +84,9 @@
     </div>
   </div>
 
-  <% if (typeof isAuthorityView !== 'undefined' && isAuthorityView) { %>
+  <% if (typeof currentRole !== 'undefined' && currentRole && !currentRole.is_default) { %>
     <div style="background:#1a1a1a;color:#fff;padding:10px 20px;text-align:center;font-size:13px;font-weight:600;letter-spacing:0.02em;">
-      Authority / Recycler View - extended information, logged in as <%= authorityUser.username %> (<%= authorityUser.role %>)
+      Viewing as: <%= currentRole.label %><% if (currentUser) { %> - logged in as <%= currentUser.username %><% } %>
     </div>
   <% } %>
 

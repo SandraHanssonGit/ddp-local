@@ -328,8 +328,161 @@
         <div class="admin-nav" style="margin-bottom:24px; border-bottom:1px solid var(--hairline); padding-bottom:0;">
           <a href="/admin-v2?tab=settings&sub=fields" class="<%= settingsSub === 'fields' ? 'active' : '' %>">Field Config</a>
           <a href="/admin-v2?tab=settings&sub=product_types" class="<%= settingsSub === 'product_types' ? 'active' : '' %>">Product Types</a>
-          <a href="/admin-v2?tab=settings&sub=access" class="<%= settingsSub === 'access' ? 'active' : '' %>">Access</a>
+          <a href="/admin-v2?tab=settings&sub=access" class="<%= settingsSub === 'access' ? 'active' : '' %>">Digital Access</a>
         </div>
+      <% } %>
+
+      <!-- DIGITAL ACCESS TAB (2026-09-20) - the configurable roles list
+           (Consumer, Authority, Recycler, ...) replacing the old
+           consumer_visible/authority_visible booleans. Each field in
+           Field Config picks which of these roles can see it. -->
+      <% if (tab === 'settings' && settingsSub === 'access') { %>
+        <div class="section-head">
+          <h2>Digital Access</h2>
+          <button onclick="document.getElementById('addRoleForm').classList.toggle('hidden')" class="btn btn-primary">
+            + Add Role
+          </button>
+        </div>
+        <p class="small muted" style="margin:-8px 0 20px;">Roles control who sees which DPP fields on the public passport (<code>?role=</code>). Set on each field in Field Config. "Requires Login" roles aren't selectable on the passport until they're authenticated - off means anyone can switch to that role today.</p>
+
+        <div id="addRoleForm" class="form-panel hidden">
+          <h3 style="margin-bottom:16px; font-size:16px;">Add New Role</h3>
+          <form id="roleForm">
+            <div class="field-grid">
+              <div>
+                <label>Role Key *</label>
+                <input type="text" name="role_key" placeholder="customs" required />
+              </div>
+              <div>
+                <label>Label *</label>
+                <input type="text" name="label" placeholder="Customs" required />
+              </div>
+            </div>
+            <label class="checkbox-row"><input type="checkbox" name="requires_auth" /> Requires Login</label>
+            <div style="margin-top:14px;">
+              <button type="submit" class="btn btn-primary">Add Role</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Role Key</th>
+                <th>Label</th>
+                <th class="center">Default</th>
+                <th class="center">Requires Login</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% roles.forEach(r => { %>
+                <tr>
+                  <td class="mono small"><strong><%= r.role_key %></strong></td>
+                  <td><%= r.label %></td>
+                  <td class="center"><%- r.is_default ? icon('check', { size: 14 }) : '—' %></td>
+                  <td class="center"><%- r.requires_auth ? icon('lock', { size: 14 }) : '—' %></td>
+                  <td style="white-space:nowrap;">
+                    <a href="#" onclick="toggleRoleEdit(<%= r.id %>); return false;" class="link-action" style="margin-right:12px;">Edit</a>
+                    <% if (!r.is_default) { %>
+                      <a href="#" onclick="deleteRole(<%= r.id %>, '<%= r.role_key %>'); return false;" class="link-action danger">Delete</a>
+                    <% } %>
+                  </td>
+                </tr>
+                <tr id="role-edit-row-<%= r.id %>" class="hidden">
+                  <td colspan="5" style="background:var(--surface-2); padding:20px;">
+                    <form onsubmit="saveRoleEdit(event, <%= r.id %>)">
+                      <div class="field-grid-3" style="margin-bottom:14px;">
+                        <div>
+                          <label class="label-sm">Label</label>
+                          <input type="text" name="label" value="<%= r.label %>" required />
+                        </div>
+                        <div>
+                          <label class="checkbox-row" style="margin-top:22px;"><input type="checkbox" name="requires_auth" <%= r.requires_auth ? 'checked' : '' %> /> Requires Login</label>
+                        </div>
+                      </div>
+                      <div style="display:flex; gap:10px;">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <button type="button" onclick="toggleRoleEdit(<%= r.id %>)" class="btn">Cancel</button>
+                      </div>
+                    </form>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+
+        <script>
+          function toggleRoleEdit(roleId) {
+            document.getElementById('role-edit-row-' + roleId).classList.toggle('hidden');
+          }
+
+          document.getElementById('roleForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = {
+              role_key: formData.get('role_key'),
+              label: formData.get('label'),
+              requires_auth: formData.has('requires_auth')
+            };
+            try {
+              const response = await fetch('/admin-v2/roles', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+              });
+              const result = await response.json();
+              if (result.success) {
+                location.reload();
+              } else {
+                await dppAlert('Error: ' + (result.error || 'Unknown error'));
+              }
+            } catch (err) {
+              await dppAlert('Error: ' + err.message);
+            }
+          });
+
+          async function saveRoleEdit(e, roleId) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = {
+              label: formData.get('label'),
+              requires_auth: formData.has('requires_auth')
+            };
+            try {
+              const response = await fetch('/admin-v2/roles/' + roleId, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+              });
+              const result = await response.json();
+              if (result.success) {
+                location.reload();
+              } else {
+                await dppAlert('Error: ' + (result.error || 'Unknown error'));
+              }
+            } catch (err) {
+              await dppAlert('Error: ' + err.message);
+            }
+          }
+
+          async function deleteRole(roleId, roleKey) {
+            if (!(await dppConfirm('Delete role "' + roleKey + '"? Fields set to only this role will become invisible on the passport until reconfigured.'))) return;
+            try {
+              const response = await fetch('/admin-v2/roles/' + roleId, { method: 'DELETE' });
+              const result = await response.json();
+              if (result.success) {
+                location.reload();
+              } else {
+                await dppAlert('Error: ' + (result.error || 'Unknown error'));
+              }
+            } catch (err) {
+              await dppAlert('Error: ' + err.message);
+            }
+          }
+        </script>
       <% } %>
 
       <!-- FIELDS TAB (Field Config - field_definitions) -->
@@ -379,12 +532,18 @@
             </div>
             <div class="field-row" style="display:flex; gap:20px;">
               <label class="checkbox-row"><input type="checkbox" name="required" /> Required</label>
-              <label class="checkbox-row"><input type="checkbox" name="consumer_visible" checked /> Consumer Visible</label>
-              <label class="checkbox-row"><input type="checkbox" name="authority_visible" checked /> Authority Visible</label>
               <label class="checkbox-row"><input type="checkbox" name="locks_at_production" /> Locks at Production</label>
             </div>
-            <p class="small muted" style="margin:-8px 0 14px;">Authority Visible controls the (not yet public) authenticated authority/recycler passport view - separate from Consumer Visible.</p>
             <p class="small muted" style="margin:-8px 0 14px;">EU-required fields normally lock when a batch is marked produced (proving the compliance data is fixed); Nudie fields normally stay editable. Check/uncheck to override that default for this field.</p>
+            <div class="hint-panel" style="margin-bottom:14px;">
+              <label style="display:block; margin-bottom:10px;">Visible to which roles on the public passport?</label>
+              <div style="display:flex; gap:18px; flex-wrap:wrap;">
+                <% roles.forEach(r => { %>
+                  <label class="checkbox-row"><input type="checkbox" name="role_ids" value="<%= r.id %>" checked /> <%= r.label %></label>
+                <% }); %>
+              </div>
+              <p class="small muted" style="margin:10px 0 0;">Manage the role list itself under Settings &rsaquo; Digital Access.</p>
+            </div>
             <div class="hint-panel">
               <label style="display:block; margin-bottom:10px;">Which levels can set this field?</label>
               <div style="display:flex; gap:18px;">
@@ -424,8 +583,7 @@
                   <th>Type</th>
                   <th>Levels</th>
                   <th class="center">Required</th>
-                  <th class="center">Consumer</th>
-                  <th class="center" title="Visible in the (not yet public) authenticated authority/recycler passport view">Authority</th>
+                  <th title="Which passport roles see this field - manage the role list under Settings > Digital Access">Roles</th>
                   <th class="center" title="Whether this field's value freezes when a batch is marked produced">Locks</th>
                   <th>Description</th>
                   <th>Actions</th>
@@ -462,8 +620,18 @@
                       </div>
                     </td>
                     <td class="center"><%- f.required ? icon('check', { size: 14 }) : '—' %></td>
-                    <td class="center"><%- f.consumer_visible ? icon('check', { size: 14 }) : '—' %></td>
-                    <td class="center"><%- f.authority_visible ? icon('check', { size: 14 }) : '—' %></td>
+                    <td>
+                      <% const fieldRoleLabels = roles.filter(r => f.role_ids.includes(r.id)).map(r => r.label); %>
+                      <% if (fieldRoleLabels.length === 0) { %>
+                        <span class="small muted">None</span>
+                      <% } else { %>
+                        <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                          <% fieldRoleLabels.forEach(label => { %>
+                            <span class="badge small"><%= label %></span>
+                          <% }); %>
+                        </div>
+                      <% } %>
+                    </td>
                     <td class="center"><%- f.locks_at_production ? icon('lock', { size: 14 }) : '—' %></td>
                     <td class="small muted"><%= f.description || '—' %></td>
                     <td style="white-space:nowrap;">
@@ -472,7 +640,7 @@
                     </td>
                   </tr>
                   <tr id="field-edit-row-<%= f.id %>" class="hidden">
-                    <td colspan="11" style="background:var(--surface-2); padding:20px;">
+                    <td colspan="10" style="background:var(--surface-2); padding:20px;">
                       <form onsubmit="saveFieldEdit(event, <%= f.id %>)">
                         <div class="field-grid-3" style="margin-bottom:14px;">
                           <div>
@@ -493,9 +661,17 @@
                         </div>
                         <div style="display:flex; gap:20px; margin-bottom:14px;">
                           <label class="checkbox-row"><input type="checkbox" name="required" <%= f.required ? 'checked' : '' %> /> Required</label>
-                          <label class="checkbox-row"><input type="checkbox" name="consumer_visible" <%= f.consumer_visible ? 'checked' : '' %> /> Consumer Visible</label>
-                          <label class="checkbox-row"><input type="checkbox" name="authority_visible" <%= f.authority_visible ? 'checked' : '' %> /> Authority Visible</label>
                           <label class="checkbox-row"><input type="checkbox" name="locks_at_production" <%= f.locks_at_production ? 'checked' : '' %> /> Locks at Production</label>
+                        </div>
+                        <div style="margin-bottom:14px;">
+                          <label class="label-sm" style="display:block; margin-bottom:8px;">Visible to which roles?</label>
+                          <div style="display:flex; gap:18px; flex-wrap:wrap;">
+                            <% roles.forEach(r => { %>
+                              <label class="checkbox-row">
+                                <input type="checkbox" name="role_ids" value="<%= r.id %>" <%= f.role_ids.includes(r.id) ? 'checked' : '' %> /> <%= r.label %>
+                              </label>
+                            <% }); %>
+                          </div>
                         </div>
                         <div style="margin-bottom:14px;">
                           <label class="label-sm" style="display:block; margin-bottom:8px;">Levels</label>
@@ -535,8 +711,7 @@
               category: formData.get('category'),
               description: formData.get('description'),
               required: formData.has('required'),
-              consumer_visible: formData.has('consumer_visible'),
-              authority_visible: formData.has('authority_visible'),
+              role_ids: formData.getAll('role_ids').map(Number),
               locks_at_production: formData.has('locks_at_production'),
               editable_at_style: formData.has('editable_at_style'),
               editable_at_variant: formData.has('editable_at_variant'),
@@ -588,8 +763,7 @@
               data_type: formData.get('data_type'),
               description: formData.get('description'),
               required: formData.has('required'),
-              consumer_visible: formData.has('consumer_visible'),
-              authority_visible: formData.has('authority_visible'),
+              role_ids: formData.getAll('role_ids').map(Number),
               locks_at_production: formData.has('locks_at_production'),
               editable_at_style: formData.has('editable_at_style'),
               editable_at_variant: formData.has('editable_at_variant'),

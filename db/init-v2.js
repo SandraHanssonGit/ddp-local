@@ -468,6 +468,45 @@ const init = () => {
       if (err) console.error('[index batch_style_scopes_batch]', err);
     });
 
+    // Digital Access (2026-09-20): a configurable list of passport
+    // "roles" (Consumer, Authority, Recycler, ...), managed under
+    // Settings, replacing the hardcoded consumer_visible/
+    // authority_visible booleans - a field is visible to whichever
+    // roles it's linked to via field_roles, not a fixed pair of flags.
+    // requires_auth is per-role (default off) so a specific role can be
+    // password-protected later without changing this shape.
+    db.run(`
+      CREATE TABLE IF NOT EXISTS roles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        role_key TEXT NOT NULL UNIQUE,
+        label TEXT NOT NULL,
+        requires_auth BOOLEAN DEFAULT 0,
+        is_default BOOLEAN DEFAULT 0,
+        sort_order INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `, (err) => {
+      if (err) console.error('[roles]', err);
+      else console.log('✓ roles table');
+    });
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS field_roles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        field_definition_id INTEGER NOT NULL REFERENCES field_definitions(id),
+        role_id INTEGER NOT NULL REFERENCES roles(id),
+        UNIQUE(field_definition_id, role_id)
+      )
+    `, (err) => {
+      if (err) console.error('[field_roles]', err);
+      else console.log('✓ field_roles table');
+    });
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_field_roles_field ON field_roles(field_definition_id)`, (err) => {
+      if (err) console.error('[index field_roles_field]', err);
+    });
+
     db.run(`CREATE INDEX IF NOT EXISTS idx_passport_versions_entity ON passport_versions(entity_type, entity_id)`, (err) => {
       if (err) console.error('[index passport_versions_entity]', err);
     });
@@ -719,10 +758,10 @@ const migrateSupplierFactoryColorFields = async () => {
     const locksAtProduction = f.category === 'eu_required' ? 1 : 0;
     const result = await run(
       `INSERT INTO field_definitions
-       (field_key, label, description, data_type, category, required, consumer_visible,
+       (field_key, label, description, data_type, category, required,
         editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_sgtin,
         locks_at_production, sort_order)
-       VALUES (?, ?, '', 'text', ?, 0, 1, ?, ?, ?, ?, ?, ?, 0)`,
+       VALUES (?, ?, '', 'text', ?, 0, ?, ?, ?, ?, ?, ?, 0)`,
       [
         f.key, f.label, f.category,
         f.levels.includes('style') ? 1 : 0,
@@ -734,6 +773,20 @@ const migrateSupplierFactoryColorFields = async () => {
       ]
     );
     const fieldDefinitionId = result.lastID;
+
+    // Digital Access (2026-09-20): make this field visible to the
+    // 'consumer' role always, plus 'authority'/'recycler' for the two
+    // eu_required fields - matches this migration's original
+    // consumer_visible/authority_visible intent, now expressed as
+    // field_roles rows instead. Requires migrateDigitalAccessRoles to
+    // have already seeded the roles table (enforced by run order below).
+    const rolesToAssign = f.category === 'eu_required' ? ['consumer', 'authority', 'recycler'] : ['consumer'];
+    for (const roleKey of rolesToAssign) {
+      const role = await get(`SELECT id FROM roles WHERE role_key = ?`, [roleKey]);
+      if (role) {
+        await run(`INSERT OR IGNORE INTO field_roles (field_definition_id, role_id) VALUES (?, ?)`, [fieldDefinitionId, role.id]);
+      }
+    }
 
     if (f.key === 'color') {
       const gtinsWithColor = await all(`SELECT id, color FROM gtins WHERE color IS NOT NULL AND TRIM(color) != ''`);
@@ -765,25 +818,69 @@ migrateLocksAtProduction().catch(err => console.error('[locks_at_production migr
 migrateDeduplicateDppValues().catch(err => console.error('[dpp_values deduplication]', err));
 migrateDropGtinEan().catch(err => console.error('[gtins.ean drop migration]', err));
 migrateDropGtinWeight().catch(err => console.error('[gtins.weight drop migration]', err));
-migrateSupplierFactoryColorFields().catch(err => console.error('[supplier/factory/color field migration]', err));
 
-// Extended authority/recycler view (ROADMAP.md, "Platform vision"):
-// a second visibility flag alongside consumer_visible, additive so
-// existing consumer_visible enforcement is never touched. Defaults to
-// true (matching consumer_visible's own default) so existing fields
-// are visible to an authenticated authority/recycler unless explicitly
-// hidden - the restrictive case (hide from consumers, still show to
-// authority) is the interesting one, not the reverse.
-const migrateAuthorityVisible = async () => {
+// Digital Access (2026-09-20): replaces the two hardcoded
+// consumer_visible/authority_visible booleans with a configurable
+// roles list (Settings > Digital Access) and a field<->role many-to-
+// many (field_roles) - per user request, "mindre hårdkodat" so any
+// number of roles can be added later, each independently choosing
+// which fields it sees, without a schema change per role.
+//
+// Seeds 'consumer' (the default/fallback role shown with no ?role=),
+// 'authority' and 'recycler' (carrying forward the roles from the
+// authority_visible flag this replaces - both requires_auth = false
+// per explicit decision: a visible role switcher on the passport for
+// now, password-gating specific roles is a later step, not blocked on
+// this migration). Backfills field_roles from the two boolean columns
+// (consumer_visible -> 'consumer', authority_visible -> both
+// 'authority' and 'recycler', preserving today's behavior where those
+// two roles always saw the same field set), then drops both columns -
+// guarded by checking for 'roles' having no rows yet, so this only
+// runs once.
+const migrateDigitalAccessRoles = async () => {
+  const existingRoles = await all(`SELECT id FROM roles`);
+  if (existingRoles.length > 0) return;
+
+  console.log('[DPP v2] Setting up Digital Access roles...');
+  const consumerId = (await run(
+    `INSERT INTO roles (role_key, label, requires_auth, is_default, sort_order) VALUES ('consumer', 'Consumer', 0, 1, 0)`
+  )).lastID;
+  const authorityId = (await run(
+    `INSERT INTO roles (role_key, label, requires_auth, is_default, sort_order) VALUES ('authority', 'Authority', 0, 0, 1)`
+  )).lastID;
+  const recyclerId = (await run(
+    `INSERT INTO roles (role_key, label, requires_auth, is_default, sort_order) VALUES ('recycler', 'Recycler', 0, 0, 2)`
+  )).lastID;
+
   const columns = await all(`PRAGMA table_info(field_definitions)`);
-  const hasAuthorityVisible = columns.some(c => c.name === 'authority_visible');
-  if (hasAuthorityVisible) return;
-
-  console.log('[DPP v2] Adding field_definitions.authority_visible...');
-  await run(`ALTER TABLE field_definitions ADD COLUMN authority_visible BOOLEAN DEFAULT 1`);
-  console.log('[DPP v2] authority_visible column added');
+  const hasOldFlags = columns.some(c => c.name === 'consumer_visible');
+  if (hasOldFlags) {
+    const fields = await all(`SELECT id, consumer_visible, authority_visible FROM field_definitions`);
+    for (const f of fields) {
+      if (f.consumer_visible) {
+        await run(`INSERT OR IGNORE INTO field_roles (field_definition_id, role_id) VALUES (?, ?)`, [f.id, consumerId]);
+      }
+      if (f.authority_visible) {
+        await run(`INSERT OR IGNORE INTO field_roles (field_definition_id, role_id) VALUES (?, ?)`, [f.id, authorityId]);
+        await run(`INSERT OR IGNORE INTO field_roles (field_definition_id, role_id) VALUES (?, ?)`, [f.id, recyclerId]);
+      }
+    }
+    console.log(`[DPP v2] Backfilled field_roles for ${fields.length} field(s), dropping old columns...`);
+    await run(`ALTER TABLE field_definitions DROP COLUMN consumer_visible`);
+    await run(`ALTER TABLE field_definitions DROP COLUMN authority_visible`);
+  }
+  console.log('[DPP v2] Digital Access setup complete');
 };
-migrateAuthorityVisible().catch(err => console.error('[authority_visible migration]', err));
+// migrateSupplierFactoryColorFields assigns field_roles by looking up
+// roles by key, so it must run AFTER migrateDigitalAccessRoles has
+// seeded them (and after that migration has dropped the old
+// consumer_visible/authority_visible columns, which it no longer
+// references) - chained explicitly rather than both fired
+// independently, since these fire-and-forget calls don't otherwise
+// guarantee this order.
+migrateDigitalAccessRoles()
+  .then(() => migrateSupplierFactoryColorFields())
+  .catch(err => console.error('[digital access / field migration]', err));
 
 module.exports = {
   db,

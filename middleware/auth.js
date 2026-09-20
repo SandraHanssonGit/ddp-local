@@ -1,54 +1,26 @@
-// Same verifyToken/checkRole pattern as routes/api.js (which already
-// works against v2's `users` table via /api/login - DB_VERSION
-// defaults to v2, so that login already issues valid JWTs for real v2
-// users). Kept as its own module rather than importing from
-// routes/api.js since that file doesn't export these and is v1/legacy
-// code we shouldn't need to touch to add a v2 feature.
+// JWT verification for v2. Mirrors routes/api.js's existing pattern
+// (same JWT_SECRET, same v2 `users` table via /api/login, which
+// already worked against v2 data - DB_VERSION defaults to v2) rather
+// than importing from that file, since it doesn't export these and is
+// v1/legacy code not worth touching for a v2 feature.
 //
-// This is the FIRST v2 route to enforce auth (ROADMAP.md "Security
-// note") - scoped deliberately to just the new authority passport
-// route, not a blanket lockdown of /admin-v2.
+// getUser() is a plain lookup (no response side effects) rather than
+// Express middleware, because the passport route's auth requirement is
+// decided at render time per the requested role's `requires_auth` flag
+// (Settings > Digital Access) - not fixed per route, so it can't be a
+// static middleware chain.
 const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-const verifyToken = (req, res, next) => {
+function getUser(req) {
   const token = req.headers.authorization?.split(' ')[1] || req.cookies?.token;
-  if (!token) return res.status(401).json({ error: 'No token provided' });
-
+  if (!token) return null;
   try {
-    req.user = jwt.verify(token, JWT_SECRET);
-    next();
+    return jwt.verify(token, JWT_SECRET);
   } catch (err) {
-    res.status(401).json({ error: 'Invalid token' });
+    return null;
   }
-};
+}
 
-const checkRole = (allowedRoles) => (req, res, next) => {
-  if (!req.user || !allowedRoles.includes(req.user.role)) {
-    return res.status(403).json({ error: 'Insufficient permissions' });
-  }
-  next();
-};
-
-// Browser-facing variant of verifyToken+checkRole: redirects to /login
-// (with ?redirect= back to the page they wanted) instead of returning
-// a bare JSON error, since this guards an HTML page a person navigates
-// to directly, not an API call a script makes.
-const requireRole = (allowedRoles) => (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1] || req.cookies?.token;
-  const loginRedirect = () => res.redirect('/login?redirect=' + encodeURIComponent(req.originalUrl));
-
-  if (!token) return loginRedirect();
-  try {
-    req.user = jwt.verify(token, JWT_SECRET);
-  } catch (err) {
-    return loginRedirect();
-  }
-  if (!allowedRoles.includes(req.user.role)) {
-    return res.status(403).send('Your account does not have access to this view.');
-  }
-  next();
-};
-
-module.exports = { verifyToken, checkRole, requireRole };
+module.exports = { getUser };

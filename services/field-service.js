@@ -56,7 +56,15 @@ class FieldService {
       throw new Error(`Field ${fieldId} not found`);
     }
 
-    return fieldRepository.updateFieldDefinition(fieldId, updates);
+    // role_ids (Digital Access) isn't a field_definitions column - lives
+    // in the separate field_roles join table, set independently of
+    // whatever other metadata changed.
+    const { role_ids, ...columnUpdates } = updates;
+    if (role_ids !== undefined) {
+      await fieldRepository.setFieldRoles(fieldId, role_ids);
+    }
+
+    return fieldRepository.updateFieldDefinition(fieldId, columnUpdates);
   }
 
   // Delete a field definition - repository already refuses this if any

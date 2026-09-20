@@ -8,7 +8,6 @@
 const express = require('express');
 const router = express.Router();
 const passportPage = require('../services/passport-page-service');
-const { requireRole } = require('../middleware/auth');
 
 /**
  * URL: /01/:gtin/21/:serial
@@ -28,30 +27,6 @@ router.get('/01/:gtin/21/:serial', async (req, res) => {
     await passportPage.renderPassportPage(req, res, sgtinRecord, basePath);
   } catch (err) {
     console.error('[gs1-passport]', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/**
- * URL: /01/:gtin/21/:serial/authority
- * Extended authority/recycler view (ROADMAP.md "Platform vision") -
- * this is the FIRST v2 route to enforce auth (see the "Security note"
- * entry). Deliberately scoped to just this route, not a blanket
- * lockdown of /admin-v2 - that's its own, unscheduled task.
- */
-router.get('/01/:gtin/21/:serial/authority', requireRole(['authority', 'recycler', 'admin', 'super_admin']), async (req, res) => {
-  try {
-    const { gtin, serial } = req.params;
-    const sgtinRecord = await passportPage.findSgtinByGtinSerial(gtin, serial);
-
-    if (!sgtinRecord) {
-      return res.status(404).render('passport-not-found', { serial_number: `${gtin}/${serial}` });
-    }
-
-    const basePath = `${req.baseUrl}${req.path}`;
-    await passportPage.renderAuthorityPassportPage(req, res, sgtinRecord, basePath);
-  } catch (err) {
-    console.error('[gs1-authority]', err);
     res.status(500).json({ error: err.message });
   }
 });

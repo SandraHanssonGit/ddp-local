@@ -10,6 +10,7 @@ const fieldRepository = require('../repositories/fields');
 const supplyChainRepository = require('../repositories/supply-chain');
 const passportVersionRepository = require('../repositories/passport-versions');
 const { normalizeToStored, toGtin14 } = require('../utils/gtin');
+const { getUser } = require('../middleware/auth');
 const { db } = require('../db/init-v2');
 
 // sgtins has UNIQUE(gtin_id, serial_number) - a serial is unique per
@@ -69,28 +70,39 @@ async function getAvailableLocalesForPassport(passport) {
   return Array.from(locales).sort();
 }
 
-// COMPLIANCE.md gap #7: consumer_visible was only enforced on the JSON
-// export, not the live HTML page - any resolved field rendered
-// regardless of the flag. Shared here so both consumers filter
-// identically and can't drift apart again.
-async function filterToConsumerVisible(resolvedFields) {
-  const fieldDefs = await fieldRepository.listFieldDefinitions();
-  const consumerVisibleByKey = Object.fromEntries(
-    fieldDefs.map(f => [f.field_key, !!f.consumer_visible])
-  );
-  return resolvedFields.filter(f => consumerVisibleByKey[f.fieldKey]);
+// Digital Access (2026-09-20): which fields a given role sees, driven
+// entirely by the field_roles table (Settings > Digital Access) -
+// replaces the old fixed consumer_visible/authority_visible booleans
+// so any number of roles can exist without a schema change. Shared
+// here (COMPLIANCE.md gap #7's original point still holds) so the HTML
+// page and JSON export can't drift apart.
+async function filterByRole(resolvedFields, roleId) {
+  const visibleKeys = new Set(await fieldRepository.getFieldKeysForRole(roleId));
+  return resolvedFields.filter(f => visibleKeys.has(f.fieldKey));
 }
 
-// Extended authority/recycler view (ROADMAP.md "Platform vision") -
-// a second, wider visibility flag alongside consumer_visible. Kept as
-// its own filter (not a parameter on filterToConsumerVisible) so a
-// future third visibility level doesn't require reshaping this one.
-async function filterToAuthorityVisible(resolvedFields) {
-  const fieldDefs = await fieldRepository.listFieldDefinitions();
-  const authorityVisibleByKey = Object.fromEntries(
-    fieldDefs.map(f => [f.field_key, !!f.authority_visible])
-  );
-  return resolvedFields.filter(f => authorityVisibleByKey[f.fieldKey]);
+// Resolves which role a passport request is asking to view as
+// (?role=<role_key>, default the role marked is_default) and enforces
+// that role's requires_auth flag - a logged-in user may view a
+// protected role only if their account role matches it, or they're an
+// admin/super_admin. Returns { role, user, deniedReason } - deniedReason
+// is 'login' (send to /login) or 'forbidden' (403), or null if allowed.
+async function resolveRoleForRequest(req) {
+  const requestedKey = req.query.role || null;
+  const role = requestedKey
+    ? (await fieldRepository.getRoleByKey(requestedKey)) || (await fieldRepository.getDefaultRole())
+    : await fieldRepository.getDefaultRole();
+
+  if (!role || !role.requires_auth) {
+    return { role, user: null, deniedReason: null };
+  }
+
+  const user = getUser(req);
+  if (!user) return { role, user: null, deniedReason: 'login' };
+  if (user.role !== role.role_key && user.role !== 'admin' && user.role !== 'super_admin') {
+    return { role, user, deniedReason: 'forbidden' };
+  }
+  return { role, user, deniedReason: null };
 }
 
 function getEventsForSgtin(sgtinId) {
@@ -106,21 +118,38 @@ function getEventsForSgtin(sgtinId) {
 // Renders the consumer-facing HTML passport. basePath is the canonical
 // URL for THIS route (no query string) - used to build the JSON link
 // and the on-page "Passport URL" field without breaking on ?lang=.
+// ?role=<role_key> switches which Digital Access role's field set is
+// shown (Settings > Digital Access / Field Config) - defaults to the
+// role marked is_default. A role with requires_auth needs a matching
+// login (or admin/super_admin); scanService.logScan only runs for the
+// default, unauthenticated view - an authenticated role lookup isn't a
+// consumer scan, same reasoning as the JSON export.
 async function renderPassportPage(req, res, sgtinRecord, basePath) {
-  await scanService.logScan(sgtinRecord.id, {
-    ip_address: req.ip,
-    user_agent: req.get('user-agent'),
-    method: req.query.method || 'qr'
-  });
+  const { role, user, deniedReason } = await resolveRoleForRequest(req);
+  if (deniedReason === 'login') {
+    return res.redirect('/login?redirect=' + encodeURIComponent(req.originalUrl));
+  }
+  if (deniedReason === 'forbidden') {
+    return res.status(403).send('Your account does not have access to this view.');
+  }
+
+  if (!role.requires_auth) {
+    await scanService.logScan(sgtinRecord.id, {
+      ip_address: req.ip,
+      user_agent: req.get('user-agent'),
+      method: req.query.method || 'qr'
+    });
+  }
 
   const locale = req.query.lang || null;
   const passport = await passportResolver.resolveSgtinPassport(sgtinRecord.id, locale);
-  passport.resolvedFields = await filterToConsumerVisible(passport.resolvedFields);
+  passport.resolvedFields = await filterByRole(passport.resolvedFields, role.id);
   const scanStats = await scanService.getScanStats(sgtinRecord.id);
   const events = await getEventsForSgtin(sgtinRecord.id);
   const availableLocales = await getAvailableLocalesForPassport(passport);
   // Supply chain is keyed at Style level for now (ROADMAP.md)
   const supplyChainGroups = await supplyChainRepository.getGroupedForEntity('style', passport.style.id);
+  const roles = await fieldRepository.listRoles();
 
   res.render('dpp-passport', {
     passport,
@@ -130,42 +159,24 @@ async function renderPassportPage(req, res, sgtinRecord, basePath) {
     supplyChainGroups,
     url: basePath,
     locale,
-    isAuthorityView: false
+    roles,
+    currentRole: role,
+    currentUser: user
   });
 }
 
-// Authenticated authority/recycler view - same template as the public
-// passport, wider field set (authority_visible instead of
-// consumer_visible). No scan event logged: an authenticated authority
-// lookup isn't a consumer scan, same reasoning as the JSON export.
-async function renderAuthorityPassportPage(req, res, sgtinRecord, basePath) {
-  const locale = req.query.lang || null;
-  const passport = await passportResolver.resolveSgtinPassport(sgtinRecord.id, locale);
-  passport.resolvedFields = await filterToAuthorityVisible(passport.resolvedFields);
-  const scanStats = await scanService.getScanStats(sgtinRecord.id);
-  const events = await getEventsForSgtin(sgtinRecord.id);
-  const availableLocales = await getAvailableLocalesForPassport(passport);
-  const supplyChainGroups = await supplyChainRepository.getGroupedForEntity('style', passport.style.id);
-
-  res.render('dpp-passport', {
-    passport,
-    scanStats,
-    events,
-    availableLocales,
-    supplyChainGroups,
-    url: basePath,
-    locale,
-    isAuthorityView: true,
-    authorityUser: req.user
-  });
-}
-
-// Machine-readable JSON export - only consumer_visible fields, no scan
-// event logged (a registry/API pull isn't a consumer scan).
+// Machine-readable JSON export - defaults to the default role's field
+// set (?role= supported the same way as the HTML page), no scan event
+// logged (a registry/API pull isn't a consumer scan).
 async function renderPassportJson(req, res, sgtinRecord) {
+  const { role, deniedReason } = await resolveRoleForRequest(req);
+  if (deniedReason) {
+    return res.status(deniedReason === 'login' ? 401 : 403).json({ error: 'Authentication required for this role' });
+  }
+
   const locale = req.query.lang || null;
   const passport = await passportResolver.resolveSgtinPassport(sgtinRecord.id, locale);
-  const visibleFields = await filterToConsumerVisible(passport.resolvedFields);
+  const visibleFields = await filterByRole(passport.resolvedFields, role.id);
 
   const fields = visibleFields
     .filter(f => f.value)
@@ -246,6 +257,5 @@ module.exports = {
   findSgtinByGtinSerial,
   findSgtinByBatchGtinSerial,
   renderPassportPage,
-  renderAuthorityPassportPage,
   renderPassportJson
 };

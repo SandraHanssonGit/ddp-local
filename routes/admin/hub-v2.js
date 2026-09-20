@@ -315,19 +315,12 @@ router.get('/', async (req, res) => {
 
       if (sub === 'fields') {
         const category = req.query.category || null;
-        let query = 'SELECT * FROM field_definitions';
-        const params = [];
-
-        if (category) {
-          query += ' WHERE category = ?';
-          params.push(category);
-        }
-
-        query += ' ORDER BY category, sort_order, label';
-
-        data.fields = await getAll(query, params);
+        data.fields = await fieldRepository.listFieldDefinitions(category);
         data.selectedCategory = category;
         data.categories = ['eu_required', 'nudie'];
+        data.roles = await fieldRepository.listRoles();
+      } else if (sub === 'access') {
+        data.roles = await fieldRepository.listRoles();
       } else if (sub === 'operators') {
         data.operators = await getAll(`
           SELECT eo.*,
@@ -582,6 +575,47 @@ router.put('/product-types/:productTypeId', async (req, res) => {
   } catch (err) {
     console.error('[product-type-update]', err);
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Digital Access (2026-09-20): the configurable roles list replacing
+// consumer_visible/authority_visible, CRUD kept alongside the other
+// Settings routes the same way Product Types is.
+router.post('/roles', async (req, res) => {
+  try {
+    const { role_key, label, requires_auth } = req.body;
+    if (!role_key || !label) {
+      return res.status(400).json({ success: false, error: 'role_key and label are required' });
+    }
+    const id = await fieldRepository.createRole(role_key, label, { requires_auth: !!requires_auth });
+    res.json({ success: true, id });
+  } catch (err) {
+    console.error('[role-create]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.put('/roles/:roleId', async (req, res) => {
+  try {
+    const { label, requires_auth } = req.body;
+    const updates = {};
+    if (label !== undefined) updates.label = label;
+    if (requires_auth !== undefined) updates.requires_auth = requires_auth ? 1 : 0;
+    await fieldRepository.updateRole(req.params.roleId, updates);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[role-update]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.delete('/roles/:roleId', async (req, res) => {
+  try {
+    await fieldRepository.deleteRole(req.params.roleId);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[role-delete]', err);
+    res.status(400).json({ success: false, error: err.message });
   }
 });
 

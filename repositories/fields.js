@@ -5,10 +5,10 @@ class FieldRepository {
   async createFieldDefinition(fieldKey, label, category, options = {}) {
     const sql = `
       INSERT INTO field_definitions
-      (field_key, label, description, data_type, category, required, consumer_visible, authority_visible,
+      (field_key, label, description, data_type, category, required,
        editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_sgtin,
        locks_at_production, sort_order)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     // No explicit locks_at_production given - default from category,
     // same rule the startup backfill uses (migrateLocksAtProduction in
@@ -24,8 +24,6 @@ class FieldRepository {
       options.data_type || 'text',
       category,
       options.required ? 1 : 0,
-      options.consumer_visible !== false ? 1 : 0,
-      options.authority_visible !== false ? 1 : 0,
       options.editable_at_style !== false ? 1 : 0,
       options.editable_at_variant !== false ? 1 : 0,
       options.editable_at_batch !== false ? 1 : 0,
@@ -34,7 +32,92 @@ class FieldRepository {
       locksAtProduction,
       options.sort_order || 0
     ]);
+    // Digital Access (2026-09-20): which roles see this field, replacing
+    // the old consumer_visible/authority_visible booleans. Defaults to
+    // every existing role if the caller doesn't say - matches the old
+    // defaults (both flags true unless explicitly set false).
+    const roleIds = options.role_ids !== undefined
+      ? options.role_ids
+      : (await this.listRoles()).map(r => r.id);
+    await this.setFieldRoles(result.lastID, roleIds);
     return result.lastID;
+  }
+
+  // Digital Access: configurable roles (Consumer, Authority, Recycler,
+  // ...), managed under Settings. is_default marks the role shown when
+  // no ?role= is given on the public passport - never deleted.
+  async listRoles() {
+    return db.all(`SELECT * FROM roles ORDER BY sort_order ASC, label ASC`);
+  }
+
+  async getRole(roleId) {
+    return db.get(`SELECT * FROM roles WHERE id = ?`, [roleId]);
+  }
+
+  async getRoleByKey(roleKey) {
+    return db.get(`SELECT * FROM roles WHERE role_key = ?`, [roleKey]);
+  }
+
+  async getDefaultRole() {
+    return db.get(`SELECT * FROM roles WHERE is_default = 1`);
+  }
+
+  async createRole(roleKey, label, options = {}) {
+    const result = await db.run(
+      `INSERT INTO roles (role_key, label, requires_auth, sort_order) VALUES (?, ?, ?, ?)`,
+      [roleKey, label, options.requires_auth ? 1 : 0, options.sort_order || 0]
+    );
+    return result.lastID;
+  }
+
+  async updateRole(roleId, updates) {
+    const allowedFields = ['label', 'requires_auth', 'sort_order'];
+    const setClauses = [];
+    const values = [];
+    for (const [key, value] of Object.entries(updates)) {
+      if (allowedFields.includes(key)) {
+        setClauses.push(`${key} = ?`);
+        values.push(value);
+      }
+    }
+    if (setClauses.length === 0) return;
+    values.push(roleId);
+    await db.run(`UPDATE roles SET ${setClauses.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, values);
+  }
+
+  async deleteRole(roleId) {
+    const role = await this.getRole(roleId);
+    if (role && role.is_default) {
+      throw new Error('Cannot delete the default role');
+    }
+    await db.run(`DELETE FROM field_roles WHERE role_id = ?`, [roleId]);
+    await db.run(`DELETE FROM roles WHERE id = ?`, [roleId]);
+  }
+
+  async getFieldRoleIds(fieldDefinitionId) {
+    const rows = await db.all(`SELECT role_id FROM field_roles WHERE field_definition_id = ?`, [fieldDefinitionId]);
+    return rows.map(r => r.role_id);
+  }
+
+  // Replace-all: simpler and safer than diffing when a form always
+  // posts the full set of checked roles.
+  async setFieldRoles(fieldDefinitionId, roleIds) {
+    await db.run(`DELETE FROM field_roles WHERE field_definition_id = ?`, [fieldDefinitionId]);
+    for (const roleId of roleIds) {
+      await db.run(`INSERT OR IGNORE INTO field_roles (field_definition_id, role_id) VALUES (?, ?)`, [fieldDefinitionId, roleId]);
+    }
+  }
+
+  // Every field_key visible to a given role, keyed for a cheap filter
+  // lookup (passport-page-service.js) - a field with no field_roles
+  // rows at all is visible to nobody, same as the old flags defaulting
+  // to "off" once explicitly unchecked.
+  async getFieldKeysForRole(roleId) {
+    const rows = await db.all(
+      `SELECT fd.field_key FROM field_roles fr JOIN field_definitions fd ON fd.id = fr.field_definition_id WHERE fr.role_id = ?`,
+      [roleId]
+    );
+    return rows.map(r => r.field_key);
   }
 
   async getFieldDefinition(fieldId) {
@@ -56,12 +139,21 @@ class FieldRepository {
       params.push(category);
     }
 
-    sql += ` ORDER BY sort_order ASC, label ASC`;
-    return db.all(sql, params);
+    sql += ` ORDER BY category ASC, sort_order ASC, label ASC`;
+    const fields = await db.all(sql, params);
+
+    // Attach each field's role_ids (Digital Access) - one extra query
+    // per field is fine at this POC's field-definitions scale (a
+    // handful of rows), and keeps this simple rather than a manual
+    // GROUP_CONCAT parse.
+    for (const field of fields) {
+      field.role_ids = await this.getFieldRoleIds(field.id);
+    }
+    return fields;
   }
 
   async updateFieldDefinition(fieldId, updates) {
-    const allowedFields = ['label', 'description', 'required', 'consumer_visible', 'authority_visible', 'sort_order', 'category',
+    const allowedFields = ['label', 'description', 'required', 'sort_order', 'category',
                           'editable_at_style', 'editable_at_variant', 'editable_at_batch', 'editable_at_gtin', 'editable_at_sgtin',
                           'locks_at_production'];
     const setClauses = [];
@@ -225,7 +317,6 @@ class FieldRepository {
         fd.label,
         fd.category,
         fd.data_type,
-        fd.consumer_visible,
         dv.id AS dpp_value_id,
         dv.value
       FROM field_definitions fd
@@ -247,8 +338,7 @@ class FieldRepository {
         fd.field_key,
         fd.label,
         fd.category,
-        fd.data_type,
-        fd.consumer_visible
+        fd.data_type
       FROM dpp_values dv
       JOIN field_definitions fd ON dv.field_definition_id = fd.id
       WHERE dv.entity_type = ? AND dv.entity_id = ? AND fd.category = ? AND dv.locale IS ?
