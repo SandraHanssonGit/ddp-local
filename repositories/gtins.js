@@ -18,10 +18,10 @@ class GtinRepository {
 
     const sql = `
       INSERT INTO gtins (
-        style_id, variant_id, gtin, size, color, variant, weight,
+        style_id, variant_id, gtin, size, color, variant,
         product_type, item_number, size_value_1, size_value_2, size_value_3
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const result = await db.run(sql, [
       effectiveStyleId,
@@ -30,7 +30,6 @@ class GtinRepository {
       options.size || null,
       options.color || null,
       options.variant || null,
-      options.weight || null,
       options.product_type || null,
       options.item_number || null,
       options.size_value_1 || null,
@@ -85,7 +84,7 @@ class GtinRepository {
 
   async update(id, updates) {
     const allowedFields = [
-      'size', 'color', 'variant', 'weight',
+      'size', 'color', 'variant',
       'product_type', 'item_number', 'size_value_1', 'size_value_2', 'size_value_3'
     ];
     const setClauses = [];

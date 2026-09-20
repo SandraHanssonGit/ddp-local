@@ -368,8 +368,7 @@ class ImportService {
           item_number: row.item_number || null,
           size_value_1: validation.parsed?.size_value_1 || row.size_value_1 || null,
           size_value_2: validation.parsed?.size_value_2 || row.size_value_2 || null,
-          size_value_3: validation.parsed?.size_value_3 || row.size_value_3 || null,
-          weight: row.weight ? parseFloat(row.weight) : null
+          size_value_3: validation.parsed?.size_value_3 || row.size_value_3 || null
         };
 
         // If dry run, just collect the record without inserting
@@ -378,9 +377,9 @@ class ImportService {
             const sql = `
               INSERT INTO gtins (
                 style_id, variant_id, gtin, product_type, item_number,
-                size_value_1, size_value_2, size_value_3, weight
+                size_value_1, size_value_2, size_value_3
               )
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             `;
 
             await runQuery(sql, [
@@ -391,8 +390,7 @@ class ImportService {
               gtinRecord.item_number,
               gtinRecord.size_value_1,
               gtinRecord.size_value_2,
-              gtinRecord.size_value_3,
-              gtinRecord.weight
+              gtinRecord.size_value_3
             ]);
 
             summary.created.push({

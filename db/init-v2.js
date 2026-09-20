@@ -83,7 +83,6 @@ const init = () => {
         size TEXT,
         color TEXT,
         variant TEXT,
-        weight REAL,
         product_type TEXT,
         item_number TEXT,
         size_value_1 TEXT,
@@ -680,6 +679,20 @@ const migrateDropGtinEan = async () => {
   console.log('[DPP v2] gtins.ean drop complete');
 };
 
+// Found 2026-09-20 alongside gtins.ean: gtins.weight is only ever
+// written by the CSV import (import-service.js) and never read back -
+// no admin view displays it. User confirmed it should go too. Guarded
+// the same way, so this only runs once.
+const migrateDropGtinWeight = async () => {
+  const columns = await all(`PRAGMA table_info(gtins)`);
+  const hasWeight = columns.some(c => c.name === 'weight');
+  if (!hasWeight) return;
+
+  console.log('[DPP v2] Dropping unused gtins.weight column...');
+  await run(`ALTER TABLE gtins DROP COLUMN weight`);
+  console.log('[DPP v2] gtins.weight drop complete');
+};
+
 // Initialize on module load
 init();
 migrateDppValuesLocale().catch(err => console.error('[dpp_values locale migration]', err));
@@ -687,6 +700,7 @@ migrateProductTypes().catch(err => console.error('[product_types migration]', er
 migrateLocksAtProduction().catch(err => console.error('[locks_at_production migration]', err));
 migrateDeduplicateDppValues().catch(err => console.error('[dpp_values deduplication]', err));
 migrateDropGtinEan().catch(err => console.error('[gtins.ean drop migration]', err));
+migrateDropGtinWeight().catch(err => console.error('[gtins.weight drop migration]', err));
 
 module.exports = {
   db,
