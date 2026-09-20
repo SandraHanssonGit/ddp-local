@@ -86,21 +86,25 @@
                Style's own identity, not a separate concern) -->
           <div style="border-top:1px solid var(--hairline); margin-top:20px; padding-top:20px;">
             <label class="label-sm" style="display:block; margin-bottom:10px;">Product Image</label>
-            <% if (style.image_url) { %>
-              <div style="display:flex; gap:20px; align-items:flex-start;">
+            <div style="display:flex; gap:20px; align-items:flex-start;">
+              <% if (style.image_url) { %>
                 <div class="image-preview-wrap">
                   <img src="<%= style.image_url %>" alt="<%= style.product_name %>" class="image-preview" title="Hover to zoom">
                 </div>
-                <div class="small muted" style="flex:1; max-width:360px;">
-                  <p style="margin:0 0 8px;"><strong style="color:var(--text);">Used on:</strong></p>
-                  <ul style="margin:0 0 12px; padding-left:18px;">
-                    <li>Public passport hero image</li>
-                    <li>Products tab thumbnail</li>
-                    <li>Variants without their own image (fallback)</li>
-                  </ul>
-                  <p style="margin:0;">Recommended: square, at least 800&times;800px, JPG/PNG/WebP.</p>
-                </div>
+              <% } else { %>
+                <div class="image-box" style="width:130px; height:130px; display:flex; align-items:center; justify-content:center; padding:8px; flex:none;">No image yet</div>
+              <% } %>
+              <div class="small muted" style="flex:1; max-width:360px;">
+                <p style="margin:0 0 8px;"><strong style="color:var(--text);">Used on:</strong></p>
+                <ul style="margin:0 0 12px; padding-left:18px;">
+                  <li>Public passport hero image</li>
+                  <li>Products tab thumbnail</li>
+                  <li>Variants without their own image (fallback)</li>
+                </ul>
+                <p style="margin:0;">Recommended: square, at least 800&times;800px, JPG/PNG/WebP.</p>
               </div>
+            </div>
+            <% if (style.image_url) { %>
               <div style="margin-top:14px; display:flex; gap:10px; align-items:center;">
                 <label class="btn small file-btn">
                   Choose File
@@ -111,15 +115,14 @@
                 <a href="#" onclick="deleteStyleImage(); return false;" class="link-action muted small" style="margin-left:auto; display:inline-flex; align-items:center; gap:4px;"><%- icon('trash-2', { size: 13 }) %> Delete</a>
               </div>
             <% } else { %>
-              <div class="image-box" style="margin-bottom:12px;">No image uploaded yet</div>
-              <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+              <div style="margin-top:14px; display:flex; gap:10px; align-items:center;">
                 <label class="btn file-btn">
                   Choose File
                   <input type="file" id="image-upload" accept="image/*" class="file-input-hidden" onchange="document.getElementById('image-upload-name').textContent = this.files[0] ? this.files[0].name : 'No file chosen'">
                 </label>
                 <span id="image-upload-name" class="small muted">No file chosen</span>
+                <button type="button" onclick="uploadImage()" class="btn btn-primary">Upload Image</button>
               </div>
-              <button type="button" onclick="uploadImage()" class="btn btn-primary">Upload Image</button>
             <% } %>
           </div>
         </div>
