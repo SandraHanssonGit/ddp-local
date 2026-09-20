@@ -146,8 +146,16 @@
 
           <!-- View Mode -->
           <div id="dpp-fields-view">
-            <% const setDppValues = typeof dppValues !== 'undefined' ? dppValues.filter(v => v.value) : []; %>
             <%
+              // Same class of gap already fixed on GTIN detail (2026-09-20,
+              // "Det känns inte som alla fält syns"): this used to filter
+              // to only fields with a value, so a Style with nothing set
+              // yet showed no field list at all - just an italic message -
+              // instead of the configured fields as empty/fillable. dppValues
+              // already comes from getFieldsForLevel() (a LEFT JOIN), so it
+              // already includes every editable_at_style field whether or
+              // not it has a value; just stop filtering that away here.
+              const allStyleDppValues = typeof dppValues !== 'undefined' ? dppValues : [];
               // Structured fields (data_type='json') - pretty-print
               // instead of showing the raw JSON string, same rendering
               // used on the public passport (dpp-passport.ejs).
@@ -170,33 +178,43 @@
                 return null;
               };
             %>
-            <% if (setDppValues.length > 0) { %>
+            <% if (allStyleDppValues.length > 0) { %>
               <%
                 const styleFieldGroups = [
-                  { label: 'EU Required', items: setDppValues.filter(v => v.category === 'eu_required') },
-                  { label: 'Nudie', items: setDppValues.filter(v => v.category === 'nudie') }
+                  { label: 'EU Required', items: allStyleDppValues.filter(v => v.category === 'eu_required') },
+                  { label: 'Nudie', items: allStyleDppValues.filter(v => v.category === 'nudie') }
                 ];
               %>
               <% styleFieldGroups.forEach(group => { %>
                 <% if (group.items.length === 0) return; %>
                 <div class="field-category-heading"><%= group.label %></div>
                 <% group.items.forEach(val => { %>
-                  <% const structuredHtml = val.data_type === 'json' ? structuredValueHtml(val.value) : null; %>
-                  <div class="field-card overridden">
-                    <div class="field-card-head">
-                      <label class="label-sm"><%= val.label %></label>
-                      <span class="badge badge-accent">Defined at Style</span>
+                  <% if (val.value) { %>
+                    <% const structuredHtml = val.data_type === 'json' ? structuredValueHtml(val.value) : null; %>
+                    <div class="field-card overridden">
+                      <div class="field-card-head">
+                        <label class="label-sm"><%= val.label %></label>
+                        <span class="badge badge-accent">Defined at Style</span>
+                      </div>
+                      <% if (structuredHtml) { %>
+                        <div class="field-card-value"><%- structuredHtml %></div>
+                      <% } else { %>
+                        <p class="field-card-value"><%= val.value %></p>
+                      <% } %>
                     </div>
-                    <% if (structuredHtml) { %>
-                      <div class="field-card-value"><%- structuredHtml %></div>
-                    <% } else { %>
-                      <p class="field-card-value"><%= val.value %></p>
-                    <% } %>
-                  </div>
+                  <% } else { %>
+                    <div class="field-card notset">
+                      <div class="field-card-head">
+                        <label class="label-sm"><%= val.label %></label>
+                        <span class="badge" style="background:var(--lock-border); color:var(--lock-text);">Not set</span>
+                      </div>
+                      <p class="field-card-note">No value at Product level - this can be filled in here.</p>
+                    </div>
+                  <% } %>
                 <% }); %>
               <% }); %>
             <% } else { %>
-              <p class="muted" style="font-style:italic;">No Style-level values defined yet. All inherited values will come from defaults.</p>
+              <p class="muted" style="font-style:italic;">No fields are configured to be editable at the Product level (see Field Config &rsaquo; Levels).</p>
             <% } %>
           </div>
 
