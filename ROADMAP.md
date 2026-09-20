@@ -706,15 +706,39 @@ so information lands under the right heading (e.g. "Material", "Care",
   EU/Nudie badging and the lock default, while its section governs
   where it's grouped for display.
 
-**Merged in from the Discovery session's version of this idea
-(2026-09-16 → 2026-09-20)**: new `data_type` value `repeating_group`,
-so Transparency (`supply_chain_steps` - a repeating list, storage
-stays separate since it can't fit `dpp_values`'s one-scalar-per-field
-shape) can still get a `field_definitions` row (`field_key:
-'transparency'`) and participate in the same section/category/
-sort_order/consumer_visible configuration as every other field. The
-admin UI shows "Edit here links out to where they're managed" for
-this data type instead of an inline text/textarea editor.
+**`repeating_group` data_type ✅ Done (2026-09-20)** - merged in from
+the Discovery session's version of this idea (2026-09-16), built after
+reviewing a real test DPP's full schema (nudie-dpp.vercel.app)
+surfaced the same need directly: Transparency (`supply_chain_steps` -
+a repeating list, storage stays separate since it can't fit
+`dpp_values`'s one-scalar-per-field shape) got a `field_definitions`
+row (`field_key: 'transparency'`, `category: 'eu_required'`) purely
+for **Digital Access role visibility** - `category`/`field_sections`
+grouping is still pending on the section table below, but role gating
+already works today via `fieldRepository.isFieldVisibleToRole()`,
+checked in `passport-page-service.js` before fetching
+`supply_chain_steps` for both the HTML page and JSON export. No inline
+editor for this data type - `style-detail.ejs`'s Edit Mode skips
+`repeating_group` fields entirely (nothing to edit there, the
+Transparency card already handles that). Verified: restricted the
+field to authority/recycler only, confirmed consumers stopped seeing
+the section on a style with real seeded steps while `?role=authority`
+still did, then restored to all-roles-visible.
+
+**Also built the sibling case, `data_type = 'json'` (2026-09-20)**: for
+*fixed-shape* structured objects (Care Instructions restructured as
+washing/ironing/bleaching/etc, Transport as route/modes/carrier) that
+aren't a growing list - these fit `dpp_values.value` directly as a
+JSON string, getting inheritance/override/audit/locale/lock/role
+visibility for free like any other field. A shared
+`structuredValueHtml()` pretty-printer (duplicated into
+`dpp-passport.ejs` and `style-detail.ejs`, matching this codebase's
+per-template pattern) parses the JSON and renders a key/value
+breakdown instead of the raw string; the edit textarea still shows raw
+JSON directly (no custom form builder for this POC); the JSON export
+passes the raw JSON string through unchanged. Not yet applied to any
+real field (`care_instructions` stays plain text for now) - verified
+with a throwaway test field, cleaned up after.
 
 ## Field source/provenance + pre-production preview (idea only, not designed, 2026-09-19)
 
