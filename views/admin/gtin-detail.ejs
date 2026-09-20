@@ -34,34 +34,6 @@
       </div>
     </div>
 
-    <div class="card">
-      <h2 style="margin-bottom:20px;">Individual Garments</h2>
-      <% if (sgtins.length > 0) { %>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Serial</th>
-                <th>Batch</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% sgtins.forEach(sg => { %>
-                <tr>
-                  <td class="mono"><%= sg.serial_number %></td>
-                  <td class="mono small"><%= sg.batch_id %></td>
-                  <td><a href="/admin-v2/sgtin/<%= sg.id %>" class="link-action"><%- icon('arrow-right') %></a></td>
-                </tr>
-              <% }); %>
-            </tbody>
-          </table>
-        </div>
-      <% } else { %>
-        <div class="empty-state">No SGTINs produced yet</div>
-      <% } %>
-    </div>
-
     <div class="card card-passport">
       <div class="card-eyebrow"><%- icon('qr-code', { size: 12 }) %> Shown on the public passport</div>
       <div class="card-head">
@@ -162,9 +134,56 @@
         </div>
       </div>
     </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Individual Garments</h2>
+        <% if (sgtins.length > 5) { %>
+          <input type="text" id="sgtin-search" placeholder="Search serial…" class="small" style="width:200px;" oninput="filterSgtins(this.value)">
+        <% } %>
+      </div>
+      <% if (sgtins.length > 0) { %>
+        <div class="table-wrap <%= sgtins.length > 5 ? 'table-wrap-scroll' : '' %>">
+          <table>
+            <thead>
+              <tr>
+                <th>Serial</th>
+                <th>Batch</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="sgtin-table-body">
+              <% sgtins.forEach(sg => { %>
+                <tr data-serial="<%= sg.serial_number.toLowerCase() %>">
+                  <td class="mono"><%= sg.serial_number %></td>
+                  <td class="mono small"><%= sg.batch_id %></td>
+                  <td><a href="/admin-v2/sgtin/<%= sg.id %>" class="link-action"><%- icon('arrow-right') %></a></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+        <p id="sgtin-no-match" class="empty-state hidden">No garments match "<span id="sgtin-no-match-term"></span>"</p>
+      <% } else { %>
+        <div class="empty-state">No SGTINs produced yet</div>
+      <% } %>
+    </div>
   </div>
 
   <script>
+    function filterSgtins(term) {
+      const needle = term.trim().toLowerCase();
+      const rows = document.querySelectorAll('#sgtin-table-body tr');
+      let visibleCount = 0;
+      rows.forEach(row => {
+        const match = !needle || row.dataset.serial.includes(needle);
+        row.classList.toggle('hidden', !match);
+        if (match) visibleCount++;
+      });
+      document.getElementById('sgtin-no-match-term').textContent = term;
+      document.getElementById('sgtin-no-match').classList.toggle('hidden', visibleCount > 0 || !needle);
+    }
+
     function toggleDppEdit() {
       document.getElementById('dpp-fields-view').classList.toggle('hidden');
       document.getElementById('dpp-fields-edit').classList.toggle('hidden');

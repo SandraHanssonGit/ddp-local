@@ -197,6 +197,12 @@ a:hover { text-decoration: underline; }
 /* Table */
 .table-wrap { overflow-x: auto; }
 
+/* Scrolls after ~5 rows instead of pushing the rest of the page down -
+   used for long per-entity lists (e.g. a GTIN's produced SGTINs) where
+   the count can grow into the hundreds. */
+.table-wrap-scroll { max-height: 300px; overflow-y: auto; }
+.table-wrap-scroll thead th { position: sticky; top: 0; background: var(--surface); z-index: 1; }
+
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
 
 thead th {
