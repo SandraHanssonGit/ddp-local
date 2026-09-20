@@ -1178,9 +1178,14 @@ phase. Each item below is a decision/plan, not yet implemented.
     read back - not a field-system question at all, just a redundant
     column. Column dropped via a guarded migration in `db/init-v2.js`,
     removed from `repositories/gtins.js` and `import-service.js`.
-  - **Likely dead, needs confirming**: `gtins.weight` is populated on
-    import but not currently rendered in any view found.
-  Not migrated yet - this needs the same "which levels can edit it,
+  - ~~`gtins.weight`~~ ✅ Dropped (2026-09-20) - confirmed dead the same
+    way: only ever written by CSV import, never read back anywhere.
+    User confirmed it should go too. Same guarded-migration treatment,
+    also removed from `import.ejs`'s documented CSV columns/sample
+    (which still listed both `ean` and `weight`).
+  The remaining candidates (`batches.supplier/factory`, `gtins.color`,
+  and the `gtins.variant`/`product_type` duplication questions) still
+  need the same "which levels can edit it,
   what category" decision every other field gets, not something to
   decide autonomously mid-cleanup.
 - **Role-based field visibility - superseded (2026-09-20), see
