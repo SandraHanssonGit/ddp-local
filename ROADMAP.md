@@ -1321,9 +1321,13 @@ per-field model was built.
 **Decision**: build a dedicated `supply_chain_steps` table, separate
 from the field system - see the schema note in this section as it's
 built. CO2/water-style scalar metrics do NOT need this - they fit the
-existing dynamic field system fine (new `field_definitions` rows,
-category `environmental`), and get inheritance/override/locale/lock
-for free that way.
+existing dynamic field system fine (new `field_definitions` rows), and
+get inheritance/override/locale/lock for free that way. **Corrected
+2026-09-20**: originally said category `environmental` here too - same
+`category`-overload mistake fixed in Phase 5 above. These should be
+`category='eu_required'` with a `field_sections` entry (e.g.
+"Environmental Footprint") for their grouping, once that mechanism is
+built - not a new `category` value.
 
 **Built**: `supply_chain_steps` table (`repositories/supply-chain.js`,
 CRUD routes in `routes/admin/hub-v2.js` under `/style/:id/supply-chain`
