@@ -147,8 +147,15 @@ async function renderPassportPage(req, res, sgtinRecord, basePath) {
   const scanStats = await scanService.getScanStats(sgtinRecord.id);
   const events = await getEventsForSgtin(sgtinRecord.id);
   const availableLocales = await getAvailableLocalesForPassport(passport);
-  // Supply chain is keyed at Style level for now (ROADMAP.md)
-  const supplyChainGroups = await supplyChainRepository.getGroupedForEntity('style', passport.style.id);
+  // Supply chain is keyed at Style level for now (ROADMAP.md). Gated by
+  // Digital Access like any other field via the 'transparency'
+  // repeating_group field_definitions row (2026-09-20) - the actual
+  // step data still lives in supply_chain_steps, this only controls
+  // whether the section shows for the current role.
+  const transparencyVisible = await fieldRepository.isFieldVisibleToRole('transparency', role.id);
+  const supplyChainGroups = transparencyVisible
+    ? await supplyChainRepository.getGroupedForEntity('style', passport.style.id)
+    : [];
   const roles = await fieldRepository.listRoles();
 
   res.render('dpp-passport', {
@@ -191,8 +198,12 @@ async function renderPassportJson(req, res, sgtinRecord) {
 
   // Supply chain is keyed at Style level for now (ROADMAP.md), same
   // grouping used by the HTML passport - kept identical so the JSON
-  // export never drifts from what the consumer page shows.
-  const supplyChainGroups = await supplyChainRepository.getGroupedForEntity('style', passport.style.id);
+  // export never drifts from what the consumer page shows, including
+  // the 'transparency' Digital Access gate.
+  const transparencyVisible = await fieldRepository.isFieldVisibleToRole('transparency', role.id);
+  const supplyChainGroups = transparencyVisible
+    ? await supplyChainRepository.getGroupedForEntity('style', passport.style.id)
+    : [];
   const supplyChain = supplyChainGroups.map(group => ({
     category: group.category,
     steps: group.steps.map(step => ({

@@ -121,6 +121,19 @@ class FieldRepository {
     return rows.map(r => r.field_key);
   }
 
+  // Gates a feature that isn't stored in dpp_values at all (e.g.
+  // Transparency, a data_type='repeating_group' field whose real data
+  // lives in supply_chain_steps) behind Digital Access role
+  // visibility, the same as any normal field. Defaults to visible if
+  // the field_key isn't configured yet, so existing behavior (always
+  // shown) doesn't change until an admin deliberately sets it up.
+  async isFieldVisibleToRole(fieldKey, roleId) {
+    const field = await this.getFieldDefinitionByKey(fieldKey);
+    if (!field) return true;
+    const roleIds = await this.getFieldRoleIds(field.id);
+    return roleIds.includes(roleId);
+  }
+
   async getFieldDefinition(fieldId) {
     const sql = `SELECT * FROM field_definitions WHERE id = ?`;
     return db.get(sql, [fieldId]);

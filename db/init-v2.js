@@ -930,14 +930,46 @@ const migratePefFields = async () => {
   }
 };
 
-// migrateSupplierFactoryColorFields and migratePefFields both assign
-// field_roles by looking up roles by key, so they must run AFTER
-// migrateDigitalAccessRoles has seeded them - chained explicitly
-// rather than fired independently, since these fire-and-forget calls
-// don't otherwise guarantee order.
+// Transparency as a Digital Access-gated field (2026-09-20, user
+// request after reviewing a real test DPP's full schema): a
+// data_type='repeating_group' field_definitions row that stores no
+// value of its own in dpp_values - the real step data stays in
+// supply_chain_steps, unchanged. This row exists purely so Transparency
+// gets a category/role visibility like every other field, checked via
+// fieldRepository.isFieldVisibleToRole() in passport-page-service.js.
+// Visible to all three roles by default so existing behavior (always
+// shown) doesn't change until an admin deliberately restricts it.
+const migrateTransparencyField = async () => {
+  const existing = await get(`SELECT id FROM field_definitions WHERE field_key = 'transparency'`);
+  if (existing) return;
+
+  console.log(`[DPP v2] Creating 'transparency' field definition...`);
+  const result = await run(
+    `INSERT INTO field_definitions
+     (field_key, label, description, data_type, category, required,
+      editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_batch_gtin, editable_at_sgtin,
+      locks_at_production, sort_order)
+     VALUES ('transparency', 'Transparency', 'Supply chain steps - managed in the Transparency card, not here', 'repeating_group', 'eu_required', 0, 1, 0, 0, 0, 0, 0, 0, 0)`
+  );
+  const fieldDefinitionId = result.lastID;
+
+  for (const roleKey of ['consumer', 'authority', 'recycler']) {
+    const role = await get(`SELECT id FROM roles WHERE role_key = ?`, [roleKey]);
+    if (role) {
+      await run(`INSERT OR IGNORE INTO field_roles (field_definition_id, role_id) VALUES (?, ?)`, [fieldDefinitionId, role.id]);
+    }
+  }
+};
+
+// migrateSupplierFactoryColorFields, migratePefFields and
+// migrateTransparencyField all assign field_roles by looking up roles
+// by key, so they must run AFTER migrateDigitalAccessRoles has seeded
+// them - chained explicitly rather than fired independently, since
+// these fire-and-forget calls don't otherwise guarantee order.
 migrateDigitalAccessRoles()
   .then(() => migrateSupplierFactoryColorFields())
   .then(() => migratePefFields())
+  .then(() => migrateTransparencyField())
   .catch(err => console.error('[digital access / field migration]', err));
 
 module.exports = {

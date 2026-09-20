@@ -294,6 +294,7 @@
           <div id="dpp-fields-edit" class="hidden">
             <% if (typeof dppValues !== 'undefined' && dppValues.length > 0) { %>
               <% dppValues.forEach(val => { %>
+                <% if (val.data_type === 'repeating_group') return; %>
                 <div class="field-row">
                   <label style="display:block; margin-bottom:6px;"><%= val.label %></label>
                   <textarea id="field-<%= val.field_key %>" rows="3"><%= val.value %></textarea>
