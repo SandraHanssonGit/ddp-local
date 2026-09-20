@@ -124,119 +124,6 @@
           </div>
         </div>
 
-        <!-- Variants Card -->
-        <div class="card">
-          <div class="card-head" style="margin-bottom:20px;">
-            <h2>Variants</h2>
-            <button onclick="document.getElementById('addVariantForm').classList.toggle('hidden')" class="btn btn-primary">
-              + Add Variant
-            </button>
-          </div>
-
-          <!-- Add Variant Form -->
-          <div id="addVariantForm" class="form-panel hidden">
-            <h3 style="margin-bottom:16px; font-size:16px;">Add New Variant</h3>
-            <form id="variantForm">
-              <div class="field-grid">
-                <div>
-                  <label>Variant Name *</label>
-                  <input type="text" name="variant_name" placeholder="Black" required />
-                </div>
-                <div>
-                  <label>Product Name *</label>
-                  <input type="text" name="product_name" placeholder="Raw Hem T-Shirt Black" required />
-                </div>
-              </div>
-              <button type="submit" class="btn btn-primary">Add Variant</button>
-            </form>
-          </div>
-
-          <% if (!variants || variants.length === 0) { %>
-            <p class="small muted">No variants yet.</p>
-          <% } %>
-
-          <% (variants || []).forEach(variant => {
-              const variantGtins = gtins.filter(g => g.variant_id === variant.id);
-            %>
-              <div class="sub-card">
-                <div class="card-head" style="margin-bottom:12px;">
-                  <h3><%= variant.variant_name %> <span class="muted small" style="font-weight:400;">— <%= variant.product_name || style.product_name %></span></h3>
-                  <span class="badge badge-accent"><%= variantGtins.length %> GTINs</span>
-                </div>
-
-                <% if (variantGtins.length > 0) { %>
-                  <div class="table-wrap">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>GTIN</th>
-                          <th>Item #</th>
-                          <th>Size</th>
-                          <th class="center">SGTINs</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <% variantGtins.forEach(gtin => { %>
-                          <tr>
-                            <td class="mono small"><%= gtin.gtin %></td>
-                            <td class="small"><%= gtin.item_number %></td>
-                            <td class="small">
-                              <% let size = gtin.size_value_1 || ''; %>
-                              <% if (gtin.size_value_2) size += '-' + gtin.size_value_2; %>
-                              <% if (gtin.size_value_3) size += '-' + gtin.size_value_3; %>
-                              <%= size %>
-                            </td>
-                            <td class="center"><span class="badge badge-success small"><%= gtin.sgtin_count || 0 %></span></td>
-                          </tr>
-                        <% }); %>
-                      </tbody>
-                    </table>
-                  </div>
-                <% } %>
-              </div>
-            <% }); %>
-        </div>
-
-        <!-- GTINs Card (direct-under-Style GTINs - jeans without variants
-             use this). Read-only: no "+ Add GTIN" here - per explicit
-             decision (2026-09-20), GTIN creation will come from an
-             external system, not this admin UI, so the form was
-             removed rather than kept as dead-end functionality. Card
-             only renders at all when there's something to show. -->
-        <% const directGtins = gtins.filter(g => !g.variant_id); %>
-        <% if (directGtins.length > 0) { %>
-          <div class="card">
-            <h2 style="margin-bottom:20px;">GTINs</h2>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>GTIN</th>
-                    <th>Item #</th>
-                    <th>Size</th>
-                    <th class="center">SGTINs</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <% directGtins.forEach(gtin => { %>
-                    <tr>
-                      <td class="mono small"><%= gtin.gtin %></td>
-                      <td class="small"><%= gtin.item_number %></td>
-                      <td class="small">
-                        <% let size = gtin.size_value_1 || ''; %>
-                        <% if (gtin.size_value_2) size += '-' + gtin.size_value_2; %>
-                        <% if (gtin.size_value_3) size += '-' + gtin.size_value_3; %>
-                        <%= size %>
-                      </td>
-                      <td class="center"><span class="badge badge-success small"><%= gtin.sgtin_count || 0 %></span></td>
-                    </tr>
-                  <% }); %>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        <% } %>
-
         <!-- DPP Fields Card -->
         <div class="card card-passport" id="dpp-fields">
           <div class="card-eyebrow"><%- icon('qr-code', { size: 12 }) %> Field for digital product information</div>
@@ -408,6 +295,122 @@
             <p class="muted" style="font-style:italic;">No transparency steps added yet.</p>
           <% } %>
         </div>
+
+        <!-- Variants Card - moved below the passport-content cards
+             (Field Values, Transparency): this is structural/navigation
+             info about the Style's own sub-entities, not something
+             shown on the public passport itself. -->
+        <div class="card">
+          <div class="card-head" style="margin-bottom:20px;">
+            <h2>Variants</h2>
+            <button onclick="document.getElementById('addVariantForm').classList.toggle('hidden')" class="btn btn-primary">
+              + Add Variant
+            </button>
+          </div>
+
+          <!-- Add Variant Form -->
+          <div id="addVariantForm" class="form-panel hidden">
+            <h3 style="margin-bottom:16px; font-size:16px;">Add New Variant</h3>
+            <form id="variantForm">
+              <div class="field-grid">
+                <div>
+                  <label>Variant Name *</label>
+                  <input type="text" name="variant_name" placeholder="Black" required />
+                </div>
+                <div>
+                  <label>Product Name *</label>
+                  <input type="text" name="product_name" placeholder="Raw Hem T-Shirt Black" required />
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary">Add Variant</button>
+            </form>
+          </div>
+
+          <% if (!variants || variants.length === 0) { %>
+            <p class="small muted">No variants yet.</p>
+          <% } %>
+
+          <% (variants || []).forEach(variant => {
+              const variantGtins = gtins.filter(g => g.variant_id === variant.id);
+            %>
+              <div class="sub-card">
+                <div class="card-head" style="margin-bottom:12px;">
+                  <h3><%= variant.variant_name %> <span class="muted small" style="font-weight:400;">— <%= variant.product_name || style.product_name %></span></h3>
+                  <span class="badge badge-accent"><%= variantGtins.length %> GTINs</span>
+                </div>
+
+                <% if (variantGtins.length > 0) { %>
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>GTIN</th>
+                          <th>Item #</th>
+                          <th>Size</th>
+                          <th class="center">SGTINs</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <% variantGtins.forEach(gtin => { %>
+                          <tr>
+                            <td class="mono small"><%= gtin.gtin %></td>
+                            <td class="small"><%= gtin.item_number %></td>
+                            <td class="small">
+                              <% let size = gtin.size_value_1 || ''; %>
+                              <% if (gtin.size_value_2) size += '-' + gtin.size_value_2; %>
+                              <% if (gtin.size_value_3) size += '-' + gtin.size_value_3; %>
+                              <%= size %>
+                            </td>
+                            <td class="center"><span class="badge badge-success small"><%= gtin.sgtin_count || 0 %></span></td>
+                          </tr>
+                        <% }); %>
+                      </tbody>
+                    </table>
+                  </div>
+                <% } %>
+              </div>
+            <% }); %>
+        </div>
+
+        <!-- GTINs Card (direct-under-Style GTINs - jeans without variants
+             use this). Read-only: no "+ Add GTIN" here - per explicit
+             decision (2026-09-20), GTIN creation will come from an
+             external system, not this admin UI, so the form was
+             removed rather than kept as dead-end functionality. Card
+             only renders at all when there's something to show. -->
+        <% const directGtins = gtins.filter(g => !g.variant_id); %>
+        <% if (directGtins.length > 0) { %>
+          <div class="card">
+            <h2 style="margin-bottom:20px;">GTINs</h2>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>GTIN</th>
+                    <th>Item #</th>
+                    <th>Size</th>
+                    <th class="center">SGTINs</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% directGtins.forEach(gtin => { %>
+                    <tr>
+                      <td class="mono small"><%= gtin.gtin %></td>
+                      <td class="small"><%= gtin.item_number %></td>
+                      <td class="small">
+                        <% let size = gtin.size_value_1 || ''; %>
+                        <% if (gtin.size_value_2) size += '-' + gtin.size_value_2; %>
+                        <% if (gtin.size_value_3) size += '-' + gtin.size_value_3; %>
+                        <%= size %>
+                      </td>
+                      <td class="center"><span class="badge badge-success small"><%= gtin.sgtin_count || 0 %></span></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        <% } %>
 
       </div>
 
