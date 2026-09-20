@@ -102,6 +102,9 @@
                       <% if (p.variants.length > 0) { %>
                         <span class="small muted">(<%= p.variants.length %> variant<%= p.variants.length === 1 ? '' : 's' %>)</span>
                       <% } %>
+                      <% if (p.story) { %>
+                        <span title="Story: <%= p.story.length > 140 ? p.story.slice(0, 140) + '…' : p.story %>" style="display:inline-flex; margin-left:6px; color:var(--muted); vertical-align:middle;"><%- icon('book-open', { size: 13 }) %></span>
+                      <% } %>
                     </td>
                     <td class="small muted"><%= p.product_type %></td>
                     <td class="center"><span class="badge badge-accent"><%= p.gtin_count || 0 %></span></td>
@@ -133,7 +136,12 @@
                         <% } %>
                         <%- icon('corner-down-right', { size: 13 }) %> <%= v.variant_name %>
                       </td>
-                      <td class="small"><%= v.effective_product_name %></td>
+                      <td class="small">
+                        <%= v.effective_product_name %>
+                        <% if (v.story) { %>
+                          <span title="Story: <%= v.story.length > 140 ? v.story.slice(0, 140) + '…' : v.story %>" style="display:inline-flex; margin-left:6px; color:var(--muted); vertical-align:middle;"><%- icon('book-open', { size: 13 }) %></span>
+                        <% } %>
+                      </td>
                       <td></td>
                       <td class="center"><span class="badge badge-accent small"><%= v.gtin_count || 0 %></span></td>
                       <td><a href="/admin-v2/variant/<%= v.id %>" onclick="event.stopPropagation();" class="link-action"><%- icon('arrow-right') %></a></td>

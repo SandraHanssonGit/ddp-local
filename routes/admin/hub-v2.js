@@ -156,10 +156,27 @@ router.get('/', async (req, res) => {
         }
       });
 
+      // "Story" (additional_story) preview per Style/Variant, so it's
+      // visible while browsing the Products list, not just after
+      // opening the detail page - user: "Skall synas under product".
+      const storyRows = await getAll(`
+        SELECT dv.entity_type, dv.entity_id, dv.value
+        FROM dpp_values dv
+        JOIN field_definitions fd ON fd.id = dv.field_definition_id
+        WHERE fd.field_key = 'additional_story' AND dv.locale IS NULL
+      `);
+      const storyByStyle = {};
+      const storyByVariant = {};
+      storyRows.forEach(r => {
+        if (r.entity_type === 'style') storyByStyle[r.entity_id] = r.value;
+        else if (r.entity_type === 'variant') storyByVariant[r.entity_id] = r.value;
+      });
+
       let products = styles.map(s => ({
         ...s,
+        story: storyByStyle[s.id] || null,
         gtins: gtinsByStyleDirect[s.id] || [],
-        variants: (variantsByStyle[s.id] || []).map(v => ({ ...v, gtins: gtinsByVariant[v.id] || [] }))
+        variants: (variantsByStyle[s.id] || []).map(v => ({ ...v, story: storyByVariant[v.id] || null, gtins: gtinsByVariant[v.id] || [] }))
       }));
 
       const gtinLabel = g => [g.size_value_1, g.size_value_2, g.size_value_3].filter(Boolean).join('-') || g.item_number || g.gtin;
