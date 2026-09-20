@@ -21,7 +21,6 @@
 
     <div class="info-grid" style="margin-bottom:20px;">
       <div class="card card-identifiers">
-        <div class="card-eyebrow"><%- icon('info', { size: 12 }) %> Internal &middot; not shown on the public passport</div>
         <h3 style="margin-bottom:14px;">GTIN Info</h3>
         <p style="margin-bottom:6px;"><span class="label-sm">EAN (as printed on barcode):</span> <span class="mono"><%= gtin.gtin %></span></p>
         <p style="margin-bottom:6px;"><span class="label-sm">GTIN (GS1, 14-digit):</span> <span class="mono"><%= toGtin14(gtin.gtin) %></span></p>
