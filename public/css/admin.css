@@ -607,6 +607,11 @@ input:focus, textarea:focus, select:focus {
 
 .link-list a:hover { background: var(--hairline); text-decoration: none; }
 
+/* Plain variant - no pill/box background, just a list of links. Used
+   where the boxed look added nothing (e.g. Style's Batches list). */
+.link-list.plain a { background: none; padding: 4px 0; margin-bottom: 6px; color: var(--accent); }
+.link-list.plain a:hover { background: none; text-decoration: underline; }
+
 .callout {
   background: var(--accent-soft);
   border: 1px solid var(--hairline);

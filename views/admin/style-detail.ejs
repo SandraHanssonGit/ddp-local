@@ -428,7 +428,7 @@
         <div class="card">
           <h3 style="margin-bottom:16px;">Batches</h3>
           <% if (batches && batches.length > 0) { %>
-            <div class="link-list">
+            <div class="link-list plain">
               <% batches.forEach(batch => { %>
                 <a href="/admin-v2/batches/<%= batch.id %>"><%= batch.batch_id %></a>
               <% }); %>
