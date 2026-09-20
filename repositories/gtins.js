@@ -1,7 +1,19 @@
 const db = require('../db/init-v2');
+const { normalizeToStored } = require('../utils/gtin');
 
 class GtinRepository {
   async create(styleId, gtin, options = {}) {
+    // Store the 13-digit form consistently (utils/gtin.js's
+    // convention) - found 2026-09-20 while seeding a real GTIN
+    // ("07311133077016") that was already GS1 zero-padded to 14
+    // digits: stored as given, the GS1 route's normalizeToStored()
+    // stripped a leading zero expecting a 13-digit match and got a
+    // 14-digit stored value instead, a silent 404. Normalizing on
+    // write means every caller (API, admin UI, future imports) gets
+    // the same consistent stored form regardless of which digit count
+    // it was given in.
+    gtin = normalizeToStored(gtin);
+
     // A GTIN's style_id must never disagree with its variant's style -
     // when a variant is given, its style is the source of truth, not
     // whatever styleId the caller happened to pass in. Prevents the two
