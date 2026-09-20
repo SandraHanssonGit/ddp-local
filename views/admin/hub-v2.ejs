@@ -522,11 +522,21 @@
               </div>
               <div>
                 <label>Icon</label>
-                <select name="icon">
-                  <% sectionIconOptions.forEach(opt => { %>
-                    <option value="<%= opt.key %>"><%= opt.label %></option>
-                  <% }); %>
-                </select>
+                <div class="icon-select">
+                  <button type="button" class="icon-select-btn" onclick="toggleIconMenu(this)">
+                    <span class="icon-select-icon"><%- icon(sectionIconOptions[0].key, { size: 16 }) %></span>
+                    <span class="icon-select-label"><%= sectionIconOptions[0].label %></span>
+                    <span class="chevron"><%- icon('chevron-down', { size: 14 }) %></span>
+                  </button>
+                  <div class="icon-select-menu hidden">
+                    <% sectionIconOptions.forEach(opt => { %>
+                      <div class="icon-select-option" onclick="selectIconOption(this, '<%= opt.key %>', '<%= opt.label %>')">
+                        <%- icon(opt.key, { size: 16 }) %> <%= opt.label %>
+                      </div>
+                    <% }); %>
+                  </div>
+                  <input type="hidden" name="icon" value="<%= sectionIconOptions[0].key %>">
+                </div>
               </div>
             </div>
             <div style="margin-top:14px;">
@@ -572,11 +582,22 @@
                         </div>
                         <div>
                           <label class="label-sm">Icon</label>
-                          <select name="icon">
-                            <% sectionIconOptions.forEach(opt => { %>
-                              <option value="<%= opt.key %>" <%= s.icon === opt.key ? 'selected' : '' %>><%= opt.label %></option>
-                            <% }); %>
-                          </select>
+                          <% const currentIconOpt = sectionIconOptions.find(o => o.key === s.icon) || sectionIconOptions[0]; %>
+                          <div class="icon-select">
+                            <button type="button" class="icon-select-btn" onclick="toggleIconMenu(this)">
+                              <span class="icon-select-icon"><%- icon(currentIconOpt.key, { size: 16 }) %></span>
+                              <span class="icon-select-label"><%= currentIconOpt.label %></span>
+                              <span class="chevron"><%- icon('chevron-down', { size: 14 }) %></span>
+                            </button>
+                            <div class="icon-select-menu hidden">
+                              <% sectionIconOptions.forEach(opt => { %>
+                                <div class="icon-select-option <%= opt.key === currentIconOpt.key ? 'active' : '' %>" onclick="selectIconOption(this, '<%= opt.key %>', '<%= opt.label %>')">
+                                  <%- icon(opt.key, { size: 16 }) %> <%= opt.label %>
+                                </div>
+                              <% }); %>
+                            </div>
+                            <input type="hidden" name="icon" value="<%= currentIconOpt.key %>">
+                          </div>
                         </div>
                         <div>
                           <label class="label-sm">Sort Order</label>
@@ -599,6 +620,33 @@
           function toggleSectionEdit(sectionId) {
             document.getElementById('section-edit-row-' + sectionId).classList.toggle('hidden');
           }
+
+          // Icon picker for Passport Sections - a native <select> can't
+          // show an icon inside its own <option> rows, so this is a
+          // small custom dropdown (button + menu) with the chosen key
+          // kept in a hidden input alongside it, so the enclosing form
+          // still submits it like any other field.
+          function toggleIconMenu(btn) {
+            const menu = btn.nextElementSibling;
+            const isOpen = !menu.classList.contains('hidden');
+            document.querySelectorAll('.icon-select-menu').forEach(m => m.classList.add('hidden'));
+            if (!isOpen) menu.classList.remove('hidden');
+          }
+
+          function selectIconOption(optionEl, key, label) {
+            const wrapper = optionEl.closest('.icon-select');
+            wrapper.querySelector('.icon-select-icon').innerHTML = optionEl.querySelector('svg').outerHTML;
+            wrapper.querySelector('.icon-select-label').textContent = label;
+            wrapper.querySelector('input[type="hidden"]').value = key;
+            wrapper.querySelectorAll('.icon-select-option').forEach(o => o.classList.remove('active'));
+            optionEl.classList.add('active');
+            wrapper.querySelector('.icon-select-menu').classList.add('hidden');
+          }
+
+          document.addEventListener('click', (e) => {
+            if (e.target.closest('.icon-select')) return;
+            document.querySelectorAll('.icon-select-menu').forEach(m => m.classList.add('hidden'));
+          });
 
           document.getElementById('sectionForm').addEventListener('submit', async (e) => {
             e.preventDefault();

@@ -617,3 +617,50 @@ tfoot td, tr.totals-row td {
   width: 100%;
   margin-bottom: 16px;
 }
+
+/* Icon select (Passport Sections icon picker) - a native <select> can't
+   render an icon inside its own <option> elements across browsers, so
+   this is a small custom dropdown instead: a button showing the
+   current icon+label, and a menu of icon+label rows. Value is kept in
+   a hidden input so it still posts like a normal form field. */
+.icon-select { position: relative; }
+.icon-select-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: 'Work Sans', sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+}
+.icon-select-btn:focus { outline: none; border-color: var(--accent); }
+.icon-select-btn .icon-select-label { flex: 1; }
+.icon-select-btn .chevron { color: var(--muted); flex: none; }
+.icon-select-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  max-height: 260px;
+  overflow-y: auto;
+}
+.icon-select-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.icon-select-option:hover, .icon-select-option.active { background: var(--surface-2); }
