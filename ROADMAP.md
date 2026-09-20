@@ -27,9 +27,13 @@ flagged from this session's fixes, then the placeholder new-feature
 items (not designed in depth yet, just captured so they aren't lost).
 
 **1. Bugs** (see "Known bugs found during this work" below for detail)
-- `repositories/sgtins.js`'s `create()` omits `batch_id` from its
-  INSERT despite the column being `NOT NULL` - latent, no live route
-  calls it yet.
+- ~~`repositories/sgtins.js`'s `create()` omits `batch_id` from its
+  INSERT~~ - **checked 2026-09-20, already fixed**: `create()` already
+  inserts `batch_id` correctly (`INSERT INTO sgtins (gtin_id, batch_id,
+  serial_number, sgtin, rfid_id, qc_status)`), and the `produce-sgtins`
+  route already calls it with the right argument order. Stale note,
+  left over from before this session's Batch Contents / produce-sgtins
+  work touched this path.
 - Orphaned `batch_gtins` row (batch 1 → a `gtin_id` that no longer
   exists) - masked by the JOIN today, worth a real cleanup pass.
 
@@ -1610,12 +1614,12 @@ exception, not the start of hardening the admin API generally.
 
 ## Known bugs found during this work (fix opportunistically)
 
-- `repositories/sgtins.js`'s `create()` method omits `batch_id` from
-  its `INSERT`, despite the column being `NOT NULL` in the schema — it
-  would throw if ever called. No route currently calls it (SGTINs are
-  created via direct SQL in this session's test-data scripts, not
-  through this repository method), so it's latent, not yet triggered
-  in production use.
+- ~~`repositories/sgtins.js`'s `create()` method omits `batch_id` from
+  its `INSERT`~~ - **checked 2026-09-20, already fixed**: the
+  `produce-sgtins` admin flow built later in this session
+  (`routes/admin/batch-gtins.js`) already calls `create(gtinId,
+  batchId, serialNumber, options)` with `batch_id` correctly included
+  in the INSERT. This note was stale.
 - **Orphaned `batch_gtins` row** (found 2026-09-19 while building the
   Batch tree): batch 1 has a `batch_gtins` row whose `gtin_id` (1)
   no longer exists in `gtins` - a dangling foreign key, likely left
