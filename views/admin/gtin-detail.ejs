@@ -148,6 +148,7 @@
             <thead>
               <tr>
                 <th>Serial</th>
+                <th>SKU</th>
                 <th>Batch</th>
                 <th>Action</th>
               </tr>
@@ -156,6 +157,7 @@
               <% sgtins.forEach(sg => { %>
                 <tr data-serial="<%= sg.serial_number.toLowerCase() %>">
                   <td class="mono"><%= sg.serial_number %></td>
+                  <td class="mono small"><%= gtin.item_number || '—' %></td>
                   <td class="mono small"><%= sg.batch_id %></td>
                   <td><a href="/admin-v2/sgtin/<%= sg.id %>" class="link-action"><%- icon('arrow-right') %></a></td>
                 </tr>
