@@ -110,6 +110,28 @@
       const euValues = passport.resolvedFields.filter(f => f.category === 'eu_required' && f.value);
       const nudieValues = passport.resolvedFields.filter(f => f.category === 'nudie' && f.value);
       const sourceLabel = (s) => s === 'batch' ? 'Batch' : s === 'batch_style' ? 'Batch (this Style)' : s === 'batch_variant' ? 'Batch (this Variant)' : s === 'batch_gtin' ? 'Batch (locked at production)' : s === 'gtin' ? 'GTIN' : s === 'variant' ? 'Variant' : s === 'style' ? 'Style' : s;
+      // Structured fields (data_type='json') store a JSON object/array
+      // as the value string - render as a small key/value breakdown
+      // instead of the raw JSON text. Falls back to the raw string if
+      // it doesn't parse (shouldn't happen if the edit form validated).
+      const renderFieldLabel = (v) => v.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase());
+      const structuredValueHtml = (raw) => {
+        let parsed;
+        try { parsed = JSON.parse(raw); } catch (e) { return null; }
+        if (Array.isArray(parsed)) {
+          return parsed.map(item => (typeof item === 'object' && item !== null)
+            ? Object.entries(item).map(([k, v]) => `<strong>${renderFieldLabel(k)}:</strong> ${v}`).join(', ')
+            : String(item)
+          ).map(line => `<div>${line}</div>`).join('');
+        }
+        if (typeof parsed === 'object' && parsed !== null) {
+          return Object.entries(parsed)
+            .filter(([, v]) => v !== null && v !== undefined && !(Array.isArray(v) && v.length === 0))
+            .map(([k, v]) => `<div><strong>${renderFieldLabel(k)}:</strong> ${Array.isArray(v) ? v.join(', ') : v}</div>`)
+            .join('');
+        }
+        return null;
+      };
     %>
 
     <!-- EU Required -->
@@ -140,9 +162,14 @@
             </div>
           <% } %>
           <% euValues.forEach(field => { %>
+            <% const structuredHtml = field.dataType === 'json' ? structuredValueHtml(field.value) : null; %>
             <div class="field-row">
               <div class="field-label"><%= field.label %></div>
-              <div class="field-value"><%= field.value %></div>
+              <% if (structuredHtml) { %>
+                <div class="field-value"><%- structuredHtml %></div>
+              <% } else { %>
+                <div class="field-value"><%= field.value %></div>
+              <% } %>
               <% if (field.source && field.source !== 'sgtin') { %>
                 <div class="field-source">från <%= sourceLabel(field.source) %></div>
               <% } %>
@@ -236,9 +263,14 @@
         </div>
         <div class="accordion-content open">
           <% nudieValues.forEach(field => { %>
+            <% const structuredHtml = field.dataType === 'json' ? structuredValueHtml(field.value) : null; %>
             <div class="field-row">
               <div class="field-label"><%= field.label %></div>
-              <div class="field-value"><%= field.value %></div>
+              <% if (structuredHtml) { %>
+                <div class="field-value"><%- structuredHtml %></div>
+              <% } else { %>
+                <div class="field-value"><%= field.value %></div>
+              <% } %>
               <% if (field.source && field.source !== 'sgtin') { %>
                 <div class="field-source">från <%= sourceLabel(field.source) %></div>
               <% } %>

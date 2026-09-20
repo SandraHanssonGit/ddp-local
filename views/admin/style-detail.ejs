@@ -237,6 +237,29 @@
           <!-- View Mode -->
           <div id="dpp-fields-view">
             <% const setDppValues = typeof dppValues !== 'undefined' ? dppValues.filter(v => v.value) : []; %>
+            <%
+              // Structured fields (data_type='json') - pretty-print
+              // instead of showing the raw JSON string, same rendering
+              // used on the public passport (dpp-passport.ejs).
+              const renderFieldLabel = (k) => k.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase());
+              const structuredValueHtml = (raw) => {
+                let parsed;
+                try { parsed = JSON.parse(raw); } catch (e) { return null; }
+                if (Array.isArray(parsed)) {
+                  return parsed.map(item => (typeof item === 'object' && item !== null)
+                    ? Object.entries(item).map(([k, v]) => `<strong>${renderFieldLabel(k)}:</strong> ${v}`).join(', ')
+                    : String(item)
+                  ).map(line => `<div>${line}</div>`).join('');
+                }
+                if (typeof parsed === 'object' && parsed !== null) {
+                  return Object.entries(parsed)
+                    .filter(([, v]) => v !== null && v !== undefined && !(Array.isArray(v) && v.length === 0))
+                    .map(([k, v]) => `<div><strong>${renderFieldLabel(k)}:</strong> ${Array.isArray(v) ? v.join(', ') : v}</div>`)
+                    .join('');
+                }
+                return null;
+              };
+            %>
             <% if (setDppValues.length > 0) { %>
               <%
                 const styleFieldGroups = [
@@ -248,12 +271,17 @@
                 <% if (group.items.length === 0) return; %>
                 <div class="field-category-heading"><%= group.label %></div>
                 <% group.items.forEach(val => { %>
+                  <% const structuredHtml = val.data_type === 'json' ? structuredValueHtml(val.value) : null; %>
                   <div class="field-card overridden">
                     <div class="field-card-head">
                       <label class="label-sm"><%= val.label %></label>
                       <span class="badge badge-accent">Defined at Style</span>
                     </div>
-                    <p class="field-card-value"><%= val.value %></p>
+                    <% if (structuredHtml) { %>
+                      <div class="field-card-value"><%- structuredHtml %></div>
+                    <% } else { %>
+                      <p class="field-card-value"><%= val.value %></p>
+                    <% } %>
                   </div>
                 <% }); %>
               <% }); %>
