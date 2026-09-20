@@ -575,6 +575,37 @@ set at this scope (editable, lock icon if locked), inherited from
 elsewhere (read-only, "Inherited from X" note), or not set anywhere.
 Whole-batch view is unchanged.
 
+**Second follow-up, also done (2026-09-20)**: `resolveBatchScopedFields`
+showing *every* field (above) meant the edit-mode textarea rendered
+for every field too, with no check against any `editable_at_*` flag at
+all - Levels config had zero effect in this specific view (only on the
+whole-batch view and the standalone GTIN/Style/Variant detail pages).
+User asked for it to work "på samma sätt som andra levels" - added an
+`editable` flag to each resolved field (checks `editable_at_batch_gtin`
+for a GTIN scope, `editable_at_batch` for a Style/Variant scope,
+unchanged) and the template now shows a locked, read-only line instead
+of a textarea when a field isn't editable at that scope - still
+visible (the original requirement above), just not editable. Also
+surfaced and fixed a real, previously-invisible bug: Style/Variant-only
+fields (Repair Program, Sustainability Information) were incorrectly
+editable in this view before this fix.
+
+**GTIN Levels split (2026-09-20)**: raised while discussing the above -
+GTIN masterdata (`gtin`) and GTIN-scoped-to-a-Batch (`batch_gtin`) used
+to share one `editable_at_gtin` flag ("same permission, just narrower
+scope" - see the freeze-at-production design). User: "jag tror vi
+skall ha masterdata och sedan Batch data så GTIN måste vara 2 gånger" -
+wants them independently decidable, since a field might belong on the
+GTIN masterdata page but not be something a batch run should override,
+or vice versa. New `field_definitions.editable_at_batch_gtin` column
+(guarded migration, backfilled from `editable_at_gtin` so nothing
+changes until explicitly split), `getFieldsForLevel` and
+`resolveBatchScopedFields` both updated to use it for the `batch_gtin`
+case. Field Config's Levels relabeled "GTIN (Masterdata)" / "GTIN
+(Batch)". Batch×Style scoping (Style/Variant) intentionally left
+sharing `editable_at_batch` - not asked for, and no analogous
+"masterdata vs batch" ambiguity exists there the way it does for GTIN.
+
 ## Soft/lazy SGTIN creation on first scan + "Test scan a passport" tool (concept idea-only; the test tool itself is fully designed, not built, 2026-09-19)
 
 Raised alongside the question above: rather than requiring every
