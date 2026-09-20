@@ -72,7 +72,7 @@ router.post('/', async (req, res) => {
     const {
       field_key, label, category, description, data_type, required, role_ids, sort_order, section_id,
       editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_batch_gtin, editable_at_sgtin,
-      locks_at_production
+      locks_at_production, valid_from, valid_until
     } = req.body;
 
     if (!field_key || !label || !category) {
@@ -92,7 +92,9 @@ router.post('/', async (req, res) => {
       editable_at_gtin: editable_at_gtin !== false,
       editable_at_batch_gtin: editable_at_batch_gtin !== false,
       editable_at_sgtin: editable_at_sgtin !== false,
-      locks_at_production: locks_at_production === undefined ? undefined : !!locks_at_production
+      locks_at_production: locks_at_production === undefined ? undefined : !!locks_at_production,
+      valid_from: valid_from || null,
+      valid_until: valid_until || null
     });
 
     const field = await fieldService.getField(fieldId);
@@ -122,7 +124,7 @@ router.put('/:fieldId', async (req, res) => {
     const {
       label, description, required, role_ids, sort_order, category, section_id,
       editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_batch_gtin, editable_at_sgtin,
-      locks_at_production
+      locks_at_production, valid_from, valid_until
     } = req.body;
 
     // Only touch fields the caller actually sent - a bare `undefined` bind
@@ -140,6 +142,11 @@ router.put('/:fieldId', async (req, res) => {
     if (section_id !== undefined) {
       updates.section_id = section_id === '' ? null : Number(section_id);
     }
+    // Same '' -> NULL treatment for the validity window - an admin
+    // clearing the date picker means "valid indefinitely again", not
+    // "leave the old date in place".
+    if (valid_from !== undefined) updates.valid_from = valid_from || null;
+    if (valid_until !== undefined) updates.valid_until = valid_until || null;
     if (Array.isArray(role_ids)) {
       updates.role_ids = role_ids.map(Number);
     }

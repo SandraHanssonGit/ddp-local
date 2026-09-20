@@ -68,8 +68,18 @@ class PassportResolver {
     const batchStyleScope = await batchStyleScopeRepository.find(batch.id, style.id, null);
     const batchGtinScope = await batchGtinRepository.find(batch.id, gtin.id);
 
-    // Get all field definitions
-    const fieldDefinitions = await fieldRepository.listFieldDefinitions();
+    // Get all field definitions, then drop any that aren't valid for
+    // THIS batch's production date (2026-09-20, user request: a field
+    // that's no longer needed should disappear from new passports
+    // without retroactively changing old ones). Deliberately keyed off
+    // batch.production_date, not "today" - a passport must keep
+    // reflecting what was true when the garment was actually made, not
+    // silently change based on when someone happens to view it later.
+    // A batch with no production_date yet (not produced) always shows
+    // every field - there's no fixed date to check against, and the
+    // batch's actual passport isn't final yet either.
+    const fieldDefinitions = (await fieldRepository.listFieldDefinitions())
+      .filter(fd => this._isFieldValidForDate(fd, batch.production_date));
 
     const levels = [
       await this._loadLevelValues('sgtin', sgtin.id, locale),
@@ -303,6 +313,23 @@ class PassportResolver {
    * level has a translation does resolution fall back to the default
    * (locale = null) chain, in the same level precedence.
    */
+  // Field validity window (2026-09-20): field_definitions.valid_from/
+  // valid_until, checked against a specific production date, not
+  // "today" - see the comment at resolveSgtinPassport's call site for
+  // why. No production date at all (batch not yet produced) always
+  // passes - there's nothing to check the window against yet.
+  _isFieldValidForDate(fieldDef, productionDate) {
+    if (!productionDate) return true;
+    // Slice to YYYY-MM-DD - all three are plain date strings today, but
+    // this keeps the comparison correct even if one ever carries a time
+    // component (a bare prefix otherwise compares as "less than" a
+    // same-day value with extra trailing characters).
+    const date = String(productionDate).slice(0, 10);
+    if (fieldDef.valid_from && date < String(fieldDef.valid_from).slice(0, 10)) return false;
+    if (fieldDef.valid_until && date > String(fieldDef.valid_until).slice(0, 10)) return false;
+    return true;
+  }
+
   // editableColumn (optional) - e.g. 'editable_at_gtin' - includes an
   // `editable` flag on the result, for a caller that needs to know
   // whether THIS level is allowed to set the field at all (not just

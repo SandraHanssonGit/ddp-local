@@ -7,8 +7,8 @@ class FieldRepository {
       INSERT INTO field_definitions
       (field_key, label, description, data_type, category, required,
        editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_batch_gtin, editable_at_sgtin,
-       locks_at_production, sort_order, section_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       locks_at_production, sort_order, section_id, valid_from, valid_until)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     // No explicit locks_at_production given - default from category,
     // same rule the startup backfill uses (migrateLocksAtProduction in
@@ -42,7 +42,9 @@ class FieldRepository {
       options.editable_at_sgtin !== false ? 1 : 0,
       locksAtProduction,
       options.sort_order || 0,
-      sectionId
+      sectionId,
+      options.valid_from || null,
+      options.valid_until || null
     ]);
     // Digital Access (2026-09-20): which roles see this field, replacing
     // the old consumer_visible/authority_visible booleans. Defaults to
@@ -230,7 +232,7 @@ class FieldRepository {
   async updateFieldDefinition(fieldId, updates) {
     const allowedFields = ['label', 'description', 'required', 'sort_order', 'category', 'section_id',
                           'editable_at_style', 'editable_at_variant', 'editable_at_batch', 'editable_at_gtin', 'editable_at_batch_gtin', 'editable_at_sgtin',
-                          'locks_at_production'];
+                          'locks_at_production', 'valid_from', 'valid_until'];
     const setClauses = [];
     const values = [];
 

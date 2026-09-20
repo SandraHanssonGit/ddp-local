@@ -778,6 +778,20 @@
             </div>
             <p class="small muted" style="margin:-8px 0 14px;">EU-required fields normally lock when a batch is marked produced (proving the compliance data is fixed); Nudie fields normally stay editable. Check/uncheck to override that default for this field.</p>
             <div class="hint-panel" style="margin-bottom:14px;">
+              <label style="display:block; margin-bottom:10px;">Validity window (optional)</label>
+              <div class="field-grid">
+                <div>
+                  <label class="label-sm">Valid From</label>
+                  <input type="date" name="valid_from" />
+                </div>
+                <div>
+                  <label class="label-sm">Valid Until</label>
+                  <input type="date" name="valid_until" />
+                </div>
+              </div>
+              <p class="small muted" style="margin:10px 0 0;">Leave blank for "always valid". Checked against the <strong>Batch's production date</strong>, not today's date, so already-produced passports never change retroactively - a batch with no production date yet always shows the field.</p>
+            </div>
+            <div class="hint-panel" style="margin-bottom:14px;">
               <label style="display:block; margin-bottom:10px;">Visible to which roles on the public passport?</label>
               <div style="display:flex; gap:18px; flex-wrap:wrap;">
                 <% roles.forEach(r => { %>
@@ -829,6 +843,7 @@
                   <th class="center">Required</th>
                   <th title="Which passport roles see this field - manage the role list under Settings > Digital Access">Roles</th>
                   <th class="center" title="Whether this field's value freezes when a batch is marked produced">Locks</th>
+                  <th title="Checked against the Batch's production date, not today - see Add Field for details">Valid</th>
                   <th>Description</th>
                   <th>Actions</th>
                 </tr>
@@ -880,6 +895,13 @@
                       <% } %>
                     </td>
                     <td class="center"><%- f.locks_at_production ? icon('lock', { size: 14 }) : '—' %></td>
+                    <td class="small muted">
+                      <% if (f.valid_from || f.valid_until) { %>
+                        <%= f.valid_from || '…' %> &rarr; <%= f.valid_until || '…' %>
+                      <% } else { %>
+                        Always
+                      <% } %>
+                    </td>
                     <td class="small muted"><%= f.description || '—' %></td>
                     <td style="white-space:nowrap;">
                       <a href="#" onclick="toggleFieldEdit(<%= f.id %>); return false;" class="link-action" style="margin-right:12px;">Edit</a>
@@ -887,7 +909,7 @@
                     </td>
                   </tr>
                   <tr id="field-edit-row-<%= f.id %>" class="hidden">
-                    <td colspan="11" style="background:var(--surface-2); padding:20px;">
+                    <td colspan="12" style="background:var(--surface-2); padding:20px;">
                       <form onsubmit="saveFieldEdit(event, <%= f.id %>)">
                         <div class="field-grid-3" style="margin-bottom:14px;">
                           <div>
@@ -913,6 +935,16 @@
                                 <option value="<%= s.id %>" <%= f.section_id === s.id ? 'selected' : '' %>><%= s.label %></option>
                               <% }); %>
                             </select>
+                          </div>
+                        </div>
+                        <div class="field-grid" style="margin-bottom:14px;">
+                          <div>
+                            <label class="label-sm">Valid From</label>
+                            <input type="date" name="valid_from" value="<%= f.valid_from || '' %>" />
+                          </div>
+                          <div>
+                            <label class="label-sm">Valid Until</label>
+                            <input type="date" name="valid_until" value="<%= f.valid_until || '' %>" />
                           </div>
                         </div>
                         <div style="display:flex; gap:20px; margin-bottom:14px;">
@@ -967,6 +999,8 @@
               category: formData.get('category'),
               description: formData.get('description'),
               section_id: formData.get('section_id'),
+              valid_from: formData.get('valid_from'),
+              valid_until: formData.get('valid_until'),
               required: formData.has('required'),
               role_ids: formData.getAll('role_ids').map(Number),
               locks_at_production: formData.has('locks_at_production'),
@@ -1021,6 +1055,8 @@
               data_type: formData.get('data_type'),
               section_id: formData.get('section_id'),
               description: formData.get('description'),
+              valid_from: formData.get('valid_from'),
+              valid_until: formData.get('valid_until'),
               required: formData.has('required'),
               role_ids: formData.getAll('role_ids').map(Number),
               locks_at_production: formData.has('locks_at_production'),
