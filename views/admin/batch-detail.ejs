@@ -49,18 +49,15 @@
           <label class="label-sm">Production Date</label>
           <% if (batch.produced_at) { %>
             <p class="value"><%= new Date(batch.produced_at).toLocaleDateString('en-US') %></p>
+            <p class="small muted" style="margin-top:6px; display:flex; align-items:center; gap:4px;">
+              <%- icon('lock', { size: 13 }) %> Locked - field changes from here on are kept in the change log, not silently overwritten.
+            </p>
           <% } else { %>
             <p class="value muted">Not yet produced</p>
+            <button onclick="markProduced()" class="btn btn-primary" style="margin-top:8px;">Mark as Produced</button>
           <% } %>
         </div>
       </div>
-      <% if (batch.produced_at) { %>
-        <p class="small muted" style="margin-top:16px; display:flex; align-items:center; gap:4px;">
-          <%- icon('lock', { size: 13 }) %> Locked - field changes from here on are kept in the change log, not silently overwritten.
-        </p>
-      <% } else { %>
-        <button onclick="markProduced()" class="btn btn-primary" style="margin-top:16px;">Mark as Produced</button>
-      <% } %>
     </div>
 
     <!-- Statistics Cards -->
