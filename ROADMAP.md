@@ -1634,3 +1634,68 @@ both still use the same narrow `getFieldsForLevel(level, id)` pattern
 (`routes/admin/hub-v2.js`, variant and sgtin detail routes). Not yet
 requested or fixed - flagged here as a probable follow-up once this
 GTIN fix has been used for a while.
+
+## Configurable passport sections ✅ Done (2026-09-20)
+
+User's next piece of passport feedback: the Transparency section had
+briefly shared its icon with Production by copy-paste mistake (fixed
+separately, see icon note above), and separately flagged the "EU
+Required Information" heading itself as "lite konstigt" - asked
+whether it should just be renamed, or whether headings/field-to-section
+assignment should be manageable from Settings. Given the choice, opted
+for the real feature (this is Phase 8 in CLAUDE.md's plan) rather than
+a one-off rename.
+
+**Built**: a `field_sections` table (`section_key`, `label`, `icon`,
+`sort_order`) and `field_definitions.section_id`, replacing the three
+headings ("EU Required Information" / "Transparency" / "Nudie
+Information") that used to be hardcoded straight into
+`dpp-passport.ejs`. A guarded startup migration
+(`migrateFieldSections` in `db/init-v2.js`) seeds the 3 existing
+sections at their current order/icon and backfills `section_id` from
+each field's existing `category` - checking `field_key = 'transparency'`
+first so it lands in its own section rather than `eu_required` - and
+only ever fills a `NULL` `section_id`, so a section an admin has
+already picked in Field Config is never overwritten by a later restart.
+
+**Icon storage is a validated key, not raw markup**: `icon` is one of a
+small curated set of Lucide icon names (`utils/section-icons.js` - reads
+the same `lucide-static` package `utils/icons.js` already uses, strips
+each SVG down to just its inner `<path>`/`<circle>` markup so the
+passport's own `.icon` CSS class controls stroke-width/color). The
+admin API still has no authentication at all (see the Security note
+below), so accepting free-form SVG/HTML from that endpoint would be an
+open injection point on a page every consumer loads - deliberately
+avoided rather than deferred.
+
+**Resolver/service changes**: `passport-resolver.js`'s
+`_resolveFieldValueLocaleAware()` now includes `sectionId` on every
+resolved field (alongside the `editable` flag added for the GTIN
+fields fix above). `passport-page-service.js`'s new
+`buildPassportSections()` does the actual grouping - CLAUDE.md says no
+business logic inside EJS templates, so this moved out of
+`dpp-passport.ejs` rather than being reimplemented there. It
+special-cases two things that were never ordinary fields to begin
+with: Transparency (a `data_type='repeating_group'` field with no
+`dpp_values` row of its own - its section is driven by
+`supplyChainGroups` instead) and the economic operator block (a real
+compliance requirement, not a dynamic field, pinned into whichever
+section has `section_key = 'eu_required'`). `dpp-passport.ejs` now
+renders one generic loop over `passportSections` instead of three
+copy-pasted accordion blocks.
+
+**Settings UI**: Field Config gets a new "Passport Sections" panel
+above the fields table (add/edit/delete - delete refused while any
+field is still assigned, same "clear references first" convention as
+deleting a field definition) and a Section dropdown on both the field
+add form and each field's inline edit form, plus a Section column on
+the fields list.
+
+Verified: renaming a section via `PUT /api/admin/fields/sections/:id`
+updates the live passport immediately (no server restart needed -
+EJS templates re-render per request); deleting a section with fields
+assigned is refused with a clear error; after the migration every
+existing field kept its exact prior grouping and section order
+(checked via a direct SQL dump); full regression sweep green (both
+test passports' HTML, the JSON export - unaffected, still keyed off
+`category` directly - GTIN/Style admin detail pages, and the hub).
