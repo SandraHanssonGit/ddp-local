@@ -87,10 +87,21 @@
           <div style="border-top:1px solid var(--hairline); margin-top:20px; padding-top:20px;">
             <label class="label-sm" style="display:block; margin-bottom:10px;">Product Image</label>
             <% if (style.image_url) { %>
-              <div class="image-preview-wrap">
-                <img src="<%= style.image_url %>" alt="<%= style.product_name %>" class="image-preview" title="Hover to zoom">
+              <div style="display:flex; gap:20px; align-items:flex-start;">
+                <div class="image-preview-wrap">
+                  <img src="<%= style.image_url %>" alt="<%= style.product_name %>" class="image-preview" title="Hover to zoom">
+                </div>
+                <div class="small muted" style="flex:1; max-width:360px;">
+                  <p style="margin:0 0 8px;"><strong style="color:var(--text);">Used on:</strong></p>
+                  <ul style="margin:0 0 12px; padding-left:18px;">
+                    <li>Public passport hero image</li>
+                    <li>Products tab thumbnail</li>
+                    <li>Variants without their own image (fallback)</li>
+                  </ul>
+                  <p style="margin:0;">Recommended: square, at least 800&times;800px, JPG/PNG/WebP.</p>
+                </div>
               </div>
-              <div style="margin-top:10px; display:flex; gap:14px; align-items:center;">
+              <div style="margin-top:14px; display:flex; gap:14px; align-items:center;">
                 <input type="file" id="image-upload" accept="image/*" class="small">
                 <button type="button" onclick="uploadImage()" class="btn small">Upload New</button>
                 <a href="#" onclick="deleteStyleImage(); return false;" class="link-action danger small" style="margin-left:auto; display:inline-flex; align-items:center; gap:4px;"><%- icon('trash-2', { size: 13 }) %> Delete</a>
