@@ -693,6 +693,70 @@ const migrateDropGtinWeight = async () => {
   console.log('[DPP v2] gtins.weight drop complete');
 };
 
+// Hardcoded-columns audit (2026-09-20): batches.supplier/factory and
+// gtins.color are consumer-facing content rendered with no override/
+// audit/lock support - same gap country_of_origin used to have. Per
+// explicit decision: supplier/factory -> eu_required (traceability,
+// same category as country_of_origin), color -> nudie (plain product
+// description, not an EU-mandated fact). Creates the three
+// field_definitions rows if missing, then backfills dpp_values from
+// the existing raw columns so no data visibly disappears when the
+// display code switches to reading the resolved field instead. Guarded
+// by checking for the field_key first, so this only runs once - a
+// later edit to these fields via Field Config is never overwritten.
+const migrateSupplierFactoryColorFields = async () => {
+  const fieldsToCreate = [
+    { key: 'supplier', label: 'Supplier', category: 'eu_required', levels: ['style', 'variant', 'batch', 'gtin', 'sgtin'] },
+    { key: 'factory', label: 'Factory', category: 'eu_required', levels: ['style', 'variant', 'batch', 'gtin', 'sgtin'] },
+    { key: 'color', label: 'Color', category: 'nudie', levels: ['style', 'variant', 'gtin', 'sgtin'] }
+  ];
+
+  for (const f of fieldsToCreate) {
+    const existing = await get(`SELECT id FROM field_definitions WHERE field_key = ?`, [f.key]);
+    if (existing) continue;
+
+    console.log(`[DPP v2] Creating '${f.key}' field definition and backfilling existing data...`);
+    const locksAtProduction = f.category === 'eu_required' ? 1 : 0;
+    const result = await run(
+      `INSERT INTO field_definitions
+       (field_key, label, description, data_type, category, required, consumer_visible,
+        editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_sgtin,
+        locks_at_production, sort_order)
+       VALUES (?, ?, '', 'text', ?, 0, 1, ?, ?, ?, ?, ?, ?, 0)`,
+      [
+        f.key, f.label, f.category,
+        f.levels.includes('style') ? 1 : 0,
+        f.levels.includes('variant') ? 1 : 0,
+        f.levels.includes('batch') ? 1 : 0,
+        f.levels.includes('gtin') ? 1 : 0,
+        f.levels.includes('sgtin') ? 1 : 0,
+        locksAtProduction
+      ]
+    );
+    const fieldDefinitionId = result.lastID;
+
+    if (f.key === 'color') {
+      const gtinsWithColor = await all(`SELECT id, color FROM gtins WHERE color IS NOT NULL AND TRIM(color) != ''`);
+      for (const g of gtinsWithColor) {
+        await run(
+          `INSERT INTO dpp_values (field_definition_id, entity_type, entity_id, value, source_system) VALUES (?, 'gtin', ?, ?, 'manual')`,
+          [fieldDefinitionId, g.id, g.color]
+        );
+      }
+      console.log(`[DPP v2] Backfilled 'color' for ${gtinsWithColor.length} GTIN(s)`);
+    } else {
+      const batchesWithValue = await all(`SELECT id, ${f.key} as val FROM batches WHERE ${f.key} IS NOT NULL AND TRIM(${f.key}) != ''`);
+      for (const b of batchesWithValue) {
+        await run(
+          `INSERT INTO dpp_values (field_definition_id, entity_type, entity_id, value, source_system) VALUES (?, 'batch', ?, ?, 'manual')`,
+          [fieldDefinitionId, b.id, b.val]
+        );
+      }
+      console.log(`[DPP v2] Backfilled '${f.key}' for ${batchesWithValue.length} batch(es)`);
+    }
+  }
+};
+
 // Initialize on module load
 init();
 migrateDppValuesLocale().catch(err => console.error('[dpp_values locale migration]', err));
@@ -701,6 +765,7 @@ migrateLocksAtProduction().catch(err => console.error('[locks_at_production migr
 migrateDeduplicateDppValues().catch(err => console.error('[dpp_values deduplication]', err));
 migrateDropGtinEan().catch(err => console.error('[gtins.ean drop migration]', err));
 migrateDropGtinWeight().catch(err => console.error('[gtins.weight drop migration]', err));
+migrateSupplierFactoryColorFields().catch(err => console.error('[supplier/factory/color field migration]', err));
 
 module.exports = {
   db,

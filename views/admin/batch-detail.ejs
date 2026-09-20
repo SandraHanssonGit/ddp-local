@@ -44,10 +44,6 @@
           <p class="value" style="<%= batchStatus === 'Completed' ? 'color:var(--success);' : '' %>"><%= batchStatus %></p>
         </div>
         <div class="info-item">
-          <label class="label-sm">Factory</label>
-          <p class="value"><%= batch.factory || '—' %></p>
-        </div>
-        <div class="info-item">
           <label class="label-sm">Production Date</label>
           <% if (batch.produced_at) { %>
             <p class="value"><%= new Date(batch.produced_at).toLocaleDateString('en-US') %></p>

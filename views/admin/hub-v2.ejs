@@ -214,18 +214,11 @@
                 <input type="date" name="production_date" />
               </div>
               <div>
-                <label>Supplier</label>
-                <input type="text" name="supplier" placeholder="Supplier name" />
-              </div>
-              <div>
-                <label>Factory</label>
-                <input type="text" name="factory" placeholder="Factory name" />
-              </div>
-              <div>
                 <label>Country of Production</label>
                 <input type="text" name="country_of_production" placeholder="Italy" />
               </div>
             </div>
+            <p class="small muted" style="margin:-8px 0 14px;">Supplier and Factory are set via DPP Field Values below, like every other field - not at creation time.</p>
             <button type="submit" class="btn btn-primary">Add Batch</button>
           </form>
         </div>
@@ -944,8 +937,6 @@
         batch_id: formData.get('batch_id'),
         production_order: formData.get('production_order'),
         production_date: formData.get('production_date'),
-        supplier: formData.get('supplier'),
-        factory: formData.get('factory'),
         country_of_production: formData.get('country_of_production')
       };
 

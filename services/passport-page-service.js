@@ -178,17 +178,16 @@ async function renderPassportJson(req, res, sgtinRecord) {
       name: passport.variant?.product_name || passport.style.product_name,
       type: passport.style.product_type,
       size: passport.gtin.size_value_1,
-      color: passport.gtin.color,
       imageUrl: passport.variant?.image_url || passport.style.image_url
     },
-    // country of origin is deliberately NOT read from
-    // batch.country_of_production here - that hardcoded column has no
-    // inheritance/override/locale/lock support and duplicates the real
-    // EU-required "country_of_origin" dynamic field, which is already
-    // included in `fields` below. Per decision 2026-09-16: the dynamic
-    // field is the single source of truth for this.
+    // country of origin, color, supplier and factory are deliberately
+    // NOT read from their old hardcoded columns here - those columns
+    // have no inheritance/override/locale/lock support and duplicate
+    // the real dynamic fields (country_of_origin, color, supplier,
+    // factory), which are already included in `fields` below. Per
+    // decision 2026-09-16/2026-09-20: the dynamic field is the single
+    // source of truth for all of these.
     manufacturing: {
-      factory: passport.batch.factory,
       productionDate: passport.batch.production_date
     },
     economicOperator: passport.economicOperator ? {

@@ -163,18 +163,6 @@
             <div class="field-value"><%= new Date(passport.batch.production_date).toLocaleDateString('sv-SE') %></div>
           </div>
         <% } %>
-        <% if (passport.batch.supplier) { %>
-          <div class="field-row">
-            <div class="field-label">Supplier</div>
-            <div class="field-value"><%= passport.batch.supplier %></div>
-          </div>
-        <% } %>
-        <% if (passport.batch.factory) { %>
-          <div class="field-row">
-            <div class="field-label">Factory</div>
-            <div class="field-value"><%= passport.batch.factory %></div>
-          </div>
-        <% } %>
       </div>
     </div>
 

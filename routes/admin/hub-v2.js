@@ -749,7 +749,7 @@ router.post('/variant/:variantId/dpp-values', async (req, res) => {
 // Create a new Batch
 router.post('/batch', async (req, res) => {
   try {
-    const { batch_id, production_order, production_date, supplier, factory, country_of_production } = req.body;
+    const { batch_id, production_order, production_date, country_of_production } = req.body;
     if (!batch_id) {
       return res.status(400).json({ success: false, error: 'batch_id is required' });
     }
@@ -759,8 +759,12 @@ router.post('/batch', async (req, res) => {
       return res.status(400).json({ success: false, error: `Batch ${batch_id} already exists` });
     }
 
+    // Supplier/factory are set via DPP Field Values (dynamic fields),
+    // not at creation time - see the hardcoded-columns audit
+    // (ROADMAP.md, 2026-09-20). batches.supplier/factory columns still
+    // exist but are no longer written here.
     const id = await batchRepository.create(batch_id, {
-      production_order, production_date, supplier, factory, country_of_production
+      production_order, production_date, country_of_production
     });
     const batch = await batchRepository.getById(id);
 
