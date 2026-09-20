@@ -86,7 +86,7 @@ config resolving live from `source_system` - not a separate feature.
    deprioritized** by the user ("det ligger längst fram i planen") -
    logged here only so it isn't forgotten, no design work started.
 
-### 1. Extended authority/recycler view (not built)
+### 1. Extended authority/recycler view ✅ Done (2026-09-20)
 
 **Problem** (COMPLIANCE.md gap #7, restated): the public passport only
 has one visibility level (`consumer_visible`). A market-surveillance
@@ -100,28 +100,47 @@ to build).
 recycler), not an internal admin permissions system - a separate,
 simpler problem than a full RBAC system.
 
-**Proposed design** (not yet built, needs a build-time decision on
-auth approach before coding):
-- New `field_definitions.authority_visible` boolean (default `true`,
-  additive alongside `consumer_visible` - not a breaking change to the
-  existing flag or its enforcement).
-- New authenticated route rendering the same passport template with
-  the wider field set. Simplest POC approach: reuse the JWT
-  verification code that already exists (`routes/api.js`'s
-  `verifyToken`/`checkRole`) rather than building a separate
-  signed-token or external-account system - avoids new auth
-  infrastructure per CLAUDE.md §10/Rule 10. **Correction (2026-09-20)**:
-  that JWT check is only wired into the old v1 `routes/api.js` today -
-  no v2 admin route actually enforces it yet (see "Security note"
-  below - confirmed live, an unauthenticated request to
-  `/admin-v2/batch/1` still returns 200). Building this authority
-  route would be the first real instance of applying auth to a v2
-  route, not a drop-in reuse of something already enforced there - it
-  overlaps with (and could be the concrete first step of) the
-  unscheduled "Auth-hardening the whole v2 admin API" task. A real
-  production system would likely need its own credential type for
-  external parties, but that's a scope decision for later, not this
-  POC.
+**Built**:
+- `field_definitions.authority_visible` boolean (default `true`,
+  additive alongside `consumer_visible`, guarded migration in
+  `db/init-v2.js`), exposed in Field Config's create/edit forms and
+  fields table.
+- New `middleware/auth.js` (`verifyToken`/`checkRole`/`requireRole`) -
+  mirrors `routes/api.js`'s existing JWT pattern rather than importing
+  from it (that file doesn't export these and is v1/legacy code not
+  worth touching for a v2 feature). Turned out `/api/login` already
+  worked against v2's real `users` table (`DB_VERSION` defaults to
+  `v2`) - no new login/JWT-issuing code needed, only the
+  verification/role-check side.
+- New `GET /01/:gtin/21/:serial/authority` (`routes/gs1.js`), protected
+  by `requireRole(['authority', 'recycler', 'admin', 'super_admin'])` -
+  **this is the first v2 route to enforce auth** (see "Security note"
+  below), deliberately scoped to just this one route rather than the
+  unscheduled "Auth-hardening the whole v2 admin API" task.
+  `requireRole` redirects to `/login?redirect=...` on failure (a
+  browser-facing variant of `verifyToken`/`checkRole`, which stay
+  JSON-erroring for future API use) - `login-v2.ejs` now honors
+  `?redirect=`.
+- Reuses `dpp-passport.ejs` as-is via a new `renderAuthorityPassportPage`
+  (`passport-page-service.js`) filtered by `authority_visible` instead
+  of `consumer_visible` - no template changes needed, since the EU
+  Required/Nudie Information sections already iterate `resolvedFields`
+  generically. Added a banner distinguishing this view from the public
+  one. No scan event logged (not a consumer scan, same reasoning as the
+  JSON export).
+- Credential type: reused the existing `users` table/`role` column
+  (roles `authority`/`recycler` alongside the existing `admin`/
+  `super_admin`/`viewer`/etc.) rather than building separate external-
+  party infrastructure - the simplest POC option, per the original
+  proposal's own note that a real production system would need its own
+  credential type later.
+
+**Verified**: unauthenticated access redirects to login; a test
+`authority`-role user sees the banner and the wider field set; a
+`viewer`-role user is correctly denied (403); `authority_visible` and
+`consumer_visible` confirmed fully independent (hid a field from
+authority view only, consumer view unaffected); Field Config create/
+edit persist the new flag correctly.
 
 ### 2. Structured fields per lifecycle event type (not built)
 
@@ -1020,15 +1039,17 @@ starting implementation.
   ✅ Done (2026-09-19) - `passport-page-service.js`'s shared
   `filterToConsumerVisible()` now applies to both the HTML page and
   the JSON export, so they can't drift apart again.
-- **Role-based / authority access.** Deliberately not a public
-  self-service toggle (see COMPLIANCE.md gap 7) — needs its own
-  authenticated path, design not yet started. Confirmed via web search
+- ~~**Role-based / authority access.**~~ ✅ Done (2026-09-20) — see
+  "Extended authority/recycler view" under "Platform vision". Not a
+  public self-service toggle (COMPLIANCE.md gap 7), an authenticated
+  path (the first real auth on any v2 route). Confirmed via web search
   (2026-09-16) that ESPR does define broad role-based access in
   principle — consumers, economic operators (manufacturers/importers/
   distributors), repairers, recyclers, customs and market-surveillance
   authorities, civil society — but the exact per-role data matrix is
   set by each product category's delegated act, not the base
-  regulation. See "Discovery session" below for the concrete plan.
+  regulation; the built `authority_visible` flag is a single coarse
+  level (not per-role), sufficient for this POC.
 - **Visual redesign.** ✅ Done (2026-09-16) — see DESIGN_SYSTEM.md and
   the CHANGELOG etapp 1-8 entries. Consumer passport, DPP Hub, all 5
   detail pages, login, and the confirm/alert modal are all in code now.
@@ -1467,6 +1488,13 @@ pattern rather than being selectively hardened, since protecting three
 routes while the rest of the admin API stays open would be a false
 sense of security. **Auth-hardening the whole v2 admin API is its own
 separate task, not yet scheduled.**
+
+**Update (2026-09-20)**: the first real auth on a v2 route now exists -
+`GET /01/:gtin/21/:serial/authority` (the "Extended authority/recycler
+view", see "Platform vision" above), protected by the new
+`middleware/auth.js`. Every `/admin-v2/*` and `/api/admin/*` route is
+still completely open, as described above - this is one narrowly
+-scoped exception, not the start of hardening the admin API generally.
 
 ## Known bugs found during this work (fix opportunistically)
 
