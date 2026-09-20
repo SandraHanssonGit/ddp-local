@@ -1785,3 +1785,42 @@ anything. Given this POC's existing security posture (admin API has no
 auth at all today - see the Security note above), a real external
 write API is also the first place where skipping authentication would
 stop being acceptable, even for a POC.
+
+## GS1 Scheme wired to real behavior (partial) ✅ Done (2026-09-20)
+
+The `gs1_scheme` dropdown under Settings > Product Types (`batch_gtin_sgtin`
+/ `batch_gtin` / `gtin_sgtin`) had existed since the GS1 hierarchy design
+(2026-09-19) but was purely decorative - nothing read it. User asked
+directly ("Visas detta utifrån detta? Är detta efter det man har
+satt?") and, once confirmed, chose to build only the smaller, isolated
+half of this now.
+
+**Built**: `productTypeRepository.getSchemeForStyle(styleId)` (a
+`styles.product_type_id` → `product_types.gs1_scheme` LEFT JOIN,
+defaulting to `batch_gtin_sgtin` when unset - matches the only
+behavior that existed before this column did, so no existing passport
+changes unless a scheme is deliberately set). `resolveSgtinPassport()`
+now checks this per-request: for `gtin_sgtin` ("Individual units, no
+Batch") it drops Batch/Batch×GTIN/Batch×Variant/Batch×Style from the
+inheritance chain and from economic operator resolution, leaving
+SGTIN > GTIN > Variant > Style - the Batch row itself is still loaded
+(its `production_date` still drives the field-validity window, and
+`passport.batch.*` is read elsewhere). `produce-sgtins` now refuses
+with a 400 for `batch_gtin` ("Batch + GTIN, no individual units"),
+since that scheme has no per-garment serialization at all.
+
+**Not built (separate, larger follow-up)**: a real public passport for
+`batch_gtin` products needs its own GTIN-only route and render path
+(no SGTIN exists to resolve against) - `dpp-passport.ejs`, scan
+logging, and `passport_versions` all currently assume a resolved
+`sgtin`/`batch`. Deliberately deferred - user chose the small half
+first specifically to avoid touching the currently-working
+`batch_gtin_sgtin` path while building a much bigger, riskier piece.
+
+Verified against real data (GTIN 3 / style 3, Jeans): a Batch-only
+value (Factory) disappeared from the live passport when switched to
+`gtin_sgtin`, while a value that happened to also exist at GTIN level
+(Sustainability) correctly kept showing via that level instead;
+`produce-sgtins` correctly refused under `batch_gtin`. Reverted after
+testing; default scheme behavior confirmed unchanged via before/after
+comparison.
