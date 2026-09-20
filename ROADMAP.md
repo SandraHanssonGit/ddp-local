@@ -1699,3 +1699,51 @@ existing field kept its exact prior grouping and section order
 (checked via a direct SQL dump); full regression sweep green (both
 test passports' HTML, the JSON export - unaffected, still keyed off
 `category` directly - GTIN/Style admin detail pages, and the hub).
+
+## Field validity window (valid_from/valid_until) ✅ Done (2026-09-20)
+
+Prompted by a design question: "Om vi har haft ett fält som vi vill
+skall försvinna på nya productpass då det inte längre är nödvändigt" -
+a field that's no longer needed should stop appearing on new passports,
+without retroactively changing passports for garments already produced.
+User confirmed the key design decision explicitly: "Om det inte finns
+några datum så är det alltid giltigt" (no dates = always valid).
+
+`field_definitions.valid_from`/`valid_until` already existed in the
+schema - CLAUDE.md's original field_definitions design suggested them -
+but nothing ever read or wrote them. Wired them through
+`createFieldDefinition`/`updateFieldDefinition` in `repositories/fields.js`,
+the admin API routes (`routes/admin/fields.js` - an empty string clears
+to `NULL`, same convention `section_id` already uses), and a new
+`passport-resolver.js` helper, `_isFieldValidForDate(fieldDef,
+productionDate)`, which filters `field_definitions` before resolving a
+passport.
+
+**Deliberately keyed off the Batch's `production_date`, not "today"** -
+a passport must keep showing what was true when the garment was
+actually made; changing based on today's date would mean an
+already-produced garment's passport silently mutates over time, which
+is wrong. A batch with no `production_date` yet (not produced) always
+shows every field regardless of its validity window - there's no fixed
+date to check against, and that passport isn't final either way.
+
+**Scope**: only wired into `resolveSgtinPassport` (the public-passport
+path, used by both the GS1 Digital Link route and the legacy `/dpp/`
+route via `passport-page-service.js`). Deliberately NOT applied to
+`resolveGtinPassport`/`resolveBatchPassport`/`resolveStylePassport` -
+the admin detail pages should keep showing every field regardless of
+date, since an admin may need to set or inspect data for a field that's
+about to expire, or one that's not valid yet.
+
+**Settings UI**: Field Config's Add Field form and each field's inline
+edit form get "Valid From"/"Valid Until" date inputs (a `hint-panel`
+explaining the production-date semantics, matching the panel style
+already used for Roles/Levels), and a new "Valid" column on the fields
+list (shows the date range, or "Always").
+
+Verified: set `fiber_composition`'s `valid_until` to a date before
+batch `PO45001234`'s `production_date` (2024-01-15) - the field
+disappeared from that batch's SGTIN's HTML passport AND its `/json`
+export; the Loud Larry batch (no `production_date` set) still showed
+it; the admin GTIN detail page was unaffected either way; clearing the
+date restored it everywhere immediately. Full regression sweep green.
