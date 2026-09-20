@@ -110,8 +110,6 @@
 
   <div class="wrap" style="padding-bottom:48px;">
     <%
-      const euValues = passport.resolvedFields.filter(f => f.category === 'eu_required' && f.value);
-      const nudieValues = passport.resolvedFields.filter(f => f.category === 'nudie' && f.value);
       const sourceLabel = (s) => s === 'batch' ? 'Batch' : s === 'batch_style' ? 'Batch (this Style)' : s === 'batch_variant' ? 'Batch (this Variant)' : s === 'batch_gtin' ? 'Batch (locked at production)' : s === 'gtin' ? 'GTIN' : s === 'variant' ? 'Variant' : s === 'style' ? 'Style' : s;
       // Structured fields (data_type='json') store a JSON object/array
       // as the value string - render as a small key/value breakdown
@@ -166,19 +164,28 @@
       </div>
     </div>
 
-    <!-- EU Required -->
-    <% if (euValues.length > 0 || passport.economicOperator) { %>
+    <!-- Configurable passport sections (2026-09-20) - replaces the
+         hardcoded "EU Required Information"/"Transparency"/"Nudie
+         Information" blocks that used to be here. Grouping, ordering
+         and the badge shown per section are all resolved server-side
+         in passport-page-service.js's buildPassportSections() (see its
+         comment) - this loop only renders what it's given. Manage
+         section labels/icons/order and which section a field belongs
+         to under Settings > Field Config. -->
+    <% (typeof passportSections !== 'undefined' ? passportSections : []).forEach(section => { %>
       <div style="border-top:1px solid var(--hairline);">
         <div class="row accordion-header" style="justify-content:space-between;padding:18px 0;" onclick="this.nextElementSibling.classList.toggle('open')">
           <div class="row" style="gap:12px;">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23Z"/></svg>
-            <span style="font-size:16px;font-weight:600;">EU Required Information</span>
-            <span class="category-badge eu_required">EU Required</span>
+            <svg class="icon" viewBox="0 0 24 24"><%- getSectionIconInner(section.icon) %></svg>
+            <span style="font-size:16px;font-weight:600;"><%= section.label %></span>
+            <% if (section.badgeCategory) { %>
+              <span class="category-badge <%= section.badgeCategory %>"><%= section.badgeCategory === 'eu_required' ? 'EU Required' : 'Nudie' %></span>
+            <% } %>
           </div>
           <svg class="icon" style="color:var(--muted);" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
         </div>
-        <div class="accordion-content open">
-          <% if (passport.economicOperator) { %>
+        <div class="accordion-content <%= section.isTransparency ? '' : 'open' %>">
+          <% if (section.hasEconomicOperator) { %>
             <div class="field-row">
               <div class="field-label"><%= passport.economicOperator.role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) %></div>
               <div class="field-value">
@@ -194,99 +201,55 @@
               <% } %>
             </div>
           <% } %>
-          <% euValues.forEach(field => { %>
-            <% const structuredHtml = field.dataType === 'json' ? structuredValueHtml(field.value) : null; %>
-            <div class="field-row">
-              <div class="field-label"><%= field.label %></div>
-              <% if (structuredHtml) { %>
-                <div class="field-value"><%- structuredHtml %></div>
-              <% } else { %>
-                <div class="field-value"><%= field.value %></div>
-              <% } %>
-              <% if (field.source && field.source !== 'sgtin') { %>
-                <div class="field-source">från <%= sourceLabel(field.source) %></div>
-              <% } %>
-            </div>
-          <% }); %>
-        </div>
-      </div>
-    <% } %>
 
-    <!-- Transparency (internal code/table names stay "supply chain") -->
-    <% if (typeof supplyChainGroups !== 'undefined' && supplyChainGroups.length > 0) { %>
-      <div style="border-top:1px solid var(--hairline);">
-        <div class="row accordion-header" style="justify-content:space-between;padding:18px 0;" onclick="this.nextElementSibling.classList.toggle('open')">
-          <div class="row" style="gap:12px;">
-            <svg class="icon" viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>
-            <span style="font-size:16px;font-weight:600;">Transparency</span>
-            <% if (typeof transparencyCategory !== 'undefined' && transparencyCategory) { %>
-              <span class="category-badge <%= transparencyCategory %>"><%= transparencyCategory === 'eu_required' ? 'EU Required' : 'Nudie' %></span>
-            <% } %>
-          </div>
-          <svg class="icon" style="color:var(--muted);" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
-        </div>
-        <div class="accordion-content">
-          <% supplyChainGroups.forEach(group => { %>
-            <div style="padding:6px 0;">
-              <div class="row sub-accordion-header" style="justify-content:space-between;padding:8px 0;cursor:pointer;user-select:none;" onclick="this.nextElementSibling.classList.toggle('open')">
-                <span class="cap"><%= group.category %></span>
-                <svg class="icon" style="width:16px;height:16px;color:var(--muted);" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
-              </div>
-              <div class="accordion-content sub">
-                <% group.steps.forEach(step => { %>
-                  <div class="field-row" style="display:flex;justify-content:space-between;align-items:flex-start;">
-                    <div>
-                      <div style="font-size:13px;color:var(--muted);"><%= step.step_label %></div>
-                      <% if (step.supplier_name) { %><div style="font-size:15px;font-weight:600;margin-top:2px;"><%= step.supplier_name %></div><% } %>
-                      <div style="font-size:13px;color:var(--muted);margin-top:2px;">
-                        <%= [step.city, step.country].filter(Boolean).join(', ') || '—' %>
-                        <% if (step.employee_range) { %> &middot; Employees: <%= step.employee_range %><% } %>
+          <% if (section.isTransparency) { %>
+            <% supplyChainGroups.forEach(group => { %>
+              <div style="padding:6px 0;">
+                <div class="row sub-accordion-header" style="justify-content:space-between;padding:8px 0;cursor:pointer;user-select:none;" onclick="this.nextElementSibling.classList.toggle('open')">
+                  <span class="cap"><%= group.category %></span>
+                  <svg class="icon" style="width:16px;height:16px;color:var(--muted);" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+                </div>
+                <div class="accordion-content sub">
+                  <% group.steps.forEach(step => { %>
+                    <div class="field-row" style="display:flex;justify-content:space-between;align-items:flex-start;">
+                      <div>
+                        <div style="font-size:13px;color:var(--muted);"><%= step.step_label %></div>
+                        <% if (step.supplier_name) { %><div style="font-size:15px;font-weight:600;margin-top:2px;"><%= step.supplier_name %></div><% } %>
+                        <div style="font-size:13px;color:var(--muted);margin-top:2px;">
+                          <%= [step.city, step.country].filter(Boolean).join(', ') || '—' %>
+                          <% if (step.employee_range) { %> &middot; Employees: <%= step.employee_range %><% } %>
+                        </div>
                       </div>
+                      <% if (step.visited_by_brand) { %>
+                        <div class="row" style="gap:6px;color:var(--accent);white-space:nowrap;">
+                          <svg class="icon" style="width:14px;height:14px;" viewBox="0 0 24 24"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>
+                          <span style="font-size:11px;font-weight:600;">Visited</span>
+                        </div>
+                      <% } %>
                     </div>
-                    <% if (step.visited_by_brand) { %>
-                      <div class="row" style="gap:6px;color:var(--accent);white-space:nowrap;">
-                        <svg class="icon" style="width:14px;height:14px;" viewBox="0 0 24 24"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>
-                        <span style="font-size:11px;font-weight:600;">Visited</span>
-                      </div>
-                    <% } %>
-                  </div>
-                <% }); %>
+                  <% }); %>
+                </div>
               </div>
-            </div>
-          <% }); %>
+            <% }); %>
+          <% } else { %>
+            <% section.fields.forEach(field => { %>
+              <% const structuredHtml = field.dataType === 'json' ? structuredValueHtml(field.value) : null; %>
+              <div class="field-row">
+                <div class="field-label"><%= field.label %></div>
+                <% if (structuredHtml) { %>
+                  <div class="field-value"><%- structuredHtml %></div>
+                <% } else { %>
+                  <div class="field-value"><%= field.value %></div>
+                <% } %>
+                <% if (field.source && field.source !== 'sgtin') { %>
+                  <div class="field-source">från <%= sourceLabel(field.source) %></div>
+                <% } %>
+              </div>
+            <% }); %>
+          <% } %>
         </div>
       </div>
-    <% } %>
-
-    <!-- Nudie -->
-    <% if (nudieValues.length > 0) { %>
-      <div style="border-top:1px solid var(--hairline);">
-        <div class="row accordion-header" style="justify-content:space-between;padding:18px 0;" onclick="this.nextElementSibling.classList.toggle('open')">
-          <div class="row" style="gap:12px;">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
-            <span style="font-size:16px;font-weight:600;">Nudie Information</span>
-            <span class="category-badge nudie">Nudie</span>
-          </div>
-          <svg class="icon" style="color:var(--muted);" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
-        </div>
-        <div class="accordion-content open">
-          <% nudieValues.forEach(field => { %>
-            <% const structuredHtml = field.dataType === 'json' ? structuredValueHtml(field.value) : null; %>
-            <div class="field-row">
-              <div class="field-label"><%= field.label %></div>
-              <% if (structuredHtml) { %>
-                <div class="field-value"><%- structuredHtml %></div>
-              <% } else { %>
-                <div class="field-value"><%= field.value %></div>
-              <% } %>
-              <% if (field.source && field.source !== 'sgtin') { %>
-                <div class="field-source">från <%= sourceLabel(field.source) %></div>
-              <% } %>
-            </div>
-          <% }); %>
-        </div>
-      </div>
-    <% } %>
+    <% }); %>
 
     <!-- Lifecycle Events -->
     <% if (typeof events !== 'undefined' && events.length > 0) { %>

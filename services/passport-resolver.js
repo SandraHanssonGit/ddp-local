@@ -322,6 +322,7 @@ class PassportResolver {
             source: sourceNames[i],
             category: fieldDef.category,
             dataType: fieldDef.data_type,
+            sectionId: fieldDef.section_id,
             locale: requestedLocale,
             editable
           };
@@ -340,6 +341,7 @@ class PassportResolver {
           source: sourceNames[i],
           category: fieldDef.category,
           dataType: fieldDef.data_type,
+          sectionId: fieldDef.section_id,
           locale: null,
           editable
         };
@@ -354,6 +356,7 @@ class PassportResolver {
       source: null,
       category: fieldDef.category,
       dataType: fieldDef.data_type,
+      sectionId: fieldDef.section_id,
       locale: null,
       editable
     };

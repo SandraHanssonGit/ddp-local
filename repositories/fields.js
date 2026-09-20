@@ -7,8 +7,8 @@ class FieldRepository {
       INSERT INTO field_definitions
       (field_key, label, description, data_type, category, required,
        editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_batch_gtin, editable_at_sgtin,
-       locks_at_production, sort_order)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       locks_at_production, sort_order, section_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     // No explicit locks_at_production given - default from category,
     // same rule the startup backfill uses (migrateLocksAtProduction in
@@ -17,6 +17,16 @@ class FieldRepository {
     const locksAtProduction = options.locks_at_production !== undefined
       ? (options.locks_at_production ? 1 : 0)
       : (category === 'eu_required' ? 1 : 0);
+    // No explicit section_id given - default to the section whose
+    // section_key matches the category (the two happen to share the
+    // same key today - 'eu_required'/'nudie'), so a field created
+    // without picking a section still lands somewhere sensible instead
+    // of being invisible on the passport until an admin assigns one.
+    let sectionId = options.section_id;
+    if (sectionId === undefined) {
+      const defaultSection = await this.getSectionByKey(category);
+      sectionId = defaultSection ? defaultSection.id : null;
+    }
     const result = await db.run(sql, [
       fieldKey,
       label,
@@ -31,7 +41,8 @@ class FieldRepository {
       options.editable_at_batch_gtin !== false ? 1 : 0,
       options.editable_at_sgtin !== false ? 1 : 0,
       locksAtProduction,
-      options.sort_order || 0
+      options.sort_order || 0,
+      sectionId
     ]);
     // Digital Access (2026-09-20): which roles see this field, replacing
     // the old consumer_visible/authority_visible booleans. Defaults to
@@ -134,6 +145,56 @@ class FieldRepository {
     return roleIds.includes(roleId);
   }
 
+  // Configurable passport sections (2026-09-20) - see the comment in
+  // db/init-v2.js's migrateFieldSections for why this exists. `icon` is
+  // always validated against utils/section-icons.js's curated key list
+  // at the call site (routes/admin/fields.js), never stored raw.
+  async listSections() {
+    return db.all(`SELECT * FROM field_sections ORDER BY sort_order ASC, label ASC`);
+  }
+
+  async getSection(sectionId) {
+    return db.get(`SELECT * FROM field_sections WHERE id = ?`, [sectionId]);
+  }
+
+  async getSectionByKey(sectionKey) {
+    return db.get(`SELECT * FROM field_sections WHERE section_key = ?`, [sectionKey]);
+  }
+
+  async createSection(sectionKey, label, icon, sortOrder = 0) {
+    const result = await db.run(
+      `INSERT INTO field_sections (section_key, label, icon, sort_order) VALUES (?, ?, ?, ?)`,
+      [sectionKey, label, icon, sortOrder]
+    );
+    return result.lastID;
+  }
+
+  async updateSection(sectionId, updates) {
+    const allowedFields = ['label', 'icon', 'sort_order'];
+    const setClauses = [];
+    const values = [];
+    for (const [key, value] of Object.entries(updates)) {
+      if (allowedFields.includes(key)) {
+        setClauses.push(`${key} = ?`);
+        values.push(value);
+      }
+    }
+    if (setClauses.length === 0) return;
+    values.push(sectionId);
+    await db.run(`UPDATE field_sections SET ${setClauses.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, values);
+  }
+
+  // Refused if any field is still assigned to it - same "clear
+  // references first" convention as deleteFieldDefinition, rather than
+  // silently leaving fields pointing at a deleted section.
+  async deleteSection(sectionId) {
+    const fieldsUsingIt = await db.all(`SELECT id FROM field_definitions WHERE section_id = ?`, [sectionId]);
+    if (fieldsUsingIt.length > 0) {
+      throw new Error('Cannot delete a section that still has fields assigned to it. Reassign those fields first.');
+    }
+    await db.run(`DELETE FROM field_sections WHERE id = ?`, [sectionId]);
+  }
+
   async getFieldDefinition(fieldId) {
     const sql = `SELECT * FROM field_definitions WHERE id = ?`;
     return db.get(sql, [fieldId]);
@@ -167,7 +228,7 @@ class FieldRepository {
   }
 
   async updateFieldDefinition(fieldId, updates) {
-    const allowedFields = ['label', 'description', 'required', 'sort_order', 'category',
+    const allowedFields = ['label', 'description', 'required', 'sort_order', 'category', 'section_id',
                           'editable_at_style', 'editable_at_variant', 'editable_at_batch', 'editable_at_gtin', 'editable_at_batch_gtin', 'editable_at_sgtin',
                           'locks_at_production'];
     const setClauses = [];

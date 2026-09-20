@@ -506,6 +506,30 @@ const init = () => {
       if (err) console.error('[index field_roles_field]', err);
     });
 
+    // Configurable passport sections (2026-09-20): replaces the
+    // hardcoded "EU Required Information" / "Transparency" / "Nudie
+    // Information" headings baked into dpp-passport.ejs - user found
+    // "EU Required Information" as a heading confusing/clunky and
+    // wanted to both rename headings and control which section a field
+    // renders under, from Settings. `icon` is a key into the small
+    // curated Lucide icon set in utils/section-icons.js, not free-form
+    // SVG/HTML (avoids storing raw markup from an unauthenticated admin
+    // API - see the Security note in ROADMAP.md).
+    db.run(`
+      CREATE TABLE IF NOT EXISTS field_sections (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        section_key TEXT NOT NULL UNIQUE,
+        label TEXT NOT NULL,
+        icon TEXT NOT NULL DEFAULT 'tag',
+        sort_order INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `, (err) => {
+      if (err) console.error('[field_sections]', err);
+      else console.log('✓ field_sections table');
+    });
+
     db.run(`CREATE INDEX IF NOT EXISTS idx_passport_versions_entity ON passport_versions(entity_type, entity_id)`, (err) => {
       if (err) console.error('[index passport_versions_entity]', err);
     });
@@ -961,15 +985,68 @@ const migrateTransparencyField = async () => {
   }
 };
 
+// Configurable passport sections (2026-09-20): seeds the 3 sections
+// that replace the old hardcoded headings (eu_required/transparency/
+// nudie, matching the passport's current visual order) and backfills
+// field_definitions.section_id from each field's existing category -
+// 'transparency' the field_key check first, since a plain category
+// match would otherwise put it in the eu_required section instead of
+// its own. Only ever fills in a NULL section_id, so a section an admin
+// has already picked in Field Config is never overwritten by this
+// running again on a later server start.
+const migrateFieldSections = async () => {
+  const defaults = [
+    { key: 'eu_required', label: 'EU Required Information', icon: 'shirt', sort_order: 10 },
+    { key: 'transparency', label: 'Transparency', icon: 'route', sort_order: 20 },
+    { key: 'nudie', label: 'Nudie Information', icon: 'leaf', sort_order: 30 }
+  ];
+  const sectionIds = {};
+  for (const d of defaults) {
+    const existing = await get(`SELECT id FROM field_sections WHERE section_key = ?`, [d.key]);
+    if (existing) {
+      sectionIds[d.key] = existing.id;
+      continue;
+    }
+    console.log(`[DPP v2] Creating '${d.key}' field section...`);
+    sectionIds[d.key] = (await run(
+      `INSERT INTO field_sections (section_key, label, icon, sort_order) VALUES (?, ?, ?, ?)`,
+      [d.key, d.label, d.icon, d.sort_order]
+    )).lastID;
+  }
+
+  const columns = await all(`PRAGMA table_info(field_definitions)`);
+  const hasColumn = columns.some(c => c.name === 'section_id');
+  if (!hasColumn) {
+    console.log('[DPP v2] Adding field_definitions.section_id...');
+    await run(`ALTER TABLE field_definitions ADD COLUMN section_id INTEGER REFERENCES field_sections(id)`);
+  }
+
+  await run(
+    `UPDATE field_definitions SET section_id = ? WHERE field_key = 'transparency' AND section_id IS NULL`,
+    [sectionIds.transparency]
+  );
+  await run(
+    `UPDATE field_definitions SET section_id = ? WHERE category = 'eu_required' AND field_key != 'transparency' AND section_id IS NULL`,
+    [sectionIds.eu_required]
+  );
+  await run(
+    `UPDATE field_definitions SET section_id = ? WHERE category = 'nudie' AND section_id IS NULL`,
+    [sectionIds.nudie]
+  );
+};
+
 // migrateSupplierFactoryColorFields, migratePefFields and
 // migrateTransparencyField all assign field_roles by looking up roles
 // by key, so they must run AFTER migrateDigitalAccessRoles has seeded
 // them - chained explicitly rather than fired independently, since
 // these fire-and-forget calls don't otherwise guarantee order.
+// migrateFieldSections runs last since it backfills off the
+// 'transparency' field_key, which migrateTransparencyField creates.
 migrateDigitalAccessRoles()
   .then(() => migrateSupplierFactoryColorFields())
   .then(() => migratePefFields())
   .then(() => migrateTransparencyField())
+  .then(() => migrateFieldSections())
   .catch(err => console.error('[digital access / field migration]', err));
 
 module.exports = {

@@ -15,6 +15,7 @@ const fs = require('fs');
 const db = require('../../db/init-v2').db;
 const batchGtinsRouter = require('./batch-gtins');
 const fieldRepository = require('../../repositories/fields');
+const { SECTION_ICON_OPTIONS } = require('../../utils/section-icons');
 const variantRepository = require('../../repositories/variants');
 const batchRepository = require('../../repositories/batches');
 const supplyChainRepository = require('../../repositories/supply-chain');
@@ -336,6 +337,8 @@ router.get('/', async (req, res) => {
         data.selectedCategory = category;
         data.categories = ['eu_required', 'nudie'];
         data.roles = await fieldRepository.listRoles();
+        data.sections = await fieldRepository.listSections();
+        data.sectionIconOptions = SECTION_ICON_OPTIONS;
       } else if (sub === 'access') {
         data.roles = await fieldRepository.listRoles();
       } else if (sub === 'operators') {

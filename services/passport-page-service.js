@@ -10,6 +10,7 @@ const fieldRepository = require('../repositories/fields');
 const supplyChainRepository = require('../repositories/supply-chain');
 const passportVersionRepository = require('../repositories/passport-versions');
 const { normalizeToStored, toGtin14 } = require('../utils/gtin');
+const { getSectionIconInner } = require('../utils/section-icons');
 const { getUser } = require('../middleware/auth');
 const { db } = require('../db/init-v2');
 
@@ -105,6 +106,51 @@ async function resolveRoleForRequest(req) {
   return { role, user, deniedReason: null };
 }
 
+// Configurable passport sections (2026-09-20): the old "EU Required
+// Information" / "Transparency" / "Nudie Information" headings were
+// hardcoded straight into dpp-passport.ejs. User found the first
+// heading clunky and asked to both rename headings and control which
+// section a field renders under, from Settings - so grouping now comes
+// from field_sections (label/icon/order), assigned per field via
+// field_definitions.section_id. Grouping happens here rather than in
+// the template (CLAUDE.md: no business logic inside EJS).
+// Transparency is special-cased: it's a data_type='repeating_group'
+// field with no dpp_values row of its own (real data lives in
+// supply_chain_steps), so it never shows up in resolvedFields with a
+// value - its section is driven by supplyChainGroups instead.
+// Economic operator is similarly special-cased into the 'eu_required'
+// section - it's a real compliance requirement, not a dynamic field,
+// so it isn't in resolvedFields at all.
+async function buildPassportSections(passport, supplyChainGroups) {
+  const sections = await fieldRepository.listSections();
+  const transparencyField = await fieldRepository.getFieldDefinitionByKey('transparency');
+
+  return sections
+    .map(section => {
+      if (section.section_key === 'transparency') {
+        if (supplyChainGroups.length === 0) return null;
+        return {
+          ...section,
+          isTransparency: true,
+          hasEconomicOperator: false,
+          fields: [],
+          badgeCategory: transparencyField ? transparencyField.category : null
+        };
+      }
+
+      const fields = passport.resolvedFields.filter(f => f.sectionId === section.id && f.value);
+      const hasEconomicOperator = section.section_key === 'eu_required' && !!passport.economicOperator;
+      if (fields.length === 0 && !hasEconomicOperator) return null;
+
+      const categories = new Set(fields.map(f => f.category));
+      let badgeCategory = categories.size === 1 ? [...categories][0] : null;
+      if (!badgeCategory && fields.length === 0 && hasEconomicOperator) badgeCategory = 'eu_required';
+
+      return { ...section, isTransparency: false, hasEconomicOperator, fields, badgeCategory };
+    })
+    .filter(Boolean);
+}
+
 function getEventsForSgtin(sgtinId) {
   return new Promise((resolve, reject) => {
     db.all(
@@ -156,12 +202,7 @@ async function renderPassportPage(req, res, sgtinRecord, basePath) {
   const supplyChainGroups = transparencyVisible
     ? await supplyChainRepository.getGroupedForEntity('style', passport.style.id)
     : [];
-  // Shows an "EU Required"/"Nudie" badge on the Transparency section
-  // header - it sits outside the EU Required/Nudie accordions (it's a
-  // repeating list, not a normal field), so without this its category
-  // isn't visible anywhere on the page.
-  const transparencyField = await fieldRepository.getFieldDefinitionByKey('transparency');
-  const transparencyCategory = transparencyField ? transparencyField.category : null;
+  const passportSections = await buildPassportSections(passport, supplyChainGroups);
   const roles = await fieldRepository.listRoles();
 
   res.render('dpp-passport', {
@@ -170,13 +211,14 @@ async function renderPassportPage(req, res, sgtinRecord, basePath) {
     events,
     availableLocales,
     supplyChainGroups,
-    transparencyCategory,
+    passportSections,
     url: basePath,
     locale,
     roles,
     currentRole: role,
     currentUser: user,
-    toGtin14
+    toGtin14,
+    getSectionIconInner
   });
 }
 
