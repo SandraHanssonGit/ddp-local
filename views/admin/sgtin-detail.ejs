@@ -30,9 +30,7 @@
       </div>
     <% } %>
 
-    <div class="detail-grid">
-      <!-- Main Content -->
-      <div>
+    <div>
 
         <!-- Basic Info -->
         <div class="card">
@@ -328,22 +326,6 @@
           <% } %>
         </div>
 
-      </div>
-
-      <!-- Sidebar -->
-      <div>
-        <!-- Quick Links -->
-        <div class="card">
-          <h3 style="margin-bottom:16px;">Quick Links</h3>
-          <div class="link-list">
-            <a href="/admin-v2/gtin/<%= gtin.id %>"><%- icon('arrow-right', { size: 14 }) %> View GTIN</a>
-            <a href="/admin-v2/batch/<%= batch.id %>"><%- icon('arrow-right', { size: 14 }) %> View Batch</a>
-            <% if (variant) { %>
-              <a href="/admin-v2/variant/<%= variant.id %>"><%- icon('arrow-right', { size: 14 }) %> View Variant</a>
-            <% } %>
-            <a href="/admin-v2/style/<%= style.id %>"><%- icon('arrow-right', { size: 14 }) %> View Product</a>
-          </div>
-        </div>
       </div>
     </div>
   </div>
