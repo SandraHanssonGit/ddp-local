@@ -837,7 +837,9 @@ real.
 
 **Resolution: language-first, then level** (per explicit decision).
 `passport-resolver.js` searches every level (SGTIN > GTIN > Batch >
-Style) for a value in the requested locale first; only if **no** level
+Style - the example order used when this was written; the actual
+level chain has since grown, see the freeze-at-production section
+above) for a value in the requested locale first; only if **no** level
 has one does it fall back to the same level order in the default
 locale. Verified with a real conflict: a French translation set at
 **Style** (lowest precedence) correctly won over an English override
