@@ -893,15 +893,51 @@ const migrateBatchGtinLevel = async () => {
 };
 migrateBatchGtinLevel().catch(err => console.error('[editable_at_batch_gtin migration]', err));
 
-// migrateSupplierFactoryColorFields assigns field_roles by looking up
-// roles by key, so it must run AFTER migrateDigitalAccessRoles has
-// seeded them (and after that migration has dropped the old
-// consumer_visible/authority_visible columns, which it no longer
-// references) - chained explicitly rather than both fired
-// independently, since these fire-and-forget calls don't otherwise
-// guarantee this order.
+// Phase 5 candidate fields (ROADMAP.md) - carbon_footprint and
+// water_usage, per explicit decision (2026-09-20, real data pulled
+// from a live test DPP - nudie-dpp.vercel.app): dynamic fields,
+// category eu_required (SVHC/REACH+PEF, same level assignment already
+// decided in Phase 5 - Style + Variant + Batch, not GTIN/SGTIN, since
+// environmental footprint doesn't vary at that granularity). No
+// backfill needed - no prior hardcoded column held this data.
+const migratePefFields = async () => {
+  const fieldsToCreate = [
+    { key: 'carbon_footprint', label: 'Carbon Footprint' },
+    { key: 'water_usage', label: 'Water Usage' }
+  ];
+
+  for (const f of fieldsToCreate) {
+    const existing = await get(`SELECT id FROM field_definitions WHERE field_key = ?`, [f.key]);
+    if (existing) continue;
+
+    console.log(`[DPP v2] Creating '${f.key}' field definition...`);
+    const result = await run(
+      `INSERT INTO field_definitions
+       (field_key, label, description, data_type, category, required,
+        editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_batch_gtin, editable_at_sgtin,
+        locks_at_production, sort_order)
+       VALUES (?, ?, '', 'text', 'eu_required', 0, 1, 1, 1, 0, 0, 0, 1, 0)`,
+      [f.key, f.label]
+    );
+    const fieldDefinitionId = result.lastID;
+
+    for (const roleKey of ['consumer', 'authority', 'recycler']) {
+      const role = await get(`SELECT id FROM roles WHERE role_key = ?`, [roleKey]);
+      if (role) {
+        await run(`INSERT OR IGNORE INTO field_roles (field_definition_id, role_id) VALUES (?, ?)`, [fieldDefinitionId, role.id]);
+      }
+    }
+  }
+};
+
+// migrateSupplierFactoryColorFields and migratePefFields both assign
+// field_roles by looking up roles by key, so they must run AFTER
+// migrateDigitalAccessRoles has seeded them - chained explicitly
+// rather than fired independently, since these fire-and-forget calls
+// don't otherwise guarantee order.
 migrateDigitalAccessRoles()
   .then(() => migrateSupplierFactoryColorFields())
+  .then(() => migratePefFields())
   .catch(err => console.error('[digital access / field migration]', err));
 
 module.exports = {
