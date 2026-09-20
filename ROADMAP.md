@@ -106,11 +106,19 @@ auth approach before coding):
   additive alongside `consumer_visible` - not a breaking change to the
   existing flag or its enforcement).
 - New authenticated route rendering the same passport template with
-  the wider field set. Simplest POC approach: reuse the existing admin
-  JWT auth (an authority/recycler logs in like an admin, hits e.g.
-  `GET /admin-v2/passport/:sgtinId/authority-view`) rather than
-  building a separate signed-token or external-account system -
-  avoids new auth infrastructure per CLAUDE.md §10/Rule 10. A real
+  the wider field set. Simplest POC approach: reuse the JWT
+  verification code that already exists (`routes/api.js`'s
+  `verifyToken`/`checkRole`) rather than building a separate
+  signed-token or external-account system - avoids new auth
+  infrastructure per CLAUDE.md §10/Rule 10. **Correction (2026-09-20)**:
+  that JWT check is only wired into the old v1 `routes/api.js` today -
+  no v2 admin route actually enforces it yet (see "Security note"
+  below - confirmed live, an unauthenticated request to
+  `/admin-v2/batch/1` still returns 200). Building this authority
+  route would be the first real instance of applying auth to a v2
+  route, not a drop-in reuse of something already enforced there - it
+  overlaps with (and could be the concrete first step of) the
+  unscheduled "Auth-hardening the whole v2 admin API" task. A real
   production system would likely need its own credential type for
   external parties, but that's a scope decision for later, not this
   POC.
@@ -633,6 +641,16 @@ so information lands under the right heading (e.g. "Material", "Care",
   EU/Nudie badging and the lock default, while its section governs
   where it's grouped for display.
 
+**Merged in from the Discovery session's version of this idea
+(2026-09-16 → 2026-09-20)**: new `data_type` value `repeating_group`,
+so Transparency (`supply_chain_steps` - a repeating list, storage
+stays separate since it can't fit `dpp_values`'s one-scalar-per-field
+shape) can still get a `field_definitions` row (`field_key:
+'transparency'`) and participate in the same section/category/
+sort_order/consumer_visible configuration as every other field. The
+admin UI shows "Edit here links out to where they're managed" for
+this data type instead of an inline text/textarea editor.
+
 ## Field source/provenance + pre-production preview (idea only, not designed, 2026-09-19)
 
 Raised alongside the freeze-at-production discussion but is a
@@ -915,10 +933,20 @@ erroring) rather than breaking the passport.
 
 ## Phase 5 — Expanded field definitions (not started - planning only)
 
-New `field_definitions.category` values: `svhc_reach`,
-`environmental_pef`, `reparability`, `end_of_life`. Candidate fields
-(placeholder — pending the delegated act's final annex, see
-COMPLIANCE.md open questions):
+**Corrected 2026-09-20**: this originally proposed new
+`field_definitions.category` values (`svhc_reach`, `environmental_pef`,
+etc.) - contradicts the confirmed category/section split decided
+later. `category` must stay binary (`eu_required`/`nudie`) since
+`locks_at_production` defaults from it (`true` only for
+`eu_required`) - a field with `category='svhc_reach'` would silently
+default to *not* locking at production despite clearly being an
+EU-required compliance field. These fields should get
+`category='eu_required'` and use the new `field_sections` mechanism
+(see "Field Sections" above) for the SVHC/REACH, PEF, reparability,
+end-of-life grouping instead.
+
+Candidate fields (placeholder — pending the delegated act's final
+annex, see COMPLIANCE.md open questions):
 - `hazardous_substances_declaration` (SVHC/REACH)
 - `carbon_footprint`, `water_usage` (PEF)
 - `repairability_score`, `spare_parts_availability` (reparability)
@@ -969,11 +997,10 @@ starting implementation.
 - ~~**Variant is missing as a DPP value level entirely.**~~ ✅ Done -
   see "Variant architecture fix" section above.
 
-- **Enforce `consumer_visible` on the live public passport page.**
-  `routes/dpp.js` currently ignores it; the new JSON export endpoint
-  (`GET /dpp/:batch/:gtin/:sgtin/json`) already filters correctly and
-  is the reference implementation to copy into `dpp-passport.ejs`'s
-  rendering path.
+- ~~**Enforce `consumer_visible` on the live public passport page.**~~
+  ✅ Done (2026-09-19) - `passport-page-service.js`'s shared
+  `filterToConsumerVisible()` now applies to both the HTML page and
+  the JSON export, so they can't drift apart again.
 - **Role-based / authority access.** Deliberately not a public
   self-service toggle (see COMPLIANCE.md gap 7) — needs its own
   authenticated path, design not yet started. Confirmed via web search
@@ -1058,27 +1085,20 @@ elsewhere still links to them; full regression sweep of all 9
 A working session going through open questions before the next build
 phase. Each item below is a decision/plan, not yet implemented.
 
-- **Fields need a `section`, separate from `category`.** Today the
-  public passport groups fields into display sections by hardcoded
-  `if/else` on `category` (`eu_required` → one bucket, `nudie` →
-  another) — too blunt. An `eu_required` field like `country_of_origin`
-  might belong under "Production" rather than a generic EU bucket.
-  Plan: add `field_definitions.section` (e.g. `eu_required`,
-  `production`, `nudie`, `transparency`, future categories),
-  independent of `category` (EU/Nudie badge) and `editable_at_*`
-  (which levels can set it). The passport template groups by `section`
-  instead of the current hardcoded branches.
-- **Transparency (formerly "Supply Chain") should be configurable
-  alongside other fields, not invisible to the Fields tab.** Storage
-  stays separate (`supply_chain_steps` — a repeating list can't fit
-  `dpp_values`'s one-scalar-per-field-per-level shape without a much
-  bigger, riskier rebuild of that table). But it should still get a
-  `field_definitions` row (`field_key: 'transparency'`) so it
-  participates in the same `section`/`category`/`sort_order`/
-  `consumer_visible` configuration as every other field. New
-  `data_type` value: `repeating_group` — signals to the admin UI "this
-  field's actual values live elsewhere; Edit here links out to where
-  they're managed" instead of showing an inline text/textarea editor.
+- **Fields need a section, separate from category - merged into
+  "Field Sections (headings) for Field Config" below (2026-09-20).**
+  This entry (2026-09-16) and the later, more detailed one described
+  the same feature two different technical ways (a `field_definitions.
+  section` column here vs. a separate `field_sections` table there).
+  The table design is now the confirmed plan - see that section, which
+  has also absorbed this entry's genuinely useful addition: a new
+  `repeating_group` `data_type` so Transparency (`supply_chain_steps`,
+  storage stays separate - a repeating list can't fit `dpp_values`'s
+  one-scalar-per-field-per-level shape) can still get a
+  `field_definitions` row and participate in the same section/
+  category/sort_order/consumer_visible configuration as every other
+  field, with the admin UI showing "Edit here links out to where
+  they're managed" instead of an inline textarea.
 - **Searchability at scale.** ✅ GTINs tab pagination done (2026-09-16)
   — user pointed at a real jeans size matrix (waist × length, dozens of
   combinations) as concrete proof this wasn't hypothetical. Added
@@ -1110,16 +1130,17 @@ phase. Each item below is a decision/plan, not yet implemented.
   `gtin`, `serial_number`) vs. actual DPP content that should migrate
   to a dynamic field with a real EU/Nudie category, so it isn't
   invisible to the categorization system.
-- **Role-based field visibility (concrete plan).** A simple role
-  selector (dropdown on the passport — Customer / Customs / NJ / etc,
-  no login required for the POC) that filters which fields render,
-  built on the same pattern as the existing `consumer_visible`
-  boolean but generalized to a **list of roles per field** instead of
-  a single true/false. A field with no roles set is treated as
-  visible to everyone (today's `consumer_visible = true` behavior),
-  preserving existing behavior. Real authenticated, per-role login is
-  a separate, later concern (see "Role-based / authority access"
-  above) — this is just the visibility-filtering mechanism.
+- **Role-based field visibility - superseded (2026-09-20), see
+  "Extended authority/recycler view" under "Platform vision" instead.**
+  This entry originally proposed a public, no-login role selector
+  (Customer / Customs / NJ) on the passport itself - **explicitly
+  contradicts** the confirmed direction from the platform-vision
+  discussion: authority/recycler access must be a separate
+  authenticated path, never a public self-service toggle (this was
+  already COMPLIANCE.md's own conclusion, gap #7, re-confirmed
+  2026-09-20). Kept here only as a record of the rejected alternative -
+  the `field_definitions.authority_visible` boolean design under
+  "Platform vision" is the current plan.
 - **No admin UI to create a new Batch at all.** Same class of gap as
   the Variant and SGTIN ones below - the only `INSERT INTO batches` in
   the codebase are old v1 code in `routes/api.js` (different schema
