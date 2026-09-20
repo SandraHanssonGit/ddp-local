@@ -137,6 +137,35 @@
       };
     %>
 
+    <!-- Production -->
+    <div style="border-top:1px solid var(--hairline);">
+      <div class="row accordion-header" style="justify-content:space-between;padding:18px 0;" onclick="this.nextElementSibling.classList.toggle('open')">
+        <div class="row" style="gap:12px;">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+          <span style="font-size:16px;font-weight:600;">Production</span>
+        </div>
+        <svg class="icon" style="color:var(--muted);" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="accordion-content open">
+        <div class="field-row">
+          <div class="field-label">Batch ID</div>
+          <div class="field-value" style="font-family:monospace;"><%= passport.batch.batch_id %></div>
+        </div>
+        <% if (passport.batch.production_order) { %>
+          <div class="field-row">
+            <div class="field-label">Production Order</div>
+            <div class="field-value"><%= passport.batch.production_order %></div>
+          </div>
+        <% } %>
+        <% if (passport.batch.production_date) { %>
+          <div class="field-row">
+            <div class="field-label">Production Date</div>
+            <div class="field-value"><%= new Date(passport.batch.production_date).toLocaleDateString('sv-SE') %></div>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
     <!-- EU Required -->
     <% if (euValues.length > 0 || passport.economicOperator) { %>
       <div style="border-top:1px solid var(--hairline);">
@@ -182,35 +211,6 @@
         </div>
       </div>
     <% } %>
-
-    <!-- Production -->
-    <div style="border-top:1px solid var(--hairline);">
-      <div class="row accordion-header" style="justify-content:space-between;padding:18px 0;" onclick="this.nextElementSibling.classList.toggle('open')">
-        <div class="row" style="gap:12px;">
-          <svg class="icon" viewBox="0 0 24 24"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
-          <span style="font-size:16px;font-weight:600;">Production</span>
-        </div>
-        <svg class="icon" style="color:var(--muted);" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
-      </div>
-      <div class="accordion-content open">
-        <div class="field-row">
-          <div class="field-label">Batch ID</div>
-          <div class="field-value" style="font-family:monospace;"><%= passport.batch.batch_id %></div>
-        </div>
-        <% if (passport.batch.production_order) { %>
-          <div class="field-row">
-            <div class="field-label">Production Order</div>
-            <div class="field-value"><%= passport.batch.production_order %></div>
-          </div>
-        <% } %>
-        <% if (passport.batch.production_date) { %>
-          <div class="field-row">
-            <div class="field-label">Production Date</div>
-            <div class="field-value"><%= new Date(passport.batch.production_date).toLocaleDateString('sv-SE') %></div>
-          </div>
-        <% } %>
-      </div>
-    </div>
 
     <!-- Transparency (internal code/table names stay "supply chain") -->
     <% if (typeof supplyChainGroups !== 'undefined' && supplyChainGroups.length > 0) { %>
