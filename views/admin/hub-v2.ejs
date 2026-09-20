@@ -326,7 +326,19 @@
           <a href="/admin-v2?tab=settings&sub=fields" class="<%= settingsSub === 'fields' ? 'active' : '' %>">Field Config</a>
           <a href="/admin-v2?tab=settings&sub=product_types" class="<%= settingsSub === 'product_types' ? 'active' : '' %>">Product Types</a>
           <a href="/admin-v2?tab=settings&sub=access" class="<%= settingsSub === 'access' ? 'active' : '' %>">Digital Access</a>
+          <a href="/admin-v2?tab=settings&sub=integrations" class="<%= settingsSub === 'integrations' ? 'active' : '' %>">Integrations</a>
         </div>
+      <% } %>
+
+      <!-- INTEGRATIONS TAB (2026-09-20) - placeholder for the not-yet-built
+           external API/GraphQL access (see ROADMAP.md's "External API /
+           integration access" entry) - reserving the spot in the nav now
+           so it's discoverable, before the real design/build work starts. -->
+      <% if (tab === 'settings' && settingsSub === 'integrations') { %>
+        <div class="section-head">
+          <h2>Integrations</h2>
+        </div>
+        <div class="empty-state">Feature coming soon — external API/GraphQL access for M3, PIM, PLM and other systems, with per-integration access tokens.</div>
       <% } %>
 
       <!-- DIGITAL ACCESS TAB (2026-09-20) - the configurable roles list
