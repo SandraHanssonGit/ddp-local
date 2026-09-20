@@ -1824,3 +1824,47 @@ value (Factory) disappeared from the live passport when switched to
 `produce-sgtins` correctly refused under `batch_gtin`. Reverted after
 testing; default scheme behavior confirmed unchanged via before/after
 comparison.
+
+## Test Scan tool should live under Settings ⏳ Not built (2026-09-20)
+
+Re-confirms and adds a UI placement decision to the "Test scan a
+passport" tool already designed above (see "Soft/lazy SGTIN creation
+on first scan..." - full design, input fields, and the geolocation
+legal note are there, unchanged, still not built). User: it should be
+its own Settings sub-tab (alongside Field Config / Digital Access /
+Product Types / the not-yet-built API Access below), not a standalone
+page reached some other way.
+
+## Admin Hub role-based access control (RBAC) ⏳ Not built (2026-09-20)
+
+A distinct concept from **Digital Access** (which controls what a
+*consumer* sees on the *public passport*, per role - already built).
+This is about who can access *this admin Hub itself*, and what they
+can do once in.
+
+User's concrete shape for it:
+
+- A new Settings sub-tab, under **Access** alongside Digital Access
+  (not replacing it - the two answer different questions: "what does
+  a passport viewer see" vs "what can an admin user do here").
+- **Roles gate which admin *sections* a user can reach**, at minimum:
+  - **Field Admin** - access to Field Config and Product Types only.
+  - **Super Admin** - everything Field Admin has, plus Digital Access
+    and the not-yet-built API Access (see the external API backlog
+    item above) - i.e. Super Admin is a strict superset.
+- **Separately, a Viewer/Editor permission level** cuts across
+  whichever sections a role can reach - Viewer can see a section's
+  data, Editor can change it. This is a second, orthogonal dimension
+  from the role (which sections) - a Field Admin could be a Viewer or
+  an Editor of Field Config, for example.
+
+Not scoped or designed in detail yet: how roles/levels map onto actual
+user accounts (this POC's `users` table and auth - see the Security
+note above, admin currently has no real auth at all), and how a role
+name here relates to a Digital Access role name (`consumer`,
+`authority`, `recycler`, ...) - they are conceptually unrelated
+systems that happen to reuse the word "role"; worth choosing distinct
+terminology when this is designed for real, to avoid the two being
+confused in the UI. This is a real prerequisite for the "no auth at
+all" Security note above to ever be closed out properly, not just a
+nice-to-have permissions layer.
