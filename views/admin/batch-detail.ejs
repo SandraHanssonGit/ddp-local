@@ -130,7 +130,7 @@
                   <tr data-parent="<%= styleKey %>" class="hidden">
                     <td class="mono small" style="padding-left:28px;"><%= g.item_number %> <span class="muted"><%= g.gtin %></span></td>
                     <td class="center" style="font-weight:600;"><%= g.planned_quantity || 0 %></td>
-                    <td class="center"><span class="badge badge-success small"><%= g.created_quantity || 0 %></span></td>
+                    <td class="center"><span class="badge badge-muted small"><%= g.created_quantity || 0 %></span></td>
                     <td class="center"><span class="badge small"><%= g.activated_quantity || 0 %></span></td>
                     <td style="white-space:nowrap;">
                       <a href="?scopeGtin=<%= g.gtin_id %>#dpp-fields-card" onclick="event.stopPropagation();" class="link-action" title="Edit values scoped to this GTIN within the batch"><%- icon('arrow-right') %></a>
@@ -170,7 +170,7 @@
                     <tr data-parent="<%= variantKey %>" data-grandparent="<%= styleKey %>" class="hidden">
                       <td class="mono small" style="padding-left:52px;"><%= g.item_number %> <span class="muted"><%= g.gtin %></span></td>
                       <td class="center" style="font-weight:600;"><%= g.planned_quantity || 0 %></td>
-                      <td class="center"><span class="badge badge-success small"><%= g.created_quantity || 0 %></span></td>
+                      <td class="center"><span class="badge badge-muted small"><%= g.created_quantity || 0 %></span></td>
                       <td class="center"><span class="badge small"><%= g.activated_quantity || 0 %></span></td>
                       <td style="white-space:nowrap;">
                         <a href="?scopeGtin=<%= g.gtin_id %>#dpp-fields-card" onclick="event.stopPropagation();" class="link-action" title="Edit values scoped to this GTIN within the batch"><%- icon('arrow-right') %></a>

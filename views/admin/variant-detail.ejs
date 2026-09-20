@@ -231,7 +231,7 @@
                       <td class="mono"><strong><%= g.gtin %></strong></td>
                       <td class="small"><%= g.item_number || '—' %></td>
                       <td class="small"><%= sizeDisplay || '—' %></td>
-                      <td class="center"><span class="badge badge-success small"><%= g.sgtin_count || 0 %></span></td>
+                      <td class="center"><span class="badge badge-muted small"><%= g.sgtin_count || 0 %></span></td>
                       <td><a href="/admin-v2/gtin/<%= g.id %>" class="link-action"><%- icon('arrow-right') %></a></td>
                     </tr>
                   <% }); %>

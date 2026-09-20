@@ -342,7 +342,7 @@
                 <div style="<%= idx > 0 ? 'border-top:1px solid var(--hairline); margin-top:20px; padding-top:20px;' : '' %>">
                   <div class="card-head" style="margin-bottom:12px;">
                     <h3><%= variant.variant_name %> <span class="muted small" style="font-weight:400;">— <%= variant.product_name || style.product_name %></span></h3>
-                    <span class="badge badge-accent"><%= variantGtins.length %> GTIN<%= variantGtins.length !== 1 ? 's' : '' %></span>
+                    <span class="badge badge-muted"><%= variantGtins.length %> GTIN<%= variantGtins.length !== 1 ? 's' : '' %></span>
                   </div>
 
                   <% if (variantGtins.length > 0) { %>
@@ -368,7 +368,7 @@
                                 <% if (gtin.size_value_3) size += '-' + gtin.size_value_3; %>
                                 <%= size %>
                               </td>
-                              <td class="center"><span class="badge badge-success small"><%= gtin.sgtin_count || 0 %></span></td>
+                              <td class="center"><span class="badge badge-muted small"><%= gtin.sgtin_count || 0 %></span></td>
                               <td><a href="/admin-v2/gtin/<%= gtin.id %>" class="link-action"><%- icon('arrow-right') %></a></td>
                             </tr>
                           <% }); %>
@@ -415,7 +415,7 @@
                         <% if (gtin.size_value_3) size += '-' + gtin.size_value_3; %>
                         <%= size %>
                       </td>
-                      <td class="center"><span class="badge badge-success small"><%= gtin.sgtin_count || 0 %></span></td>
+                      <td class="center"><span class="badge badge-muted small"><%= gtin.sgtin_count || 0 %></span></td>
                     </tr>
                   <% }); %>
                 </tbody>

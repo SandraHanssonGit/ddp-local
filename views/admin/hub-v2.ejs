@@ -106,7 +106,7 @@
                       <% } %>
                     </td>
                     <td class="small muted"><%= p.product_type %></td>
-                    <td class="center"><span class="badge badge-accent"><%= p.gtin_count || 0 %></span></td>
+                    <td class="center"><span class="badge badge-muted"><%= p.gtin_count || 0 %></span></td>
                     <td><a href="/admin-v2/style/<%= p.id %>" onclick="event.stopPropagation();" class="link-action"><%- icon('arrow-right') %></a></td>
                   </tr>
 
@@ -142,7 +142,7 @@
                         <% } %>
                       </td>
                       <td></td>
-                      <td class="center"><span class="badge badge-accent small"><%= v.gtin_count || 0 %></span></td>
+                      <td class="center"><span class="badge badge-muted small"><%= v.gtin_count || 0 %></span></td>
                       <td><a href="/admin-v2/variant/<%= v.id %>" onclick="event.stopPropagation();" class="link-action"><%- icon('arrow-right') %></a></td>
                     </tr>
                     <% v.gtins.forEach(g => { %>
@@ -249,8 +249,8 @@
                     <td class="mono"><strong><%= b.batch_id %></strong></td>
                     <td><%= b.production_order || '—' %></td>
                     <td class="center"><span class="badge badge-accent"><%= b.style_count || 0 %></span></td>
-                    <td class="center"><span class="badge badge-accent"><%= b.gtin_count || 0 %></span></td>
-                    <td class="center"><span class="badge badge-success"><%= b.sgtin_count || 0 %></span></td>
+                    <td class="center"><span class="badge badge-muted"><%= b.gtin_count || 0 %></span></td>
+                    <td class="center"><span class="badge badge-muted"><%= b.sgtin_count || 0 %></span></td>
                     <td><a href="/admin-v2/batch/<%= b.id %>" class="link-action"><%- icon('arrow-right') %></a></td>
                   </tr>
                 <% }); %>
