@@ -67,16 +67,12 @@
         <div class="stat-value" style="color:var(--accent);"><%= style_count %></div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">GTINs Planned</div>
+        <div class="stat-label">GTINs</div>
         <div class="stat-value" style="color:var(--accent);"><%= gtin_count %></div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Code Needed</div>
-        <div class="stat-value"><%= typeof planned_total !== 'undefined' ? planned_total : 0 %></div>
-      </div>
-      <div class="stat-card">
         <div class="stat-label">Individual Units Created</div>
-        <div class="stat-value" style="color:var(--success);"><%= sgtin_count %></div>
+        <div class="stat-value"><%= sgtin_count %></div>
       </div>
     </div>
 
