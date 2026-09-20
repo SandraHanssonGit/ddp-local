@@ -904,7 +904,17 @@ registration order preserved) and is separate from this SGTIN feature
 being incomplete anyway (missing `dpp-scan-form.ejs`, found earlier
 this session).
 
-## Phase 4 — Economic operators ✅ Done (2026-09-16)
+## Phase 4 — Economic operators ✅ Done (2026-09-16), UI since removed (2026-09-19)
+
+**Superseded**: the "Economic Operators" tab, "Legal Responsibility"
+card, and "Legal Responsibility Override" card described below were
+all removed later (etapp 45/46, CHANGELOG.md - user didn't understand
+the concept, confusing as its own thing for what's really just one
+value). Table/repository/API routes are untouched, `resolveSgtinPassport`
+still resolves and returns `economicOperator` exactly as described
+here - only the admin UI surfaces are gone. See the "Economic
+operator" entry under "Discovery session" for the undecided direction
+forward (plain custom field vs. a single global default).
 
 **Built**: `economic_operators` table (`role`, `legal_name`, `address`,
 `country`, `registration_number`) + nullable `styles.operator_id` /
