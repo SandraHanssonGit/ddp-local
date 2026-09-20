@@ -210,9 +210,13 @@
                 <div class="field-card notset">
                   <div class="field-card-head">
                     <label class="label-sm"><%= val.label %></label>
-                    <span class="badge" style="background:var(--lock-border); color:var(--lock-text);">Not set yet</span>
+                    <span class="badge" style="background:var(--lock-border); color:var(--lock-text);">Not set anywhere</span>
                   </div>
-                  <p class="field-card-note">No value at GTIN, Batch, or Style level either — this can be filled in here.</p>
+                  <% if (val.editable === false) { %>
+                    <p class="field-card-note">Not editable at SGTIN level (see Field Config &rsaquo; Levels).</p>
+                  <% } else { %>
+                    <p class="field-card-note">No value at GTIN, Batch, or Style level either — this can be filled in here.</p>
+                  <% } %>
                 </div>
               <% } %>
             <% }); %>
@@ -224,13 +228,22 @@
           <div id="dpp-fields-edit" class="hidden">
             <% if (typeof dppValues !== 'undefined' && dppValues.length > 0) { %>
               <% dppValues.forEach(val => { %>
-                <div class="field-row">
-                  <label style="display:block; margin-bottom:6px;"><%= val.label %></label>
-                  <% if (val.inheritedValue) { %>
-                    <p class="small muted" style="margin-bottom:6px;">Inherited from <%= val.inheritedFrom %>: <span class="mono"><%= val.inheritedValue %></span> — leave blank to keep inheriting</p>
-                  <% } %>
-                  <textarea id="field-<%= val.field_key %>" rows="3"><%= val.value %></textarea>
-                </div>
+                <% if (val.editable === false) { %>
+                  <div class="field-row">
+                    <label style="display:block; margin-bottom:6px;"><%= val.label %></label>
+                    <p class="small muted" style="display:flex; align-items:center; gap:4px;">
+                      <%- icon('lock', { size: 12 }) %> Not editable at this level - <%= (val.value || val.inheritedValue) ? ('current value: ' + (val.value || val.inheritedValue)) : 'no value set' %>
+                    </p>
+                  </div>
+                <% } else { %>
+                  <div class="field-row">
+                    <label style="display:block; margin-bottom:6px;"><%= val.label %></label>
+                    <% if (val.inheritedValue) { %>
+                      <p class="small muted" style="margin-bottom:6px;">Inherited from <%= val.inheritedFrom %>: <span class="mono"><%= val.inheritedValue %></span> — leave blank to keep inheriting</p>
+                    <% } %>
+                    <textarea id="field-<%= val.field_key %>" rows="3"><%= val.value %></textarea>
+                  </div>
+                <% } %>
               <% }); %>
             <% } else { %>
               <p class="muted" style="font-style:italic;">No fields are configured to be editable at the SGTIN level.</p>

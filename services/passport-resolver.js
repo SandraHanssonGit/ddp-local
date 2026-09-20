@@ -120,7 +120,7 @@ class PassportResolver {
       ? ['sgtin', 'gtin', 'variant', 'style']
       : ['sgtin', 'batch_gtin', 'gtin', 'batch_variant', 'batch_style', 'batch', 'variant', 'style'];
     const resolvedFields = fieldDefinitions.map(fieldDef =>
-      this._resolveFieldValueLocaleAware(fieldDef, levels, sourceNames, locale)
+      this._resolveFieldValueLocaleAware(fieldDef, levels, sourceNames, locale, 'editable_at_sgtin')
     );
 
     // ROADMAP.md Phase 4: economic operator (manufacturer/importer/
@@ -200,6 +200,49 @@ class PassportResolver {
         styleId: style.id,
         variantId: variant ? variant.id : null,
         gtinId: gtin.id
+      }
+    };
+  }
+
+  /**
+   * Resolve passport for a Variant (masterdata page, not scoped to a
+   * GTIN or Batch): Variant > Style. Added 2026-09-20 alongside the
+   * same "show every field, not just editable-here ones" fix already
+   * applied to GTIN/Style detail - the Variant detail route was using
+   * the narrow getFieldsForLevel('variant', ...) query, which silently
+   * hid every Style-only field (e.g. Carbon Footprint, Story) instead
+   * of showing it as inherited/read-only.
+   */
+  async resolveVariantPassport(variantId, locale = null) {
+    const variant = await variantRepository.getById(variantId);
+    if (!variant) {
+      throw new Error(`Variant ${variantId} not found`);
+    }
+
+    const style = await styleRepository.getById(variant.style_id);
+    if (!style) {
+      throw new Error(`Style for Variant not found`);
+    }
+
+    const fieldDefinitions = await fieldRepository.listFieldDefinitions();
+
+    const levels = [
+      await this._loadLevelValues('variant', variant.id, locale),
+      await this._loadLevelValues('style', style.id, locale)
+    ];
+
+    // Resolve all fields: Variant > Style
+    const resolvedFields = fieldDefinitions.map(fieldDef =>
+      this._resolveFieldValueLocaleAware(fieldDef, levels, ['variant', 'style'], locale, 'editable_at_variant')
+    );
+
+    return {
+      variant,
+      style,
+      resolvedFields,
+      hierarchy: {
+        styleId: style.id,
+        variantId: variant.id
       }
     };
   }

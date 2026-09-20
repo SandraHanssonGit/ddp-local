@@ -694,14 +694,24 @@ router.get('/variant/:variantId', async (req, res) => {
     `, [variant.id])).count;
 
     // Variant has exactly one style_id, so "inherited from Style" is
-    // well-defined here - same pattern as GTIN's own inheritance
+    // well-defined here - same pattern as GTIN's own inheritance.
+    // Shows EVERY field, not just ones editable_at_variant (same class
+    // of gap already fixed on GTIN/Style detail, 2026-09-20 - fields
+    // like Carbon Footprint or Story are Style-only and were completely
+    // invisible here before, even as read-only inherited info).
+    // resolveVariantPassport() already resolves every field correctly
+    // (Variant > Style) - it just wasn't wired into this route.
     const locale = req.query.lang || null;
-    const variantFields = await fieldRepository.getFieldsForLevel('variant', variant.id, locale);
-    const styleValueMap = await buildLocaleAwareValueMap('style', style.id, locale);
-    const dppValues = variantFields.map(f => ({
-      ...f,
-      inheritedValue: styleValueMap[f.field_key] || null,
-      inheritedFrom: styleValueMap[f.field_key] ? 'Style' : null
+    const variantPassport = await passportResolver.resolveVariantPassport(variant.id, locale);
+    const dppValues = variantPassport.resolvedFields.map(f => ({
+      field_key: f.fieldKey,
+      label: f.label,
+      category: f.category,
+      data_type: f.dataType,
+      value: f.source === 'variant' ? f.value : null,
+      inheritedValue: f.source === 'style' ? f.value : null,
+      inheritedFrom: f.source === 'style' ? 'Style' : null,
+      editable: f.editable
     }));
     const availableLocales = await fieldRepository.getAvailableLocales('variant', variant.id);
 
@@ -1225,29 +1235,34 @@ router.get('/sgtin/:sgtinId', async (req, res) => {
     // passport-resolver.js uses for the public passport. Batch×GTIN
     // (2026-09-19, freeze-at-production) outranks plain GTIN since
     // it's the snapshot locked in when the batch was marked produced.
+    //
+    // Shows EVERY field, not just ones editable_at_sgtin (same class of
+    // gap already fixed on GTIN/Style/Variant detail, 2026-09-20) -
+    // resolveSgtinPassport() already computes this exact precedence
+    // chain for the public passport; this route was duplicating that
+    // logic by hand via getFieldsForLevel() + a pile of value maps,
+    // which only ever returned sgtin-editable fields.
     const locale = req.query.lang || null;
-    const sgtinFields = await fieldRepository.getFieldsForLevel('sgtin', sgtin.id, locale);
-    const batchGtinScope = await batchGtinRepository.find(batch.id, gtin.id);
-    const batchGtinValueMap = batchGtinScope ? await buildLocaleAwareValueMap('batch_gtin', batchGtinScope.id, locale) : {};
-    const gtinValueMap = await buildLocaleAwareValueMap('gtin', gtin.id, locale);
-    const batchVariantScope = variant ? await batchStyleScopeRepository.find(batch.id, style.id, variant.id) : null;
-    const batchStyleScope = await batchStyleScopeRepository.find(batch.id, style.id, null);
-    const batchVariantValueMap = batchVariantScope ? await buildLocaleAwareValueMap('batch_style', batchVariantScope.id, locale) : {};
-    const batchStyleValueMap = batchStyleScope ? await buildLocaleAwareValueMap('batch_style', batchStyleScope.id, locale) : {};
-    const batchValueMap = await buildLocaleAwareValueMap('batch', batch.id, locale);
-    const variantValueMap = variant ? await buildLocaleAwareValueMap('variant', variant.id, locale) : {};
-    const styleValueMap = await buildLocaleAwareValueMap('style', style.id, locale);
-    const dppValues = sgtinFields.map(f => {
-      const inheritedValue = batchGtinValueMap[f.field_key] || gtinValueMap[f.field_key] || batchVariantValueMap[f.field_key] || batchStyleValueMap[f.field_key] || batchValueMap[f.field_key] || variantValueMap[f.field_key] || styleValueMap[f.field_key] || null;
-      const inheritedFrom = batchGtinValueMap[f.field_key] ? 'Batch (locked at production)'
-        : gtinValueMap[f.field_key] ? 'GTIN'
-        : batchVariantValueMap[f.field_key] ? 'Batch (this Variant)'
-        : batchStyleValueMap[f.field_key] ? 'Batch (this Style)'
-        : batchValueMap[f.field_key] ? 'Batch'
-        : variantValueMap[f.field_key] ? 'Variant'
-        : styleValueMap[f.field_key] ? 'Style' : null;
-      return { ...f, inheritedValue, inheritedFrom };
-    });
+    const sgtinPassport = await passportResolver.resolveSgtinPassport(sgtin.id, locale);
+    const sourceLabels = {
+      batch_gtin: 'Batch (locked at production)',
+      gtin: 'GTIN',
+      batch_variant: 'Batch (this Variant)',
+      batch_style: 'Batch (this Style)',
+      batch: 'Batch',
+      variant: 'Variant',
+      style: 'Style'
+    };
+    const dppValues = sgtinPassport.resolvedFields.map(f => ({
+      field_key: f.fieldKey,
+      label: f.label,
+      category: f.category,
+      data_type: f.dataType,
+      value: f.source === 'sgtin' ? f.value : null,
+      inheritedValue: f.source && f.source !== 'sgtin' ? f.value : null,
+      inheritedFrom: f.source && f.source !== 'sgtin' ? (sourceLabels[f.source] || f.source) : null,
+      editable: f.editable
+    }));
     const availableLocales = await fieldRepository.getAvailableLocales('sgtin', sgtin.id);
 
     const versionHistory = await passportVersionRepository.getHistory('sgtin', sgtin.id);
