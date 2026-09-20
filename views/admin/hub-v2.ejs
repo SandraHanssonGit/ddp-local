@@ -327,6 +327,7 @@
           <a href="/admin-v2?tab=settings&sub=product_types" class="<%= settingsSub === 'product_types' ? 'active' : '' %>">Product Types</a>
           <a href="/admin-v2?tab=settings&sub=access" class="<%= settingsSub === 'access' ? 'active' : '' %>">Digital Access</a>
           <a href="/admin-v2?tab=settings&sub=integrations" class="<%= settingsSub === 'integrations' ? 'active' : '' %>">Integrations</a>
+          <a href="/admin-v2?tab=settings&sub=testing" class="<%= settingsSub === 'testing' ? 'active' : '' %>">Testing</a>
         </div>
       <% } %>
 
@@ -339,6 +340,17 @@
           <h2>Integrations</h2>
         </div>
         <div class="empty-state">Feature coming soon — external API/GraphQL access for M3, PIM, PLM and other systems, with per-integration access tokens.</div>
+      <% } %>
+
+      <!-- TESTING TAB (2026-09-20) - placeholder for the not-yet-built
+           "Test scan a passport" tool (design already confirmed, see
+           ROADMAP.md's "Soft/lazy SGTIN creation on first scan..." entry) -
+           reserving the spot in the nav now so it's discoverable. -->
+      <% if (tab === 'settings' && settingsSub === 'testing') { %>
+        <div class="section-head">
+          <h2>Testing</h2>
+        </div>
+        <div class="empty-state">Feature coming soon — simulate a real-world scan (GTIN + serial) without a physical code, to test passport resolution and lifecycle events.</div>
       <% } %>
 
       <!-- DIGITAL ACCESS TAB (2026-09-20) - the configurable roles list
