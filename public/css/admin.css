@@ -508,16 +508,16 @@ input:focus, textarea:focus, select:focus {
 
 .image-preview-wrap {
   display: inline-block;
-  background: var(--surface);
+  background: #fff;
   border: 1px solid var(--hairline);
   border-radius: 8px;
-  padding: 12px;
+  padding: 10px;
 }
 
 .image-preview {
   display: block;
-  width: 220px;
-  height: 220px;
+  width: 130px;
+  height: 130px;
   object-fit: cover;
   border-radius: 6px;
   cursor: zoom-in;
@@ -525,10 +525,11 @@ input:focus, textarea:focus, select:focus {
 }
 
 .image-preview:hover {
-  transform: scale(2.1);
+  transform: scale(3.2);
   box-shadow: 0 12px 32px rgba(0,0,0,0.28);
   position: relative;
   z-index: 10;
+  background: #fff;
 }
 
 .locale-tabs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
