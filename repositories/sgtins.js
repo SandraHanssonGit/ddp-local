@@ -1,19 +1,32 @@
 const db = require('../db/init-v2');
 
 class SgtinRepository {
-  async create(gtinId, serialNumber, options = {}) {
+  async create(gtinId, batchId, serialNumber, options = {}) {
     const sql = `
-      INSERT INTO sgtins (gtin_id, serial_number, sgtin, rfid_id, qc_status)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO sgtins (gtin_id, batch_id, serial_number, sgtin, rfid_id, qc_status)
+      VALUES (?, ?, ?, ?, ?, ?)
     `;
     const result = await db.run(sql, [
       gtinId,
+      batchId,
       serialNumber,
       options.sgtin || null,
       options.rfid_id || null,
       options.qc_status || null
     ]);
     return result.lastID;
+  }
+
+  // Serials are unique per GTIN across every batch it's ever been
+  // produced in (schema: UNIQUE(gtin_id, serial_number), not scoped to
+  // a batch) - a real production run must never restart at 1 and risk
+  // colliding with an earlier batch's units for the same GTIN.
+  async getMaxSerialForGtin(gtinId) {
+    const row = await db.get(
+      `SELECT MAX(CAST(serial_number AS INTEGER)) as maxSerial FROM sgtins WHERE gtin_id = ?`,
+      [gtinId]
+    );
+    return row && row.maxSerial ? row.maxSerial : 0;
   }
 
   async getById(id) {

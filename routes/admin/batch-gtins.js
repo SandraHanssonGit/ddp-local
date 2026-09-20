@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../../db/init-v2').db;
+const sgtinRepository = require('../../repositories/sgtins');
 
 const getOne = (sql, params = []) => new Promise((resolve, reject) => {
   db.get(sql, params, (err, row) => {
@@ -64,6 +65,38 @@ router.post('/', async (req, res) => {
     });
   } catch (err) {
     console.error('[batch-gtins POST]', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Produce SGTINs for this GTIN within this batch. Serials continue
+// from the highest one this GTIN has ever used, across every batch -
+// UNIQUE(gtin_id, serial_number) is not scoped per batch, so restarting
+// at 1 per batch would risk a real collision the next time this GTIN
+// is produced again.
+router.post('/:id/produce-sgtins', async (req, res) => {
+  try {
+    const batchGtin = await getOne('SELECT * FROM batch_gtins WHERE id = ?', [req.params.id]);
+    if (!batchGtin) {
+      return res.status(404).json({ error: 'Batch-GTIN not found' });
+    }
+
+    const quantity = parseInt(req.body.quantity, 10);
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      return res.status(400).json({ error: 'quantity must be a positive integer' });
+    }
+
+    const maxSerial = await sgtinRepository.getMaxSerialForGtin(batchGtin.gtin_id);
+    const created = [];
+    for (let i = 1; i <= quantity; i++) {
+      const serialNumber = String(maxSerial + i).padStart(6, '0');
+      const id = await sgtinRepository.create(batchGtin.gtin_id, batchGtin.batch_id, serialNumber);
+      created.push({ id, serial_number: serialNumber });
+    }
+
+    res.json({ success: true, created });
+  } catch (err) {
+    console.error('[batch-gtins produce-sgtins]', err);
     res.status(500).json({ error: err.message });
   }
 });

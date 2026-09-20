@@ -136,7 +136,10 @@
                     <td class="center" style="font-weight:600;"><%= g.planned_quantity || 0 %></td>
                     <td class="center"><span class="badge badge-success small"><%= g.created_quantity || 0 %></span></td>
                     <td class="center"><span class="badge small"><%= g.activated_quantity || 0 %></span></td>
-                    <td><a href="?scopeGtin=<%= g.gtin_id %>#dpp-fields-card" class="link-action" title="Edit values scoped to this GTIN within the batch"><%- icon('arrow-right') %></a></td>
+                    <td style="white-space:nowrap;">
+                      <a href="#" onclick="event.stopPropagation(); produceSgtins(<%= g.batch_gtin_id %>, '<%= g.item_number %>'); return false;" class="link-action" title="Produce SGTINs for this GTIN"><%- icon('plus', { size: 14 }) %></a>
+                      <a href="?scopeGtin=<%= g.gtin_id %>#dpp-fields-card" onclick="event.stopPropagation();" class="link-action" title="Edit values scoped to this GTIN within the batch"><%- icon('arrow-right') %></a>
+                    </td>
                   </tr>
                   <% if (g.sgtins.length > 0) { %>
                     <% const gtinKey = 'gtin-' + g.gtin_id; %>
@@ -174,7 +177,10 @@
                       <td class="center" style="font-weight:600;"><%= g.planned_quantity || 0 %></td>
                       <td class="center"><span class="badge badge-success small"><%= g.created_quantity || 0 %></span></td>
                       <td class="center"><span class="badge small"><%= g.activated_quantity || 0 %></span></td>
-                      <td><a href="?scopeGtin=<%= g.gtin_id %>#dpp-fields-card" class="link-action" title="Edit values scoped to this GTIN within the batch"><%- icon('arrow-right') %></a></td>
+                      <td style="white-space:nowrap;">
+                        <a href="#" onclick="event.stopPropagation(); produceSgtins(<%= g.batch_gtin_id %>, '<%= g.item_number %>'); return false;" class="link-action" title="Produce SGTINs for this GTIN"><%- icon('plus', { size: 14 }) %></a>
+                        <a href="?scopeGtin=<%= g.gtin_id %>#dpp-fields-card" onclick="event.stopPropagation();" class="link-action" title="Edit values scoped to this GTIN within the batch"><%- icon('arrow-right') %></a>
+                      </td>
                     </tr>
                     <% if (g.sgtins.length > 0) { %>
                       <% const gtinKey = 'gtin-' + g.gtin_id; %>
@@ -447,6 +453,33 @@
         if (res.ok) { location.reload(); }
         else { await dppAlert('Error clearing value'); }
       } catch (err) { await dppAlert('Error: ' + err.message); }
+    }
+
+    async function produceSgtins(batchGtinId, itemLabel) {
+      const input = await dppPrompt('How many units to produce for ' + itemLabel + '?', 'e.g. 10');
+      if (!input) return;
+      const quantity = parseInt(input, 10);
+      if (!Number.isInteger(quantity) || quantity < 1) {
+        await dppAlert('Enter a positive whole number');
+        return;
+      }
+
+      try {
+        const res = await fetch('/admin-v2/batch-gtins/' + batchGtinId + '/produce-sgtins', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quantity })
+        });
+        const result = await res.json();
+        if (result.success) {
+          await dppAlert(quantity + ' unit' + (quantity === 1 ? '' : 's') + ' produced');
+          location.reload();
+        } else {
+          await dppAlert('Error: ' + (result.error || 'Unknown error'));
+        }
+      } catch (err) {
+        await dppAlert('Error: ' + err.message);
+      }
     }
 
     // Batch Contents tree expand/collapse - same pattern as the
