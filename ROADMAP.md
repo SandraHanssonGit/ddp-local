@@ -13,6 +13,13 @@ GTIN-only architecture for reference only.
 
 ## Priority order
 
+**This table and the one below it are historical (2026-09-16) and no
+longer reflect current priority** - kept for context, not as the
+current plan. See "Platform vision, consolidated" further down for
+the current state of everything (built / designed / genuinely new),
+and the still-open items list further below for what's actually
+outstanding right now.
+
 | # | Phase | Why this position |
 |---|---|---|
 | 0 | Field administration gap (see below) | Blocks Phase 5 in practice — no point adding fields nobody can fill in |
@@ -432,53 +439,68 @@ cluttered once a batch spans several Styles - user: "Denna blir ju
 lite krånglig. Borde den inte likna Products tabben men bara visa det
 som finns i Batchen?"
 
-**Design confirmed**:
-1. **Batch Info block** replaces today's header + lock-banner + 4 stat
-   cards with a simpler two-line summary: Batch ID + Production Order
-   (already shown), "Sent for production: `<created_at>`" and
-   "Production date: `<produced_at or "not yet produced">`" (the two
-   milestones from the freeze-at-production discussion above), plus a
-   one-line Status (Under development / Completed).
-2. **One unified collapsible tree**, same expand/collapse pattern as
-   the Products tab (`hub-v2.ejs`'s `productGroupState`/
-   `renderProductVisibility()` JS), going one level deeper:
-   **Style → Variant → GTIN → SGTIN** - filtered to only what's
-   actually in this batch (via `batch_gtins` + `sgtins.batch_id`).
-   Style/Variant rows are pure grouping (no data of their own), GTIN
-   rows carry Code Needed/Units Shipped/Code Activated exactly as
-   today, SGTIN rows are the leaf level (serial number + → link to the
-   unit's detail page).
-3. **Replaces two separate cards**: this tree absorbs both the
-   "QR Codes per GTIN" table AND the "Individual Units Created" table
-   below it - only one card needed instead of two.
-4. **Remove the "Add GTIN to Batch" form entirely.** User: "Man kommer
-   aldrig lägga in GTIN [manuellt] så det skall vi dölja." The
-   `/admin-v2/batch-gtins` POST API stays untouched in the background -
-   only the manual-entry UI goes away.
-5. **Check the sub-pages reached from inside the tree, not just the
-   tree itself (user, 2026-09-19)**: "När trädet byggs om för Batch så
-   behöver även undersiderna ses över så de också håller på
-   batchnivå." When this is built, explicitly review each linked
-   detail page for correct behavior when navigated to *from within a
-   specific batch's tree*, not just in isolation:
-   - `gtin-detail.ejs` - does it need to reflect which batch you
-     arrived from (e.g. showing that GTIN's Batch×GTIN frozen values
-     once freeze-at-production exists), or does it stay purely
-     Style-scoped masterdata regardless of entry point?
-   - `sgtin-detail.ejs` - back-link should probably return to the
-     batch's tree (with that Style/GTIN branch still expanded) rather
-     than the generic Individual Units list.
-   - `variant-detail.ejs` / `style-detail.ejs` - likely unaffected
-     (pure masterdata, not batch-scoped) but confirm nothing on them
-     assumes a single-batch context that breaks when reached from a
-     multi-style batch's tree.
-   Not designed in detail yet - a checklist to work through once the
-   tree itself is being built, not before.
+**Design confirmed and built**:
+1. ~~Batch Info block~~ - built as its own "Batch Information" card
+   (info-grid pattern, matching Style/GTIN/SGTIN detail pages), not the
+   header/banner/stat-card layout originally sketched here - see the
+   dated commits (`14ea2e8`, `fe31d3c`, `63ba876`) for how this evolved
+   through direct feedback.
+2. **One unified collapsible tree** - built exactly as designed:
+   Style → Variant → GTIN → SGTIN, scoped to the batch, same
+   expand/collapse pattern as the Products tab (extended one level with
+   `data-greatgrandparent`). Search box added afterward (etapp - commit
+   `d642bb5`), matching the Products tab's search pattern.
+3. Confirmed - the tree replaced both old tables with one card.
+4. Confirmed - "Add GTIN to Batch" form removed, API left untouched.
+5. **Resolved (2026-09-19/20), superseding the checklist that used to
+   be here**: walking through the sub-pages surfaced real confusion -
+   `gtin-detail.ejs` shows generic masterdata regardless of which
+   batch you arrived from, so a value frozen for *this* batch isn't
+   visible there. User rejected bolting batch context onto the
+   existing edit-focused Style/Variant/GTIN pages ("Det blir för
+   stökigt" - too messy, mixing master-data editing with batch-specific
+   resolved values). **New direction, not yet built - see "Batch-scoped
+   Style/Variant/GTIN passport view" below.** `sgtin-detail.ejs` was
+   confirmed already correct as-is (an SGTIN unambiguously belongs to
+   one batch, so its "Inherited from Batch (locked at production)"
+   badge already shows the right thing) - the Batch tree's SGTIN rows
+   keep linking there, unchanged.
 
-Not yet built - queued after freeze-at-production per the agreed
-step-by-step order (see "Priority order" discussion in chat).
+## Batch-scoped Style/Variant/GTIN passport view (design proposed 2026-09-20, user asked to pause - not built)
 
-## Soft/lazy SGTIN creation on first scan (idea only, not designed, 2026-09-19)
+**Problem**: clicking a Style/Variant/GTIN row in the Batch tree
+currently goes to that entity's generic master-data page, which
+doesn't reflect what's actually locked/resolved *for this specific
+batch* (see point 5 above). User: "Jag vill ju att trädet på
+Batchsidan skall gå till sidor som bara visar information som är
+korrekt för den batchen."
+
+**Design proposed, not yet approved**:
+- New `passport-resolver.js` method `resolveBatchScopedPassport(batchId, entityType, entityId)`
+  with precedence depending on level (no SGTIN layer - this is a
+  preview/view, not one physical unit):
+  - `gtin`: Batch×GTIN > GTIN > Batch×Variant > Batch×Style > Batch > Variant > Style
+  - `variant`: Batch×Variant > Batch×Style > Batch > Variant > Style
+  - `style`: Batch×Style > Batch > Style
+- New route + new template, separate from style-detail/variant-detail/
+  gtin-detail.ejs (not mixed in - see the "too messy" rejection above).
+- Batch tree's Style/Variant/GTIN action links point here instead of
+  the existing detail pages.
+
+**Then the user raised a real complication and asked to pause here**:
+before a batch is produced, fields (including ones that will never
+lock, like most NJ fields) must still be *editable* at this
+batch-scoped level - so this can't be a pure read-only preview like
+first proposed. It needs to support editing wherever a field is still
+open (unlocked NJ fields always; any field before production). This
+overlaps with the already-built Batch×Style "Scope" tabs on
+`batch-detail.ejs` (editing overrides scoped to one Style/Variant
+within the batch) - worth checking whether that existing mechanism can
+be reused/extended for the GTIN level too, rather than building a
+second, separate editing surface. **Not resolved - user is still
+thinking this through, explicitly said not to build yet.**
+
+## Soft/lazy SGTIN creation on first scan + "Test scan a passport" tool (concept idea-only; the test tool itself is fully designed, not built, 2026-09-19)
 
 Raised alongside the question above: rather than requiring every
 physical unit to be pre-registered as an SGTIN row before it ships,
@@ -623,13 +645,13 @@ user wants to think through, not yet designed:
   just manual ones**: "När batch i production så måste all data sparas
   i Batch och dess tabeller" - whatever value was showing on a
   passport when a Batch is marked produced (whether it was typed in
-  manually or fetched from M3/PIM) needs to be part of the same
-  Batch×Style snapshot described above. This isn't a separate
-  mechanism - it's confirmation that freeze-at-production, once built,
-  must snapshot the *resolved* value regardless of where it came from,
-  not just style/variant text fields. Worth keeping in mind so
-  Phase 2's external-source config doesn't end up needing its own,
-  separate locking logic later.
+  manually or fetched from M3/PIM) is part of the same Batch×GTIN
+  snapshot (corrected from the original Batch×Style plan - see the
+  freeze-at-production section above). **Confirmed already true**:
+  `freezeBatchAtProduction()` (built) reads `dpp_values` regardless of
+  `source_system`, so this requirement is already satisfied by the
+  existing implementation - no extra work needed once the external-
+  source config itself is built.
 
 ## GTIN style_id/variant_id consistency ✅ Done (2026-09-19)
 
@@ -932,7 +954,19 @@ starting implementation.
   the CHANGELOG etapp 1-8 entries. Consumer passport, DPP Hub, all 5
   detail pages, login, and the confirm/alert modal are all in code now.
 
-## Settings tab: merged Economic Operators + Field Config ✅ Done (2026-09-17)
+## Settings tab: merged Economic Operators + Field Config ✅ Done (2026-09-17), since superseded (2026-09-19)
+
+**Superseded** - kept for history, but no longer the current state:
+Economic Operators was removed from Settings entirely (etapp 45/46,
+CHANGELOG.md) - user didn't understand the concept even as a
+Settings-only page ("jag förstår inte fältet"). The `economic_operators`
+table/repository/API routes are untouched, just no longer surfaced
+anywhere in admin. Direction (plain custom field vs. a single global
+default) is still undecided - see the "Economic operator" bullet under
+"Discovery session (2026-09-16)" below. An "Access" placeholder
+sub-tab ("feature arriving soon") was also added to Settings after
+this section was written, contradicting its "no Users/Permissions
+placeholder tabs" note below - that note is stale too.
 
 User insight, arrived at via discussing Economic Operators: in
 practice Nudie is the manufacturer/responsible party for effectively
