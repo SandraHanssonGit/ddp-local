@@ -327,7 +327,10 @@
           <div class="link-list">
             <a href="/admin-v2/gtin/<%= gtin.id %>"><%- icon('arrow-right', { size: 14 }) %> View GTIN</a>
             <a href="/admin-v2/batch/<%= batch.id %>"><%- icon('arrow-right', { size: 14 }) %> View Batch</a>
-            <a href="/admin-v2/style/<%= style.id %>"><%- icon('arrow-right', { size: 14 }) %> View Style</a>
+            <% if (variant) { %>
+              <a href="/admin-v2/variant/<%= variant.id %>"><%- icon('arrow-right', { size: 14 }) %> View Variant</a>
+            <% } %>
+            <a href="/admin-v2/style/<%= style.id %>"><%- icon('arrow-right', { size: 14 }) %> View Product</a>
           </div>
         </div>
 
