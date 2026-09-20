@@ -1015,7 +1015,7 @@ back to "no operator" gracefully (no FK enforcement in SQLite here, so
 `resolveForBatchAndStyle` treats a stale id as unset rather than
 erroring) rather than breaking the passport.
 
-## Phase 5 — Expanded field definitions (not started - planning only)
+## Phase 5 — Expanded field definitions (partially built, 2026-09-20)
 
 **Corrected 2026-09-20**: this originally proposed new
 `field_definitions.category` values (`svhc_reach`, `environmental_pef`,
@@ -1031,10 +1031,19 @@ end-of-life grouping instead.
 
 Candidate fields (placeholder — pending the delegated act's final
 annex, see COMPLIANCE.md open questions):
-- `hazardous_substances_declaration` (SVHC/REACH)
-- `carbon_footprint`, `water_usage` (PEF)
-- `repairability_score`, `spare_parts_availability` (reparability)
-- `recycling_instructions`, `takeback_program` (end-of-life)
+- ~~`carbon_footprint`, `water_usage` (PEF)~~ ✅ Done (2026-09-20) -
+  built after reviewing a real live test DPP (nudie-dpp.vercel.app)
+  that already carries this data. `category='eu_required'`, editable
+  at Style/Variant/Batch only (matching the level assignment already
+  decided below), visible to all Digital Access roles. No
+  `field_sections` grouping applied yet since that mechanism still
+  isn't built - they show under EU Required same as any other field
+  for now.
+- `hazardous_substances_declaration` (SVHC/REACH) - not built
+- `repairability_score`, `spare_parts_availability` (reparability) -
+  not built
+- `recycling_instructions`, `takeback_program` (end-of-life) - not
+  built
 
 **Level assignment decided 2026-09-16** (which `editable_at_*` boxes to
 pre-check when these fields are created via the existing DPP Fields
