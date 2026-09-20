@@ -314,11 +314,8 @@
           }
         </script>
 
-      </div>
-
-      <!-- Sidebar -->
-      <div>
-        <!-- Version History -->
+        <!-- Version History - moved from the sidebar (2026-09-20, user
+             request) to the bottom of the main column. -->
         <div class="card">
           <h3 style="margin-bottom:16px;">Passport Version History</h3>
           <% if (typeof versionHistory !== 'undefined' && versionHistory.length > 0) { %>
@@ -337,6 +334,10 @@
           <% } %>
         </div>
 
+      </div>
+
+      <!-- Sidebar -->
+      <div>
         <!-- Quick Links -->
         <div class="card">
           <h3 style="margin-bottom:16px;">Quick Links</h3>
