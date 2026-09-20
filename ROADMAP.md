@@ -1594,3 +1594,43 @@ exception, not the start of hardening the admin API generally.
   causing visible problems (every query joins `gtins` and silently
   drops rows that don't match), but worth a real cleanup pass rather
   than relying on the JOIN masking it forever.
+
+## GTIN detail page was hiding non-GTIN-editable fields entirely ✅ Done (2026-09-20)
+
+Same class of bug as the Batch scoped-field editor fix above ("man
+vill ju se alla fält" - see the follow-ups under the Batch section) -
+user's screenshot of the GTIN detail page and "Det känns inte som alla
+fält syns" (doesn't feel like all fields show) pointed at the same root
+cause: the GTIN detail route used the narrow
+`fieldRepository.getFieldsForLevel('gtin', gtinId, locale)`, which only
+returns fields with `editable_at_gtin=1`. Any field only editable at
+Style/Variant (Carbon Footprint, Water Usage, Story, Transport) was
+silently absent from the page instead of showing as inherited/locked.
+
+Unlike the Batch case, no new resolver method was needed -
+`resolveGtinPassport(gtinId, locale)` already existed and already
+resolves full inheritance (GTIN > Variant > Style), just wasn't used by
+the live admin route. Rewired `routes/admin/hub-v2.js`'s
+`GET /gtin/:gtinId` to call it, and extended
+`_resolveFieldValueLocaleAware()` (the shared helper behind
+`resolveGtinPassport`/`resolveSgtinPassport`/`resolveBatchPassport`/
+`resolveStylePassport`) with an optional `editableColumn` parameter so
+resolved fields carry an `editable` flag - only the GTIN call site
+passes `'editable_at_gtin'` for now; the other three still default to
+`editable: true` since nothing downstream uses it there yet.
+`views/admin/gtin-detail.ejs` now shows non-GTIN-editable fields as a
+locked, read-only line (with a note pointing at Field Config › Levels)
+instead of hiding them, in both View and Edit mode.
+
+Verified end-to-end: GTIN 20 (under Loud Larry, style 9) now shows
+Carbon Footprint/Story/Transport correctly as "Inherited from Style"
+in View Mode and locked in Edit Mode; a genuinely GTIN-editable field
+(Color) still renders as an editable textarea and still saves via
+`POST /gtin/:id/dpp-values`; full regression sweep green (hub, Products
+tab, gtin/9, style/9, public JSON passport all unaffected).
+
+**Same bug likely also affects Variant and SGTIN admin detail pages** -
+both still use the same narrow `getFieldsForLevel(level, id)` pattern
+(`routes/admin/hub-v2.js`, variant and sgtin detail routes). Not yet
+requested or fixed - flagged here as a probable follow-up once this
+GTIN fix has been used for a while.
