@@ -315,9 +315,12 @@
             <button onclick="document.getElementById('addSupplyChainForm').classList.toggle('hidden')" class="btn btn-primary">+ Add Step</button>
           </div>
 
-          <!-- Add step form -->
+          <!-- Add/Edit step form (shared - editSupplyChainStep() switches
+               it into edit mode by pre-filling values and setting
+               editingStepId, which the submit handler checks to PUT
+               instead of POST) -->
           <div id="addSupplyChainForm" class="form-panel hidden">
-            <h3 style="margin-bottom:16px; font-size:16px;">Add Transparency Step</h3>
+            <h3 id="supplyChainFormTitle" style="margin-bottom:16px; font-size:16px;">Add Transparency Step</h3>
             <form id="supplyChainForm">
               <div class="field-grid">
                 <div>
@@ -346,7 +349,10 @@
                 </div>
               </div>
               <label class="checkbox-row" style="margin-bottom:16px;"><input type="checkbox" name="visited_by_brand" /> Visited by Nudie Jeans</label>
-              <button type="submit" class="btn btn-primary">Add Step</button>
+              <div style="display:flex; gap:10px;">
+                <button type="submit" id="supplyChainSubmitBtn" class="btn btn-primary">Add Step</button>
+                <button type="button" onclick="cancelSupplyChainEdit()" class="btn">Cancel</button>
+              </div>
             </form>
           </div>
 
@@ -367,7 +373,10 @@
                         <div class="sc-visited" style="display:flex; align-items:center; gap:4px;"><%- icon('check', { size: 13 }) %> Visited by Nudie Jeans</div>
                       <% } %>
                     </div>
-                    <a href="#" onclick="deleteSupplyChainStep(<%= step.id %>); return false;" class="link-action danger">Delete</a>
+                    <div style="display:flex; gap:12px;">
+                      <a href="#" onclick="editSupplyChainStep(this); return false;" data-step='<%- JSON.stringify(step).replace(/'/g, "&#39;") %>' class="link-action">Edit</a>
+                      <a href="#" onclick="deleteSupplyChainStep(<%= step.id %>); return false;" class="link-action danger">Delete</a>
+                    </div>
                   </div>
                 <% }); %>
               </div>
@@ -518,6 +527,33 @@
       }
     }
 
+    let editingSupplyChainStepId = null;
+
+    function editSupplyChainStep(el) {
+      const step = JSON.parse(el.dataset.step);
+      editingSupplyChainStepId = step.id;
+      const form = document.getElementById('supplyChainForm');
+      form.step_category.value = step.step_category || '';
+      form.step_label.value = step.step_label || '';
+      form.supplier_name.value = step.supplier_name || '';
+      form.employee_range.value = step.employee_range || '';
+      form.city.value = step.city || '';
+      form.country.value = step.country || '';
+      form.visited_by_brand.checked = !!step.visited_by_brand;
+      document.getElementById('supplyChainFormTitle').textContent = 'Edit Transparency Step';
+      document.getElementById('supplyChainSubmitBtn').textContent = 'Save Changes';
+      document.getElementById('addSupplyChainForm').classList.remove('hidden');
+      form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function cancelSupplyChainEdit() {
+      editingSupplyChainStepId = null;
+      document.getElementById('supplyChainForm').reset();
+      document.getElementById('supplyChainFormTitle').textContent = 'Add Transparency Step';
+      document.getElementById('supplyChainSubmitBtn').textContent = 'Add Step';
+      document.getElementById('addSupplyChainForm').classList.add('hidden');
+    }
+
     document.getElementById('supplyChainForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(e.target);
@@ -532,8 +568,11 @@
       };
 
       try {
-        const response = await fetch('/admin-v2/style/<%= style.id %>/supply-chain', {
-          method: 'POST',
+        const url = editingSupplyChainStepId
+          ? '/admin-v2/supply-chain/' + editingSupplyChainStepId
+          : '/admin-v2/style/<%= style.id %>/supply-chain';
+        const response = await fetch(url, {
+          method: editingSupplyChainStepId ? 'PUT' : 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
         });
