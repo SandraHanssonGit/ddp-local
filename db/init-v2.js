@@ -767,6 +767,24 @@ migrateDropGtinEan().catch(err => console.error('[gtins.ean drop migration]', er
 migrateDropGtinWeight().catch(err => console.error('[gtins.weight drop migration]', err));
 migrateSupplierFactoryColorFields().catch(err => console.error('[supplier/factory/color field migration]', err));
 
+// Extended authority/recycler view (ROADMAP.md, "Platform vision"):
+// a second visibility flag alongside consumer_visible, additive so
+// existing consumer_visible enforcement is never touched. Defaults to
+// true (matching consumer_visible's own default) so existing fields
+// are visible to an authenticated authority/recycler unless explicitly
+// hidden - the restrictive case (hide from consumers, still show to
+// authority) is the interesting one, not the reverse.
+const migrateAuthorityVisible = async () => {
+  const columns = await all(`PRAGMA table_info(field_definitions)`);
+  const hasAuthorityVisible = columns.some(c => c.name === 'authority_visible');
+  if (hasAuthorityVisible) return;
+
+  console.log('[DPP v2] Adding field_definitions.authority_visible...');
+  await run(`ALTER TABLE field_definitions ADD COLUMN authority_visible BOOLEAN DEFAULT 1`);
+  console.log('[DPP v2] authority_visible column added');
+};
+migrateAuthorityVisible().catch(err => console.error('[authority_visible migration]', err));
+
 module.exports = {
   db,
   run,

@@ -81,6 +81,18 @@ async function filterToConsumerVisible(resolvedFields) {
   return resolvedFields.filter(f => consumerVisibleByKey[f.fieldKey]);
 }
 
+// Extended authority/recycler view (ROADMAP.md "Platform vision") -
+// a second, wider visibility flag alongside consumer_visible. Kept as
+// its own filter (not a parameter on filterToConsumerVisible) so a
+// future third visibility level doesn't require reshaping this one.
+async function filterToAuthorityVisible(resolvedFields) {
+  const fieldDefs = await fieldRepository.listFieldDefinitions();
+  const authorityVisibleByKey = Object.fromEntries(
+    fieldDefs.map(f => [f.field_key, !!f.authority_visible])
+  );
+  return resolvedFields.filter(f => authorityVisibleByKey[f.fieldKey]);
+}
+
 function getEventsForSgtin(sgtinId) {
   return new Promise((resolve, reject) => {
     db.all(
@@ -117,7 +129,34 @@ async function renderPassportPage(req, res, sgtinRecord, basePath) {
     availableLocales,
     supplyChainGroups,
     url: basePath,
-    locale
+    locale,
+    isAuthorityView: false
+  });
+}
+
+// Authenticated authority/recycler view - same template as the public
+// passport, wider field set (authority_visible instead of
+// consumer_visible). No scan event logged: an authenticated authority
+// lookup isn't a consumer scan, same reasoning as the JSON export.
+async function renderAuthorityPassportPage(req, res, sgtinRecord, basePath) {
+  const locale = req.query.lang || null;
+  const passport = await passportResolver.resolveSgtinPassport(sgtinRecord.id, locale);
+  passport.resolvedFields = await filterToAuthorityVisible(passport.resolvedFields);
+  const scanStats = await scanService.getScanStats(sgtinRecord.id);
+  const events = await getEventsForSgtin(sgtinRecord.id);
+  const availableLocales = await getAvailableLocalesForPassport(passport);
+  const supplyChainGroups = await supplyChainRepository.getGroupedForEntity('style', passport.style.id);
+
+  res.render('dpp-passport', {
+    passport,
+    scanStats,
+    events,
+    availableLocales,
+    supplyChainGroups,
+    url: basePath,
+    locale,
+    isAuthorityView: true,
+    authorityUser: req.user
   });
 }
 
@@ -207,5 +246,6 @@ module.exports = {
   findSgtinByGtinSerial,
   findSgtinByBatchGtinSerial,
   renderPassportPage,
+  renderAuthorityPassportPage,
   renderPassportJson
 };

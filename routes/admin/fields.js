@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const {
-      field_key, label, category, description, data_type, required, consumer_visible, sort_order,
+      field_key, label, category, description, data_type, required, consumer_visible, authority_visible, sort_order,
       editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_sgtin,
       locks_at_production
     } = req.body;
@@ -31,6 +31,7 @@ router.post('/', async (req, res) => {
       data_type: data_type || 'text',
       required: required || false,
       consumer_visible: consumer_visible !== false,
+      authority_visible: authority_visible !== false,
       sort_order: sort_order || 0,
       editable_at_style: editable_at_style !== false,
       editable_at_variant: editable_at_variant !== false,
@@ -65,7 +66,7 @@ router.get('/:fieldIdOrKey', async (req, res) => {
 router.put('/:fieldId', async (req, res) => {
   try {
     const {
-      label, description, required, consumer_visible, sort_order, category,
+      label, description, required, consumer_visible, authority_visible, sort_order, category,
       editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_sgtin,
       locks_at_production
     } = req.body;
@@ -73,8 +74,8 @@ router.put('/:fieldId', async (req, res) => {
     // Only touch fields the caller actually sent - a bare `undefined` bind
     // value throws in sqlite3, and omitting a field from a request body
     // is not the same as explicitly clearing it
-    const booleanFields = new Set(['required', 'consumer_visible', 'editable_at_style', 'editable_at_variant', 'editable_at_batch', 'editable_at_gtin', 'editable_at_sgtin', 'locks_at_production']);
-    const candidates = { label, description, required, consumer_visible, sort_order, category, editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_sgtin, locks_at_production };
+    const booleanFields = new Set(['required', 'consumer_visible', 'authority_visible', 'editable_at_style', 'editable_at_variant', 'editable_at_batch', 'editable_at_gtin', 'editable_at_sgtin', 'locks_at_production']);
+    const candidates = { label, description, required, consumer_visible, authority_visible, sort_order, category, editable_at_style, editable_at_variant, editable_at_batch, editable_at_gtin, editable_at_sgtin, locks_at_production };
     const updates = {};
     for (const [key, value] of Object.entries(candidates)) {
       if (value === undefined) continue;

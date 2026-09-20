@@ -120,8 +120,10 @@
           localStorage.setItem('token', data.token);
           localStorage.setItem('user', JSON.stringify(data.user || { username }));
 
-          // Redirect to v2 admin hub
-          window.location.href = '/admin-v2';
+          // Redirect back to where the user came from (e.g. an
+          // authority passport link) if given, else the v2 admin hub
+          const params = new URLSearchParams(window.location.search);
+          window.location.href = params.get('redirect') || '/admin-v2';
         } else {
           errorDiv.textContent = data.error || 'Login failed. Please try again.';
           errorDiv.classList.remove('hidden');

@@ -380,8 +380,10 @@
             <div class="field-row" style="display:flex; gap:20px;">
               <label class="checkbox-row"><input type="checkbox" name="required" /> Required</label>
               <label class="checkbox-row"><input type="checkbox" name="consumer_visible" checked /> Consumer Visible</label>
+              <label class="checkbox-row"><input type="checkbox" name="authority_visible" checked /> Authority Visible</label>
               <label class="checkbox-row"><input type="checkbox" name="locks_at_production" /> Locks at Production</label>
             </div>
+            <p class="small muted" style="margin:-8px 0 14px;">Authority Visible controls the (not yet public) authenticated authority/recycler passport view - separate from Consumer Visible.</p>
             <p class="small muted" style="margin:-8px 0 14px;">EU-required fields normally lock when a batch is marked produced (proving the compliance data is fixed); Nudie fields normally stay editable. Check/uncheck to override that default for this field.</p>
             <div class="hint-panel">
               <label style="display:block; margin-bottom:10px;">Which levels can set this field?</label>
@@ -423,6 +425,7 @@
                   <th>Levels</th>
                   <th class="center">Required</th>
                   <th class="center">Consumer</th>
+                  <th class="center" title="Visible in the (not yet public) authenticated authority/recycler passport view">Authority</th>
                   <th class="center" title="Whether this field's value freezes when a batch is marked produced">Locks</th>
                   <th>Description</th>
                   <th>Actions</th>
@@ -460,6 +463,7 @@
                     </td>
                     <td class="center"><%- f.required ? icon('check', { size: 14 }) : '—' %></td>
                     <td class="center"><%- f.consumer_visible ? icon('check', { size: 14 }) : '—' %></td>
+                    <td class="center"><%- f.authority_visible ? icon('check', { size: 14 }) : '—' %></td>
                     <td class="center"><%- f.locks_at_production ? icon('lock', { size: 14 }) : '—' %></td>
                     <td class="small muted"><%= f.description || '—' %></td>
                     <td style="white-space:nowrap;">
@@ -468,7 +472,7 @@
                     </td>
                   </tr>
                   <tr id="field-edit-row-<%= f.id %>" class="hidden">
-                    <td colspan="10" style="background:var(--surface-2); padding:20px;">
+                    <td colspan="11" style="background:var(--surface-2); padding:20px;">
                       <form onsubmit="saveFieldEdit(event, <%= f.id %>)">
                         <div class="field-grid-3" style="margin-bottom:14px;">
                           <div>
@@ -490,6 +494,7 @@
                         <div style="display:flex; gap:20px; margin-bottom:14px;">
                           <label class="checkbox-row"><input type="checkbox" name="required" <%= f.required ? 'checked' : '' %> /> Required</label>
                           <label class="checkbox-row"><input type="checkbox" name="consumer_visible" <%= f.consumer_visible ? 'checked' : '' %> /> Consumer Visible</label>
+                          <label class="checkbox-row"><input type="checkbox" name="authority_visible" <%= f.authority_visible ? 'checked' : '' %> /> Authority Visible</label>
                           <label class="checkbox-row"><input type="checkbox" name="locks_at_production" <%= f.locks_at_production ? 'checked' : '' %> /> Locks at Production</label>
                         </div>
                         <div style="margin-bottom:14px;">
@@ -531,6 +536,7 @@
               description: formData.get('description'),
               required: formData.has('required'),
               consumer_visible: formData.has('consumer_visible'),
+              authority_visible: formData.has('authority_visible'),
               locks_at_production: formData.has('locks_at_production'),
               editable_at_style: formData.has('editable_at_style'),
               editable_at_variant: formData.has('editable_at_variant'),
@@ -583,6 +589,7 @@
               description: formData.get('description'),
               required: formData.has('required'),
               consumer_visible: formData.has('consumer_visible'),
+              authority_visible: formData.has('authority_visible'),
               locks_at_production: formData.has('locks_at_production'),
               editable_at_style: formData.has('editable_at_style'),
               editable_at_variant: formData.has('editable_at_variant'),

@@ -75,6 +75,12 @@
     </div>
   </div>
 
+  <% if (typeof isAuthorityView !== 'undefined' && isAuthorityView) { %>
+    <div style="background:#1a1a1a;color:#fff;padding:10px 20px;text-align:center;font-size:13px;font-weight:600;letter-spacing:0.02em;">
+      Authority / Recycler View - extended information, logged in as <%= authorityUser.username %> (<%= authorityUser.role %>)
+    </div>
+  <% } %>
+
   <!-- Hero -->
   <div class="wrap" style="padding:36px 20px 24px 20px;">
     <div class="cap" style="margin-bottom:8px;">Digital Product Passport &middot; Style <%= passport.style.style_number %></div>
