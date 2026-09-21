@@ -11,7 +11,8 @@ This repository contains both DPP v1 and v2 implementations on separate Git bran
 git checkout dpp-v2
 
 # Set environment variables
-export JWT_SECRET="4fcb7477204ff12c5846d9efef9e18f41d946126801faf09aaad86e7ac2b0144"
+# Generate your own: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+export JWT_SECRET="<your-own-secret>"
 export DB_VERSION=v2
 export DB_PATH=data/dpp-v2.db
 
@@ -85,7 +86,7 @@ npm start
 ### .env (v2 development)
 
 ```
-JWT_SECRET=4fcb7477204ff12c5846d9efef9e18f41d946126801faf09aaad86e7ac2b0144
+JWT_SECRET=<your-own-secret>
 PORT=3000
 DB_PATH=data/dpp-v2.db
 DB_VERSION=v2
