@@ -710,7 +710,7 @@ router.get('/variant/:variantId', async (req, res) => {
       data_type: f.dataType,
       value: f.source === 'variant' ? f.value : null,
       inheritedValue: f.source === 'style' ? f.value : null,
-      inheritedFrom: f.source === 'style' ? 'Style' : null,
+      inheritedFrom: f.source === 'style' ? 'Product' : null,
       editable: f.editable
     }));
     const availableLocales = await fieldRepository.getAvailableLocales('variant', variant.id);
@@ -1173,7 +1173,7 @@ router.get('/gtin/:gtinId', async (req, res) => {
       data_type: f.dataType,
       value: f.source === 'gtin' ? f.value : null,
       inheritedValue: f.source && f.source !== 'gtin' ? f.value : null,
-      inheritedFrom: f.source === 'variant' ? 'Variant' : f.source === 'style' ? 'Style' : null,
+      inheritedFrom: f.source === 'variant' ? 'Variant' : f.source === 'style' ? 'Product' : null,
       editable: f.editable
     }));
     const availableLocales = await fieldRepository.getAvailableLocales('gtin', gtin.id);
