@@ -14,7 +14,13 @@
     <div class="detail-header">
       <div>
         <h1>Individual Unit: <span class="mono"><%= sgtin.serial_number %></span></h1>
-        <p class="subtitle"><%= style.product_name %> (Style <%= style.style_number %>)</p>
+        <p class="subtitle">
+          <% if (variant) { %>
+            <%= variant.product_name || style.product_name %> (Product <%= style.style_number %>, Variant <%= variant.variant_name %>)
+          <% } else { %>
+            <%= style.product_name %> (Product <%= style.style_number %>)
+          <% } %>
+        </p>
       </div>
       <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
         <a href="/admin-v2?tab=sgtins" class="btn"><%- icon('arrow-left') %> Back to Individual Units</a>
@@ -221,8 +227,6 @@
                   </div>
                   <% if (val.editable === false) { %>
                     <p class="field-card-note">Not editable at SGTIN level (see Field Config &rsaquo; Levels).</p>
-                  <% } else { %>
-                    <p class="field-card-note">No value at GTIN, Batch, or Style level either — this can be filled in here.</p>
                   <% } %>
                 </div>
               <% } %>
