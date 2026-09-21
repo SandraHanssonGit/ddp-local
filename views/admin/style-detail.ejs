@@ -23,7 +23,7 @@
         <!-- Style Information Card -->
         <div class="card card-identifiers">
           <div class="card-head">
-            <h2>Style Information</h2>
+            <h2>Product Info</h2>
             <button onclick="toggleEdit('style-info')" class="btn btn-primary">Edit</button>
           </div>
 
@@ -31,7 +31,7 @@
           <div id="style-info-view">
             <div class="info-grid">
               <div class="info-item">
-                <label class="label-sm">Style Number</label>
+                <label class="label-sm">Product Number</label>
                 <p class="value mono"><%= style.style_number %></p>
               </div>
               <div class="info-item">
@@ -56,7 +56,7 @@
           <form id="style-info-edit" class="hidden" onsubmit="saveStyleInfo(event)">
             <div class="field-grid">
               <div>
-                <label>Style Number</label>
+                <label>Product Number</label>
                 <input type="text" id="edit-style-number" value="<%= style.style_number %>" readonly>
               </div>
               <div>
@@ -109,7 +109,7 @@
                 </label>
                 <span id="image-upload-name" class="small muted">No file chosen</span>
                 <button type="button" onclick="uploadImage()" class="btn small" style="margin-left:8px;">Upload New</button>
-                <a href="#" onclick="deleteStyleImage(); return false;" class="link-action muted small" style="margin-left:auto; display:inline-flex; align-items:center; gap:4px;"><%- icon('trash-2', { size: 13 }) %> Delete</a>
+                <a href="#" onclick="deleteStyleImage(); return false;" class="link-action danger small" style="margin-left:auto; display:inline-flex; align-items:center; gap:4px;"><%- icon('trash-2', { size: 13 }) %> Delete Image</a>
               </div>
             <% } else { %>
               <div style="margin-top:14px; display:flex; gap:10px; align-items:center;">

@@ -67,7 +67,7 @@
         </div>
 
         <div class="field-row">
-          <input type="text" id="productSearch" placeholder="Search Style #, Product Name, Variant, GTIN, SKU..." style="width:340px;" value="<%= search || '' %>">
+          <input type="text" id="productSearch" placeholder="Search Style #, Product Name, Variant, GTIN, SKU..." style="width:320px;" value="<%= search || '' %>">
         </div>
 
         <% if (products && products.length > 0) { %>
@@ -196,7 +196,6 @@
                 <% }); %>
               </select>
             <% } %>
-            <input type="text" id="batchSearch" placeholder="Search Batch ID, Production Order..." style="width:260px;" value="<%= search || '' %>">
             <button onclick="document.getElementById('addBatchForm').classList.toggle('hidden')" class="btn btn-primary">
               + Add Batch
             </button>
@@ -228,6 +227,10 @@
             <p class="small muted" style="margin:-8px 0 14px;">Supplier and Factory are set via Field Values below, like every other field - not at creation time.</p>
             <button type="submit" class="btn btn-primary">Add Batch</button>
           </form>
+        </div>
+
+        <div class="field-row">
+          <input type="text" id="batchSearch" placeholder="Search Batch ID, Production Order..." style="width:320px;" value="<%= search || '' %>">
         </div>
 
         <% if (batches && batches.length > 0) { %>
@@ -266,7 +269,7 @@
       <% if (tab === 'sgtins') { %>
         <div class="section-head">
           <h2>Individual Units</h2>
-          <input type="text" id="sgtinSearch" placeholder="Search Serial, GTIN, SKU, Batch, Style #..." style="width:300px;" value="<%= search || '' %>">
+          <input type="text" id="sgtinSearch" placeholder="Search Serial, GTIN, SKU, Batch, Style #..." style="width:320px;" value="<%= search || '' %>">
         </div>
 
         <% if (sgtins && sgtins.length > 0) { %>

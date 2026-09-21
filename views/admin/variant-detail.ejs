@@ -107,7 +107,7 @@
               <span id="variant-image-upload-name" class="small muted">No file chosen</span>
               <button type="button" onclick="uploadVariantImage()" class="btn small" style="margin-left:8px;">Upload New</button>
               <% if (variant.image_url) { %>
-                <a href="#" onclick="deleteVariantImage(); return false;" class="link-action muted small" style="margin-left:auto; display:inline-flex; align-items:center; gap:4px;"><%- icon('trash-2', { size: 13 }) %> Delete</a>
+                <a href="#" onclick="deleteVariantImage(); return false;" class="link-action danger small" style="margin-left:auto; display:inline-flex; align-items:center; gap:4px;"><%- icon('trash-2', { size: 13 }) %> Delete Image</a>
               <% } %>
             </div>
           </div>
