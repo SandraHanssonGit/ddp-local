@@ -2,6 +2,32 @@
 
 Digital Product Passport system for managing product lifecycle from manufacturing to recycling.
 
+> ⚠️ **You are on the `dpp-v2` branch.** This is the active, current version of the
+> project (hierarchical Style → Batch → GTIN → SGTIN model with configurable
+> fields, inheritance and audit trail). The rest of this file (below) describes
+> the **old v1 flat serial-number model**, kept only for reference on the
+> `main` branch — do not follow those instructions here.
+>
+> **To start v2:**
+> ```bash
+> git checkout dpp-v2
+> export JWT_SECRET="<your-own-secret>"
+> export DB_VERSION=v2
+> export DB_PATH=data/dpp-v2.db
+> npm install
+> npm start
+> ```
+> Then open `http://localhost:3000/admin-v2`.
+>
+> Full setup, database separation and troubleshooting: see
+> [DPP-V1-V2-SETUP.md](DPP-V1-V2-SETUP.md).
+>
+> Domain model, inheritance rules and architecture: see [CLAUDE.md](CLAUDE.md).
+
+---
+
+## v1 (legacy, `main` branch only)
+
 ## Quick Start
 
 ### 1. Install Dependencies
